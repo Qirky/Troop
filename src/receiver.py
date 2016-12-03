@@ -8,8 +8,9 @@
 
 import SocketServer, socket
 from threading import Thread
-from server import ThreadedServer
-from message import NetworkMessage
+from threadserv import ThreadedServer
+from time import sleep
+from message import *
 
 class Receiver:
     """
@@ -42,9 +43,6 @@ class Receiver:
         self.server_thread.daemon = True
         self.running = False
 
-        self.conn      = None
-        self.connected = False
-
         Handler.master = self
 
         # Information about other clients
@@ -71,8 +69,10 @@ class Receiver:
         self.server_thread.start()
         self.running = True
 
-    def quit(self):
-        self.running = False       
+    def kill(self):
+        self.running = False
+        self.server.shutdown()
+        self.server.server_close()
 
 
 class Handler(SocketServer.BaseRequestHandler):
@@ -81,25 +81,42 @@ class Handler(SocketServer.BaseRequestHandler):
     """
     master = None
     def handle(self):
+        i = 0
         while self.master.running:
 
-            msg = NetworkMessage(self.request.recv(4096))
+            try:
+
+                msg = NetworkMessage(self.request.recv(4096))
+
+            except EmptyMessageError:               
+
+                break
 
             # Store information about a newly connected client
 
-            if msg[0] == "new_client":
+            if msg.type == MSG_CONNECT:
 
-                step = Node.attributes + 1 # for "new_client" header
+                step = len(Node.attributes)
 
-                for n in range(0, len(msg), step):
+                for n in range(0, len(msg), step + 1):
 
-                    node_id = int(msg[n+1])
+                    node_id = int(msg[n])
 
-                    self.master.nodes[node_id] = Node(*msg[n+1:n+step])
+                    self.master.nodes[node_id] = Node(*msg[n:n+step])
+
+            # Code feedback from the server
+
+            elif msg.type == MSG_RESPONSE:
+
+                print(msg[-1])
 
             # Write the data to the IDE
 
             else:
+
+                while self.master.ui is None:
+
+                    sleep(0.1)
                 
                 self.master.ui.write(msg)
  
@@ -108,7 +125,7 @@ class Node:
     """ Class for basic information on other nodes within the network.
         Contains no information about code/text.
     """
-    attributes = 4
+    attributes = ('id_num', 'name', 'hostname', 'port')
     def __init__(self, id_num, name, hostname, port):
         self.id       = int(id_num)
         self.name     = name

@@ -36,5 +36,18 @@ class Sender:
         return self
 
     def __call__(self, *args):
+        """ args[0] should always be message type (int or string) """
+        args = list(args)
+        args.insert(1,-1) # This compensates for an ID (checked on the server)
         self.conn.sendall("".join(["<{}>".format(arg) for arg in args]))
         return
+
+    def kill(self):
+        self.conn.close()
+        return
+
+class ConnectionError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)

@@ -4,6 +4,9 @@
 
     Real-time collaborative Live Coding with FoxDot and SuperCollder.
 
+    Sits on a machine (can be a performer machine) and listens for incoming
+    connections and executes FoxDot code.
+
     Aims:
 
     v0.1. - Server machine sends messages to SuperCollider only and
@@ -14,23 +17,13 @@
     v0.3. - All clients send synchronised messages to SuperCollider
 
 """
-try:
-    import FoxDot
-except ImportError:
-    pass
 
 import socket
 import SocketServer
 from threading import Thread
+from threadserv import ThreadedServer
+from interpreter import *
 from message import *
-
-
-# 'Master' Server
-#   Sits on a machine (can be a performer machine) and listens for incoming
-#   connections.
-
-class ThreadedServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    pass
 
 class TroopServer:
     """
@@ -38,67 +31,107 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    def __init__(self, hostname=socket.gethostname(), port=57890, boot=True):
+    def __init__(self, hostname=socket.gethostname(), port=57890):
         # Addres information
-        self.hostname = hostname
-        self.port     = port
-        self.address  = (self.hostname, self.port)
+        self.hostname = str(hostname)
+        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0])
+        self.port     = int(port)
 
-        # Instance of a SocketServer
-        self.server   = ThreadedServer(self.address, Handler)
+        # Look for an empty port
+        port_found = False
+        while not port_found:
+
+            try:
+
+                self.server = ThreadedServer((self.hostname, self.port), TroopRequestHandler)
+                port_found  = True
+
+            except socket.error:
+
+                self.port += 1
 
         # Reference to the thread that is listening for new connections
         self.server_thread = Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
-        self.running = False
         
         # List of clients (hostname, ip)
         self.clients     = []
 
-        # Give handler information about this server
-        Handler.master = self
+        # Give request handler information about this server
+        TroopRequestHandler.master = self
 
-        if boot: self.boot()
+        # This executes code
+        self.evaluate = Interpreter()
+
+        self.boot()
 
     def boot(self):
         self.server_thread.start()
-        self.running = True
-        # Connect the local peer to this server
-        print "Server running on port {}\n".format(self.port)
+        print "Server running @ {} on port {}\n".format(self.ip_addr, self.port)
         return
-
+        
     def kill(self):
         self.running = False
         self.server.shutdown()
         self.server.server_close()
+        self.evaluate.quit()
         return
 
 # Request Handler for TroopServer 
 
-class Handler(SocketServer.BaseRequestHandler):
+class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
             self.client_address = (address, port)
         """
-        while self.master.running:
+        while True:
 
-            msg = NetworkMessage(self.request.recv(4096))
+            try:
 
-            if self.client_address not in self.master.clients:
+                msg = NetworkMessage(self.request.recv(4096))
+
+            except:
+
+                # Handle the loss of a client
+
+                print "Client @ {} has disconnected".format(self.client_address)
+
+                # Get the ID of the dead clienet
+
+                for client in self.master.clients:
+
+                    if client == self.client_address:
+
+                        dead_client = client
+
+                # Remove from list
+
+                self.master.clients.remove(self.client_address)
+
+                # Notify other clients
+
+                for clienet in self.master.clients:
+
+                    client.send(NetworkMessage.compile(MSG_REMOVE, dead_client.id))
+
+                break
+
+            if msg.type == MSG_CONNECT and self.client_address not in self.master.clients:
 
                 print "New Connection from", self.client_address
 
+                # Store information about the new client
+
                 new_client = Client(self.client_address, len(self.master.clients))                
                 new_client.name = msg[-1]
-                new_client.connect(msg[1])
-
+                new_client.connect(msg[-2])
                 self.master.clients.append(new_client)
 
                 # Update all other connected clients & vice versa
 
-                msg1 = NetworkMessage.compile("new_client",
+                msg1 = NetworkMessage.compile( MSG_CONNECT,
                                                new_client.id,
                                                new_client.name,
                                                new_client.hostname,
@@ -106,13 +139,15 @@ class Handler(SocketServer.BaseRequestHandler):
 
                 for client in self.master.clients:
 
+                    # Tell other clients about the new connection
+
                     client.send(msg1)
 
-                    # Don't send information to the new client twice, but it should have a record of itself
+                    # Tell the new client about other clients
 
                     if client != self.client_address:
 
-                        msg2 = NetworkMessage.compile("new_client",
+                        msg2 = NetworkMessage.compile( MSG_CONNECT,
                                                        client.id,
                                                        client.name,
                                                        client.hostname,
@@ -122,15 +157,47 @@ class Handler(SocketServer.BaseRequestHandler):
                     
                 # Request the contents of Client 1 and update the new client
 
-                # TODO
+                if len(self.master.clients) > 1:
 
+                    self.master.clients[0].send(NetworkMessage.compile( MSG_GET_ALL, new_client.id))
+
+            elif msg.type == MSG_SET_ALL:
+
+                # Send the client *all* of the current code
+
+                new_client_id = int(msg[-1])
+
+                for client in self.master.clients:
+
+                    if client.id == new_client_id:
+
+                        client.send(NetworkMessage.compile( MSG_SET_ALL, 0, msg[1] ))
+
+            # If we have an execute message, evaluate
+
+            elif msg.type == MSG_EVALUATE:
+
+                try:
+
+                    response = self.master.evaluate(msg[1])
+
+                    outgoing = NetworkMessage.compile(MSG_RESPONSE, 0, response)
+
+                    for client in self.master.clients:
+
+                        client.send(outgoing)
+
+                except Exception as e:
+
+                    print(e)
+                    
             else:
 
                 # Attach the message with the ID of sender
 
                 id_num = self.master.clients.index(self.client_address)
 
-                outgoing = NetworkMessage.compile(id_num, *msg)
+                outgoing = NetworkMessage.compile(msg.type, id_num, *msg)
 
                 # Update all clients with message
 
@@ -139,9 +206,6 @@ class Handler(SocketServer.BaseRequestHandler):
                     if client != self.client_address:
 
                         client.send(outgoing)
-
-    def notify(self):
-        pass
 
 # Keeps information about each connected client
 
@@ -185,10 +249,3 @@ class Client:
         return self.address == other
     def __ne__(self, other):
         return self.address != other
-
-
-if __name__ == "__main__":
-
-    server = TroopServer()
-
-    
