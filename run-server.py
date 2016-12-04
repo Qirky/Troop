@@ -18,7 +18,7 @@
 
 """
 
-from src import TroopServer
+from src.server import TroopServer
 
 myServer = TroopServer()
     

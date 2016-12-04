@@ -13,17 +13,17 @@ re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
 # Message Types
 
-MSG_CONNECT   = -1
-MSG_INSERT    = 0
-MSG_DELETE    = 1
-MSG_BACKSPACE = 2
-MSG_SELECT    = 3
-MSG_EVALUATE  = 4
-MSG_HIGHLIGHT = 5
-MSG_GET_ALL   = 6
-MSG_SET_ALL   = 7
-MSG_RESPONSE  = 8
-MSG_REMOVE    = 9
+MSG_CONNECT   = 1
+MSG_INSERT    = 2
+MSG_DELETE    = 3
+MSG_BACKSPACE = 4
+MSG_SELECT    = 5
+MSG_EVALUATE  = 6
+MSG_HIGHLIGHT = 7
+MSG_GET_ALL   = 8
+MSG_SET_ALL   = 9
+MSG_RESPONSE  = 10
+MSG_REMOVE    = 11
 
 class NetworkMessage:
     """
@@ -62,10 +62,20 @@ class NetworkMessage:
     def compile(*args):
         return "".join(["<{}>".format(item) for item in args])
 
+    @staticmethod
+    def password(password):
+        return NetworkMessage.compile(-1, -1, password)
+
 
 class EmptyMessageError:
     def __init__(self):
         self.value = "Message contained no data"
+    def __str__(self):
+        return repr(self.value)
+
+class ConnectionError(Exception):
+    def __init__(self, value):
+        self.value = value
     def __str__(self):
         return repr(self.value)
     

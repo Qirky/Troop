@@ -18,17 +18,18 @@ Start the Troop Server by running the `run-server.py` Python file. Depending on 
 
 	python run-server.py
 
-By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop Clients can connect to the server and you're up and running!
+You will be asked to enter a password. You can leave this blank if you wish. Connecting clients will be required to enter the same password when connecting to the server. By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop Clients can connect to the server and you're up and running!
 
-**Warning:** All Python code sent from the Clients to Server is executed, so be careful when using public networks as you will then be susceptible to having malicious code run on your machine. A password system will be introduced soon.
+**Warning:** All Python code sent from the Clients to Server is executed, so be careful when using public networks as you will then be susceptible to having malicious code run on your machine. Avoid using public networks and only give your server password to people you trust.
 
 ### Running Troop Client
 
-Run the `run-client.py` Python file as above. You will be asked for three things:
+Run the `run-client.py` Python file as above. You will be asked for four things:
 
 - The IP address of the Troop Server
 - The port of the Troop Server
 - A name you wish to be identified by while using Troop
+- The password for the Troop Server
 
 If you've connected successfully then you'll open a black text box. Just type in some Python and press Ctrl+Return to evaluate the block of code your cursor is in. If there are any other collaborators you should see coloured markers in the text displaying their names. You can even execute code they've written and vice versa.
 

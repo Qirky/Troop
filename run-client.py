@@ -16,10 +16,12 @@
 
 """
 
-from src import Client
+from src.client import Client
 
-host = raw_input("Troop server address: ")
-port = raw_input("Port number: ")
-name = raw_input("Enter a name: ")
+##host = raw_input("Troop server address: ")
+##port = raw_input("Port number: ")
+##name = raw_input("Enter a name: ")
+
+host, port, name = "Ryan-Laptop", 57890, "Ryan"
 
 myClient = Client(host, port, name)

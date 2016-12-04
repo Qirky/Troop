@@ -7,6 +7,8 @@
 """
 
 import socket
+from message import *
+from hashlib import md5
 
 class Sender:
     """
@@ -22,17 +24,31 @@ class Sender:
         self.conn      = None
         self.connected = False
 
-    def connect(self, hostname, port=57890):
+    def connect(self, hostname, port=57890, password=""):
         """ Connects to the master Troop server and
             start a listening instance on this machine """
         if not self.connected:
-            # Connect to remote
+
+            # Get details of remote
             self.hostname = hostname
             self.port     = int(port)
             self.address  = (self.hostname, self.port)
-            self.conn = socket.socket()
-            self.conn.connect(self.address)
-            self.connected = True
+
+            # Connect to remote
+
+            try:
+
+                self.conn = socket.socket()
+                self.conn.connect(self.address)
+
+            except:
+
+                raise(ConnectionError("Could not connect to host '{}'".format( self.hostname ) ) )
+
+            # Send the password
+            self.conn.send(NetworkMessage.password(md5(password).hexdigest()))
+            self.connected = bool(int(self.conn.recv(1024)))
+            
         return self
 
     def __call__(self, *args):
@@ -46,8 +62,4 @@ class Sender:
         self.conn.close()
         return
 
-class ConnectionError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+

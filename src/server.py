@@ -20,6 +20,8 @@
 
 import socket
 import SocketServer
+from getpass import getpass
+from hashlib import md5
 from threading import Thread
 from threadserv import ThreadedServer
 from interpreter import *
@@ -63,6 +65,9 @@ class TroopServer:
         # This executes code
         self.evaluate = Interpreter()
 
+        # Set a password for the server
+        self.password = md5(getpass("Password (leave blank for no password): "))
+
         self.boot()
 
     def boot(self):
@@ -86,6 +91,25 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
             self.server  = ThreadedServer
             self.client_address = (address, port)
         """
+
+        # Password test
+
+        msg = NetworkMessage(self.request.recv(4096))
+
+        if msg[-1] == self.master.password.hexdigest():
+
+            self.request.send("1")
+
+        else:
+
+            self.request.send("0")
+
+            print("Failed login from {}".format(self.client_address[0]))
+
+            return
+
+        # If success, enter loop
+        
         while True:
 
             try:
@@ -120,14 +144,14 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             if msg.type == MSG_CONNECT and self.client_address not in self.master.clients:
 
-                print "New Connection from", self.client_address
-
                 # Store information about the new client
 
                 new_client = Client(self.client_address, len(self.master.clients))                
                 new_client.name = msg[-1]
-                new_client.connect(msg[-2])
+                new_client.connect(msg[2])
                 self.master.clients.append(new_client)
+
+                print("New Connection from", self.client_address)
 
                 # Update all other connected clients & vice versa
 
