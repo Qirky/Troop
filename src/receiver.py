@@ -92,10 +92,6 @@ class Handler(SocketServer.BaseRequestHandler):
 
                 break
 
-            if msg.type == MSG_ACCEPT:
-
-                pass
-
             # Store information about a newly connected client
 
             elif msg.type == MSG_CONNECT:
