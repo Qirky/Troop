@@ -94,19 +94,19 @@ class Handler(SocketServer.BaseRequestHandler):
 
             # Store information about a newly connected client
 
-            if msg.type == MSG_CONNECT:
+            if msg['type'] == MSG_CONNECT:
 
-                step = len(Node.attributes)
+                step = len(MSG_HEADER[MSG_CONNECT])
 
-                for n in range(0, len(msg), step + 1):
+                for n in range(0, len(msg), step):
 
-                    node_id = int(msg[n])
+                    node_id = int(msg[n+1])
 
-                    self.master.nodes[node_id] = Node(*msg[n:n+step])
+                    self.master.nodes[node_id] = Node(*msg[n+1:n+step])
 
             # Code feedback from the server
 
-            elif msg.type == MSG_RESPONSE:
+            elif msg['type'] == MSG_RESPONSE:
 
                 print(msg[-1])
 

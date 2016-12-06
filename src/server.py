@@ -95,11 +95,9 @@ class TroopServer:
 
                 client_address, msg = self.char_queue.get_nowait()
 
-                print msg
-
                 id_num = self.clients.index(client_address)
 
-                outgoing = NetworkMessage.compile(msg.type, id_num, *msg)
+                outgoing = NetworkMessage.compile(msg['type'], id_num, *msg[2:])
 
                 # Update all clients with message
 
@@ -134,7 +132,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # Password test
 
-        msg = NetworkMessage(self.request.recv(4096))
+        msg = NetworkMessage(self.request.recv(1024))
 
         if msg[-1] == self.master.password.hexdigest():
 
@@ -154,7 +152,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             try:
 
-                msg = NetworkMessage(self.request.recv(4096))
+                msg = NetworkMessage(self.request.recv(1024))
 
             except:
 
@@ -188,7 +186,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 new_client = Client(self.client_address, len(self.master.clients))                
                 new_client.name = msg[-1]
-                new_client.connect(msg[2])
+                new_client.connect(msg[3])
                 self.master.clients.append(new_client)
 
                 print("New Connection from", self.client_address)
@@ -235,7 +233,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     if client.id == new_client_id:
 
-                        client.send(NetworkMessage.compile( MSG_SET_ALL, 0, msg[1] ))
+                        client.send(NetworkMessage.compile( MSG_SET_ALL, 0, msg[2] ))
 
             # If we have an execute message, evaluate
 
@@ -243,7 +241,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 try:
 
-                    response = self.master.evaluate(msg[1])
+                    response = self.master.evaluate(msg[2])
 
                     outgoing = NetworkMessage.compile(MSG_RESPONSE, 0, response)
 

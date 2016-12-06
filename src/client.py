@@ -63,6 +63,8 @@ class Client:
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
+
+        self.ui.text.focus_set()
         self.ui.run()
 
     def get_client_id(self):

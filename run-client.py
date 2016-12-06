@@ -19,9 +19,9 @@
 from src.client import Client
 import os.path
 
-if os.path.isfile('.conf'):
+if os.path.isfile('client.cfg'):
 
-    host, port, name = Client.read_configuration_file('.conf')
+    host, port, name = Client.read_configuration_file('client.cfg')
 
     """
     You can set a configuration file if you are connecting to the same

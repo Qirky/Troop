@@ -58,7 +58,6 @@ class Interface:
         
     def run(self):
         self.root.mainloop()
-        print "MUDDAFUKKA"
         
     def kill(self):
         try:
@@ -80,7 +79,7 @@ class Interface:
         """ Writes a network message to the queue
         """
         # Keep information about new peers
-        sender_id = msg.id
+        sender_id = msg['src_id']
         if sender_id not in self.text.peers:
             self.text.peers[sender_id] = Peer(sender_id, self.text)
             self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
@@ -94,7 +93,6 @@ class Interface:
         try:
             while True:
                 args = self.push_queue.get_nowait()
-                print args
                 self.push(*args)
         # Break when the queue is empty
         except Queue.Empty:
@@ -276,119 +274,123 @@ class ThreadSafeText(Text):
         try:
             while True:
 
-                msg = self.queue.get_nowait()
+                pkg = self.queue.get_nowait()
 
-                # Get message contents (msg[0:1] is type and id)
-                data = msg[2:]
-                this_peer = self.peers[msg.id]
+                # Identify the src peer
+                this_peer = self.peers[pkg['src_id']]
 
-                print data
+                # A message might contain more than 1 message (message-ception) 
 
-                # Handles selection changes
+                for msg in pkg.packages():
 
-                if msg.type == MSG_SELECT:
+                    # Handles selection changes
 
-                    sel1 = str(data[0])
-                    sel2 = str(data[1])
-                    
-                    this_peer.select(sel1, sel2)
+                    if msg['type'] == MSG_SELECT:
 
-                    this_peer.move(*[int(val) for val ini sel2.split(".")])
+                        sel1 = str(msg['start'])
+                        sel2 = str(msg['end'])
+                        
+                        this_peer.select(sel1, sel2)
 
-                # Handles keypresses
+                        this_peer.move(*[int(val) for val in sel2.split(".")])
 
-                elif msg.type == MSG_DELETE:
-                    
-                    line = int(data[0])
-                    col  = int(data[1])
+                    # Handles keypresses
 
-                    if this_peer.hasSelection():
+                    elif msg['type'] == MSG_DELETE:
+                        
+                        line = int(msg['row'])
+                        col  = int(msg['col'])
 
-                        this_peer.deleteSelection()
+                        if this_peer.hasSelection():
 
-                    else:
+                            this_peer.deleteSelection()
 
-                        index = "{}.{}".format(line, col)
+                        else:
 
-                        self.delete(index)
-
-                    this_peer.move(line, col)
-
-                elif msg.type == MSG_BACKSPACE:
-
-                    line = int(data[0])
-                    col  = int(data[1])
-
-                    if this_peer.hasSelection():
-
-                        this_peer.deleteSelection()
-
-                    else:
-
-                        # Move the cursor left one for a backspace
-
-                        if line > 0 and col > 0:
-
-                            index = "{}.{}".format(line, col-1)
-
-                            self.delete(index)
-
-                        elif line > 1 and col == 0:
-
-                            index = "{}.end".format(line-1,)
+                            index = "{}.{}".format(line, col)
 
                             self.delete(index)
 
                         this_peer.move(line, col)
 
-                elif msg.type == MSG_HIGHLIGHT:
+                    elif msg['type'] == MSG_BACKSPACE:
 
-                    this_peer.highlightBlock(data[0:2])
+                        line = int(msg['row'])
+                        col  = int(msg['col'])
 
-                elif msg.type == MSG_INSERT:
+                        if this_peer.hasSelection():
 
-                    # Get the character to insert
-                    
-                    char = str(data[0])
-                    line = int(data[1])
-                    col  = int(data[2])
+                            this_peer.deleteSelection()
 
-                    index = "{}.{}".format(line, col)
+                        else:
 
-                    if len(char) > 0 and this_peer.hasSelection():
+                            # Move the cursor left one for a backspace
 
-                        this_peer.deleteSelection()
+                            if line > 0 and col > 0:
 
-                    self.insert(index, char)
+                                index = "{}.{}".format(line, col-1)
 
-                    this_peer.move(line, col)
+                                self.delete(index)
 
-                elif msg.type == MSG_GET_ALL:
+                            elif line > 1 and col == 0:
 
-                    # Return the contents of the text box
+                                index = "{}.end".format(line-1,)
 
-                    text = self.get("1.0", END)
+                                self.delete(index)
 
-                    self.root.push(MSG_SET_ALL, text, msg.id)
+                            this_peer.move(line, col)
 
-                elif msg.type == MSG_SET_ALL:
+                    elif msg['type'] == MSG_HIGHLIGHT:
 
-                    # Set the contents of the text box
+                        a = int(msg['start_line'])
+                        b = int(msg['end_line'])
 
-                    text = msg[1]
+                        this_peer.highlightBlock(a, b)
 
-                    self.delete("1.0", END)
-                    self.insert("1.0", text)
-                    self.mark_set(INSERT, "1.0")
+                    elif msg['type'] == MSG_INSERT:
 
-                elif msg.type == MSG_REMOVE:
+                        # Get the character to insert
+                        
+                        char = str(msg['char'])
+                        line = int(msg['row'])
+                        col  = int(msg['col'])
 
-                    # Remove a Peer
-                    this_peer.remove()
-                    
-                    del self.peers[msg.id]
-                    
-                    print "Peer '{}' has disconnected".format(this_peer)
+                        index = "{}.{}".format(line, col)
+
+                        if len(char) > 0 and this_peer.hasSelection():
+
+                            this_peer.deleteSelection()
+
+                        self.insert(index, char)
+
+                        this_peer.move(line, col)
+
+                    elif msg['type'] == MSG_GET_ALL:
+
+                        # Return the contents of the text box
+
+                        text = self.get("1.0", END)
+
+                        self.root.push_queue.put((MSG_SET_ALL, text, msg['src_id']))
+
+                    elif msg['type'] == MSG_SET_ALL:
+
+                        # Set the contents of the text box
+
+                        text = msg['text']
+
+                        self.delete("1.0", END)
+                        self.insert("1.0", text)
+                        self.mark_set(INSERT, "1.0")
+
+                    elif msg['type'] == MSG_REMOVE:
+
+                        # Remove a Peer
+                        this_peer.remove()
+                        
+                        del self.peers[msg['src_id']] ############## TODO
+                        
+                        print "Peer '{}' has disconnected".format(this_peer)
 
                 # Update any other idle tasks
 
