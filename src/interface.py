@@ -2,6 +2,7 @@ from config import *
 from message import *
 from Tkinter import *
 import tkFont
+import Queue
 
 class Interface:
     def __init__(self, title="Troop"):
@@ -18,20 +19,24 @@ class Interface:
 
         # Text box
         self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="white")
-        
         self.text.grid(row=0, column=0, sticky="nsew")
-
         self.scroll.config(command=self.text.yview)
 
-        self.text.focus_set()
 
         # Key bindings
+        
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
+
         self.text.bind("<Key>",             self.KeyPress)
+
         self.text.bind("<<Selection>>",     self.Selection)
+
         self.text.bind("<{}-Return>".format(CtrlKey),  self.Evaluate)
+
         # Disabled Key bindings (for now)
+
         for key in "qwertyuiopasdfghjklzxcvbnm":
+
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
         # Selection indices
@@ -43,9 +48,17 @@ class Interface:
 
         # Sender
         self.push = lambda *x: None
+        self.push_queue = Queue.Queue()
+
+        # Set the window focus
+        self.text.focus_set()
+
+        # Continually check for messages to be sent
+        self.update_send()
         
     def run(self):
         self.root.mainloop()
+        print "MUDDAFUKKA"
         
     def kill(self):
         try:
@@ -73,6 +86,21 @@ class Interface:
             self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
         # Add message to queue
         self.text.queue.put(msg)
+        return
+
+    def update_send(self):
+        """ Sends any keypress information to the server
+        """
+        try:
+            while True:
+                args = self.push_queue.get_nowait()
+                self.push(*args)
+        # Break when the queue is empty
+        except Queue.Empty:
+            pass
+
+        # Recursive call
+        self.root.after(50, self.update_send)
         return
     
     def KeyPress(self, event):
@@ -157,11 +185,13 @@ class Interface:
                             # length of prev line - col
                             prev_line = self.text.index("{}.end".format(row-1)).split(".")
                             col_offset = int(prev_line[1]) - col
-                
 
-            self.push(msg_type, char, row, col)
+            # Add to queue to be pushed to server
+
+            self.push_queue.put((msg_type, char, row, col))
 
         # Update the local client's label
+        
         if self.text.marker != None:
             
             self.text.marker.move(row + row_offset, col + col_offset)
@@ -176,7 +206,7 @@ class Interface:
         except:
             self.sel_start = "0.0"
             self.sel_end   = "0.0"
-        self.push(MSG_SELECT, self.sel_start, self.sel_end)
+        self.push_queue.put((MSG_SELECT, self.sel_start, self.sel_end))
         return
 
     def currentBlock(self):
@@ -214,15 +244,13 @@ class Interface:
         # 2. Send as string to the server
         a, b = ("%d.0" % n for n in lines)
         string = self.text.get( a , b )
-        self.push(MSG_EVALUATE, string)
+        self.push_queue.put((MSG_EVALUATE, string))
         # 3. Send notification to other peers
-        self.push(MSG_HIGHLIGHT, lines[0], lines[1])
+        self.push_queue.put((MSG_HIGHLIGHT, lines[0], lines[1]))
         # 4. Highlight
         self.text.marker.highlightBlock(lines)
         return "break"
 
-
-import Queue
 class ThreadSafeText(Text):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
@@ -302,7 +330,7 @@ class ThreadSafeText(Text):
 
                             self.delete(index)
 
-                        elif line > 0 and col == 0:
+                        elif line > 1 and col == 0:
 
                             index = "{}.end".format(line-1,)
 
@@ -418,11 +446,16 @@ class Peer:
         return str(self.name.get())
         
     def move(self, row, col):
-        """ Updates information about this Peer from a network message """
+        """ Updates information about this Peer from a network message.
+            TODO - Add an insert cursor for each peer """
+
         x = (self.char_w * (col + 1)) % self.root.winfo_width()
-        y = self.root.dlineinfo("{}.{}".format(row, col))[1]
-        #self.insert.place(x=x, y=y)
-        self.label.place(x=x, y=y+self.char_h)
+        y = self.root.dlineinfo("{}.{}".format(row, col))
+
+        # Only move the cursor if we have a valid index
+        if y is not None:
+            
+            self.label.place(x=x, y=y[1]+self.char_h)
         return
 
     def select(self, start, end):
