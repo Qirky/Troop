@@ -94,6 +94,7 @@ class Interface:
         try:
             while True:
                 args = self.push_queue.get_nowait()
+                print args
                 self.push(*args)
         # Break when the queue is empty
         except Queue.Empty:
@@ -121,11 +122,11 @@ class Interface:
         ret = None # Set to "break" if need be
 
         if event.keysym == "Delete":
-            self.push(MSG_DELETE, row, col)
+            self.push_queue.put((MSG_DELETE, row, col))
             col_offset = -1
 
         elif event.keysym == "BackSpace":
-            self.push(MSG_BACKSPACE, row, col)
+            self.push_queue.put((MSG_BACKSPACE, row, col))
 
             if col > 0:
 
@@ -281,6 +282,8 @@ class ThreadSafeText(Text):
                 data = msg[2:]
                 this_peer = self.peers[msg.id]
 
+                print data
+
                 # Handles selection changes
 
                 if msg.type == MSG_SELECT:
@@ -290,7 +293,7 @@ class ThreadSafeText(Text):
                     
                     this_peer.select(sel1, sel2)
 
-                    # this_peer.move(line, col)
+                    this_peer.move(*[int(val) for val ini sel2.split(".")])
 
                 # Handles keypresses
 

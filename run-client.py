@@ -17,9 +17,27 @@
 """
 
 from src.client import Client
+import os.path
 
-host = raw_input("Troop server address: ")
-port = raw_input("Port number: ")
-name = raw_input("Enter a name: ")
+if os.path.isfile('.conf'):
+
+    host, port, name = Client.read_configuration_file('.conf')
+
+    """
+    You can set a configuration file if you are connecting to the same
+    server on repeated occassions. A password should not be stored. The
+    file (.conf) should look like:
+
+    host=<host_ip>
+    port=<port_no>
+    name=<your_name>
+
+    """
+
+else:
+
+    host = raw_input("Troop server address: ")
+    port = raw_input("Port number: ")
+    name = raw_input("Enter a name: ")
 
 myClient = Client(host, port, name)

@@ -20,6 +20,8 @@
 
 import socket
 import SocketServer
+import Queue
+from time import sleep
 from getpass import getpass
 from hashlib import md5
 from threading import Thread
@@ -68,11 +70,49 @@ class TroopServer:
         # Set a password for the server
         self.password = md5(getpass("Password (leave blank for no password): "))
 
+        # Set up a char queue
+        self.char_queue = Queue.Queue()
+        self.char_queue_thread = Thread(target=self.update_send)
+        self.char_queue_thread.daemon = True
+
         self.boot()
 
     def boot(self):
+        self.running = True
         self.server_thread.start()
+        self.char_queue_thread.start()
         print "Server running @ {} on port {}\n".format(self.ip_addr, self.port)
+        return
+
+    def update_send(self):
+        """ This continually sends any characters to clients
+        """
+        # Attach the message with the ID of sender
+
+        while self.running:
+
+            try:
+
+                client_address, msg = self.char_queue.get_nowait()
+
+                print msg
+
+                id_num = self.clients.index(client_address)
+
+                outgoing = NetworkMessage.compile(msg.type, id_num, *msg)
+
+                # Update all clients with message
+
+                for client in self.clients:
+
+                    if client != client_address:
+
+                        client.send(outgoing)
+
+            except Queue.Empty:
+
+                sleep(0.01)
+
         return
         
     def kill(self):
@@ -136,7 +176,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 # Notify other clients
 
-                for clienet in self.master.clients:
+                for client in self.master.clients:
 
                     client.send(NetworkMessage.compile(MSG_REMOVE, dead_client.id))
 
@@ -217,19 +257,10 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                     
             else:
 
-                # Attach the message with the ID of sender
+                # Add character to the Queue
 
-                id_num = self.master.clients.index(self.client_address)
-
-                outgoing = NetworkMessage.compile(msg.type, id_num, *msg)
-
-                # Update all clients with message
-
-                for client in self.master.clients:
-
-                    if client != self.client_address:
-
-                        client.send(outgoing)
+                self.master.char_queue.put((self.client_address, msg))
+                
 
 # Keeps information about each connected client
 

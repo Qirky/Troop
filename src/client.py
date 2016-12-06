@@ -74,3 +74,13 @@ class Client:
             if timeout > 3:
                 raise(ConnectionError("Server timed out"))
         return self.id
+
+    @staticmethod
+    def read_configuration_file(filename):
+        conf = {}
+        with open(filename) as f:
+            for line in f.readlines():
+                line = line.strip().split("=")
+                conf[line[0]] = line[1]
+        return conf['host'], int(conf['port']), conf['name']
+            
