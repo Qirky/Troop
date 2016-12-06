@@ -342,10 +342,7 @@ class ThreadSafeText(Text):
 
                     elif msg['type'] == MSG_HIGHLIGHT:
 
-                        a = int(msg['start_line'])
-                        b = int(msg['end_line'])
-
-                        this_peer.highlightBlock(a, b)
+                        this_peer.highlightBlock((int(msg['start_line']), int(msg['end_line'])))
 
                     elif msg['type'] == MSG_INSERT:
 
