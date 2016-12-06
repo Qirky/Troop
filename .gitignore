@@ -1,5 +1,6 @@
 # Compiled Python file
 *.pyc
+client.cfg
 
 # Windows image file caches
 Thumbs.db

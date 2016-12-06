@@ -26,7 +26,7 @@ if os.path.isfile('client.cfg'):
     """
     You can set a configuration file if you are connecting to the same
     server on repeated occassions. A password should not be stored. The
-    file (.conf) should look like:
+    file (client.cfg) should look like:
 
     host=<host_ip>
     port=<port_no>
