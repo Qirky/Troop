@@ -94,7 +94,7 @@ class Handler(SocketServer.BaseRequestHandler):
 
             # Store information about a newly connected client
 
-            elif msg.type == MSG_CONNECT:
+            if msg.type == MSG_CONNECT:
 
                 step = len(Node.attributes)
 
