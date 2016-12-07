@@ -103,9 +103,9 @@ class TroopServer:
 
                 for client in self.clients:
 
-                    if client != client_address:
+                    #if client != client_address:
 
-                        client.send(outgoing)
+                    client.send(outgoing)
 
             except Queue.Empty:
 

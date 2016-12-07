@@ -3,7 +3,7 @@ from sender import *
 from receiver import *
 from message import *
 
-from time import sleep
+from time import sleep, time
 from getpass import getpass
 from hashlib import md5
 
@@ -20,7 +20,7 @@ class Client:
         # Try and connect to server
 
         try:
-
+            
             self.send = Sender().connect(self.hostname, self.port, getpass())
 
             if not self.send.connected:
@@ -59,7 +59,7 @@ class Client:
         self.ui.pull = self.recv
 
         # Let the IDE know the id and name for local client
-        self.ui.setMarker(self.id, self.name)
+        # self.ui.setMarker(self.id, self.name)
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui

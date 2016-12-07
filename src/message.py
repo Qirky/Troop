@@ -23,7 +23,8 @@ MSG_HIGHLIGHT = 7
 MSG_GET_ALL   = 8
 MSG_SET_ALL   = 9
 MSG_RESPONSE  = 10
-MSG_REMOVE    = 11
+MSG_SET_MARK  = 11
+MSG_REMOVE    = 12
 
 # Message headers
 
@@ -38,7 +39,8 @@ MSG_HEADER = {
                 MSG_GET_ALL   : ("type", "src_id", "client_id"),
                 MSG_SET_ALL   : ("type", "src_id", "text"),
                 MSG_RESPONSE  : ("type", "src_id", "text"),
-                MSG_REMOVE    : ("type", "src_id"),
+                MSG_SET_MARK  : ("type", "src_id", "row", "col"),
+                MSG_REMOVE    : ("type", "src_id")
              }
 
 

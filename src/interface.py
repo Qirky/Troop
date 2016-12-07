@@ -33,11 +33,19 @@ class Interface:
 
         self.text.bind("<{}-Return>".format(CtrlKey),  self.Evaluate)
 
+        self.text.bind("<{}-Home>".format(CtrlKey),  self.CtrlHome)
+
+        self.text.bind("<{}-End>".format(CtrlKey),   self.CtrlEnd)
+
         # Disabled Key bindings (for now)
 
         for key in "qwertyuiopasdfghjklzxcvbnm":
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
+
+        # Directional commands
+
+        self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
 
         # Selection indices
         self.sel_start = "0.0"
@@ -63,8 +71,8 @@ class Interface:
         try:
             self.pull.kill()
             self.push.kill()
-        except Exception as e:
-            print e
+        except(Exception) as e:
+            print(e)
         self.root.destroy()
 
     @staticmethod
@@ -112,12 +120,9 @@ class Interface:
         row = int(row)
         col = int(col)
 
-        # These force the label to the  correct position while still
-        # sending the correct line/row coords to the server
-        row_offset = 0
-        col_offset = 0
+        # Set to None if not inserting text
 
-        ret = None # Set to "break" if need be
+        ret = "break"
 
         if event.keysym == "Delete":
             self.push_queue.put((MSG_DELETE, row, col))
@@ -144,6 +149,55 @@ class Interface:
                     prev_line = self.text.index("{}.end".format(row-1)).split(".")
                     col_offset = int(prev_line[1]) - col
 
+        # Handle key board movement
+
+        elif event.keysym in self.directions:
+
+            if event.keysym == "Left":
+                if col > 0:
+                    col -= 1
+                elif row > 1:
+                    prev_line = self.text.index("{}.end".format(row-1)).split(".")
+                    row = int(prev_line[0])
+                    col = int(prev_line[1])
+
+            elif event.keysym == "Right":
+                end_col = int(self.text.index("{}.end".format(row)).split(".")[1])          
+                if col == end_col:
+                    col = 0
+                    row += 1
+                else:
+                    col += 1
+
+            elif event.keysym == "Up":
+
+                if row > 1:
+                    row -= 1
+                    prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
+                    col = min(col, prev_end_col)
+
+            elif event.keysym == "Down":
+
+                row += 1
+                next_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
+                col = min(col, next_end_col)
+
+            elif event.keysym == "Home":
+
+                col = 0
+
+            elif event.keysym == "End":
+
+                col = int(self.text.index("{}.end".format(row)).split(".")[1])
+
+            # Add to queue
+            self.push_queue.put((MSG_SET_MARK, row, col))
+
+            # Update the actual insert mark
+            self.text.mark_set(INSERT, "{}.{}".format(row, col))
+
+        # Inserting a character
+
         else:
             
             msg_type = MSG_INSERT
@@ -152,48 +206,20 @@ class Interface:
                 char = "\n"
                 row_offset = 1
                 col_offset = -1-col
-                self.text.insert(INSERT, "\n")
-                ret = "break"
 
             elif event.keysym == "Tab":
                 char = "    "
                 col += len(char)
-                ret  = "break"
-                self.text.insert(INSERT, char)
                 
             else:
 
                 char = event.char
 
-                if event.keysym == "Left":
-
-                    if col > 0:
-
-                        col_offset = -2
-
-                    else:
-
-                        row_offset = -1
-
-                        if row == 1:
-
-                            col_offset = -1
-
-                        else:
-
-                            # length of prev line - col
-                            prev_line = self.text.index("{}.end".format(row-1)).split(".")
-                            col_offset = int(prev_line[1]) - col
+                if char == "": ret = None
 
             # Add to queue to be pushed to server
 
             self.push_queue.put((msg_type, char, row, col))
-
-        # Update the local client's label
-        
-        if self.text.marker != None:
-            
-            self.text.marker.move(row + row_offset, col + col_offset)
             
         return ret
 
@@ -207,6 +233,12 @@ class Interface:
             self.sel_end   = "0.0"
         self.push_queue.put((MSG_SELECT, self.sel_start, self.sel_end))
         return
+
+    def CtrlHome(self, event):
+        return "break"
+
+    def CtrlEnd(self, event):
+        return "break"
 
     def currentBlock(self):
         # Get start and end of the buffer
@@ -246,8 +278,6 @@ class Interface:
         self.push_queue.put((MSG_EVALUATE, string))
         # 3. Send notification to other peers
         self.push_queue.put((MSG_HIGHLIGHT, lines[0], lines[1]))
-        # 4. Highlight
-        self.text.marker.highlightBlock(lines)
         return "break"
 
 class ThreadSafeText(Text):
@@ -344,21 +374,34 @@ class ThreadSafeText(Text):
 
                         this_peer.highlightBlock((int(msg['start_line']), int(msg['end_line'])))
 
+                    elif msg['type'] == MSG_SET_MARK:
+
+                        line = msg['row']
+                        col  = msg['col']
+
+                        index = line + "." + col
+
+                        self.mark_set(this_peer.mark, index)
+                        this_peer.move(int(line), int(col))                        
+
                     elif msg['type'] == MSG_INSERT:
 
                         # Get the character to insert
                         
                         char = str(msg['char'])
-                        line = int(msg['row'])
-                        col  = int(msg['col'])
+                        #line = int(msg['row'])
+                        #col  = int(msg['col'])
 
-                        index = "{}.{}".format(line, col)
+                        #index = "{}.{}".format(line, col)
 
                         if len(char) > 0 and this_peer.hasSelection():
 
                             this_peer.deleteSelection()
 
-                        self.insert(index, char)
+                        # self.insert(index, char)
+                        self.insert(this_peer.mark, char)
+
+                        line, col = (int(i) for i in self.index(this_peer.mark).split('.'))
 
                         this_peer.move(line, col)
 
@@ -385,9 +428,9 @@ class ThreadSafeText(Text):
                         # Remove a Peer
                         this_peer.remove()
                         
-                        del self.peers[msg['src_id']] ############## TODO
+                        del self.peers[msg['src_id']]
                         
-                        print "Peer '{}' has disconnected".format(this_peer)
+                        print("Peer '{}' has disconnected".format(this_peer))
 
                 # Update any other idle tasks
 
@@ -431,6 +474,8 @@ class Peer:
                             text="" )
 
         self.tag_name = "tag_" + str(self.id)
+        self.mark     = "mark_" + str(self.id)
+        self.root.mark_set(self.mark, "0.0")
 
         # Tracks a peer's selection amount
         self.sel_start = "0.0"
