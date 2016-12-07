@@ -58,13 +58,8 @@ class Client:
         self.ui.push = self.send
         self.ui.pull = self.recv
 
-        # Let the IDE know the id and name for local client
-        self.ui.setMarker(self.id, self.name)
-
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
-
-        self.ui.text.focus_set()
         self.ui.run()
 
     def get_client_id(self):

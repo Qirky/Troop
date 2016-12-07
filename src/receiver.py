@@ -108,7 +108,7 @@ class Handler(SocketServer.BaseRequestHandler):
 
             elif msg['type'] == MSG_RESPONSE:
 
-                print(msg[-1])
+                self.master.ui.console.write(msg[-1])
 
             # Write the data to the IDE
 

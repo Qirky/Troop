@@ -21,6 +21,7 @@
 import socket
 import SocketServer
 import Queue
+import sys
 from time import sleep
 from getpass import getpass
 from hashlib import md5
@@ -28,6 +29,10 @@ from threading import Thread
 from threadserv import ThreadedServer
 from interpreter import *
 from message import *
+
+def stdout(s=""):
+    """ Forces prints to server-side """
+    sys.__stdout__.write(s + "\n")
 
 class TroopServer:
     """
@@ -75,13 +80,15 @@ class TroopServer:
         self.char_queue_thread = Thread(target=self.update_send)
         self.char_queue_thread.daemon = True
 
+        sys.stdout = self
+
         self.boot()
 
     def boot(self):
         self.running = True
         self.server_thread.start()
         self.char_queue_thread.start()
-        print "Server running @ {} on port {}\n".format(self.ip_addr, self.port)
+        stdout("Server running @ {} on port {}\n".format(self.ip_addr, self.port))
         return
 
     def update_send(self):
@@ -103,9 +110,7 @@ class TroopServer:
 
                 for client in self.clients:
 
-                    if client != client_address:
-
-                        client.send(outgoing)
+                    client.send(outgoing)
 
             except Queue.Empty:
 
@@ -118,6 +123,17 @@ class TroopServer:
         self.server.shutdown()
         self.server.server_close()
         self.evaluate.quit()
+        return
+
+    def write(self, string):
+        """ Replaces sys.stdout """
+        if string != "\n":
+
+            outgoing = NetworkMessage.compile(MSG_RESPONSE, 0, string)
+
+            for client in self.clients:
+                client.send(outgoing)
+
         return
 
 # Request Handler for TroopServer 
@@ -142,7 +158,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             self.request.send("0")
 
-            print("Failed login from {}".format(self.client_address[0]))
+            stdout("Failed login from {}".format(self.client_address[0]))
 
             return
 
@@ -158,7 +174,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 # Handle the loss of a client
 
-                print "Client @ {} has disconnected".format(self.client_address)
+                stdout("Client @ {} has disconnected".format(self.client_address))
 
                 # Get the ID of the dead clienet
 
@@ -189,7 +205,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                 new_client.connect(msg[3])
                 self.master.clients.append(new_client)
 
-                print("New Connection from", self.client_address)
+                stdout("New Connection from {}".format(self.client_address))
 
                 # Update all other connected clients & vice versa
 
@@ -243,15 +259,9 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     response = self.master.evaluate(msg[2])
 
-                    outgoing = NetworkMessage.compile(MSG_RESPONSE, 0, response)
-
-                    for client in self.master.clients:
-
-                        client.send(outgoing)
-
                 except Exception as e:
 
-                    print(e)
+                    stdout(e)
                     
             else:
 
