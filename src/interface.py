@@ -122,11 +122,10 @@ class Interface:
 
         # Set to None if not inserting text
 
-        ret = "break"
+        ret = None
 
         if event.keysym == "Delete":
             self.push_queue.put((MSG_DELETE, row, col))
-            col_offset = -1
 
         elif event.keysym == "BackSpace":
             self.push_queue.put((MSG_BACKSPACE, row, col))
@@ -196,6 +195,8 @@ class Interface:
             # Update the actual insert mark
             self.text.mark_set(INSERT, "{}.{}".format(row, col))
 
+            ret = "break"
+
         # Inserting a character
 
         else:
@@ -207,9 +208,15 @@ class Interface:
                 row_offset = 1
                 col_offset = -1-col
 
+                self.text.insert(INSERT, char)
+                ret = "break"
+
             elif event.keysym == "Tab":
                 char = "    "
                 col += len(char)
+
+                self.text.insert(INSERT, char)
+                ret = "break"
                 
             else:
 
@@ -220,6 +227,12 @@ class Interface:
             # Add to queue to be pushed to server
 
             self.push_queue.put((msg_type, char, row, col))
+
+        # Move this marker
+
+        if self.text.marker is not None:
+
+            self.text.marker.move(row, col)
             
         return ret
 
@@ -235,9 +248,33 @@ class Interface:
         return
 
     def CtrlHome(self, event):
+        # Add to queue
+        self.push_queue.put((MSG_SET_MARK, 1, 0))
+
+        # Update the actual insert mark
+        self.text.mark_set(INSERT, "1.0")
+
+        # Move this marker
+
+        if self.text.marker is not None:
+
+            self.text.marker.move(row, col)
         return "break"
 
     def CtrlEnd(self, event):
+        row, col = self.text.index(END).split(".")
+
+        # Add to queue
+        self.push_queue.put((MSG_SET_MARK, row, col))
+
+        # Update the actual insert mark
+        self.text.mark_set(INSERT, END)
+
+        # Move this marker
+
+        if self.text.marker is not None:
+
+            self.text.marker.move(row, col)
         return "break"
 
     def currentBlock(self):
@@ -278,6 +315,8 @@ class Interface:
         self.push_queue.put((MSG_EVALUATE, string))
         # 3. Send notification to other peers
         self.push_queue.put((MSG_HIGHLIGHT, lines[0], lines[1]))
+        # 4. Highlight
+        self.text.marker.highlight(lines)
         return "break"
 
 class ThreadSafeText(Text):
