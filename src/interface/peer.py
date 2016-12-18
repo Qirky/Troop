@@ -34,7 +34,9 @@ class Peer:
         self.mark     = "mark_" + str(self.id)
         self.root.mark_set(self.mark, "0.0")
 
-        # Tracks a peer's selection amount
+        # Tracks a peer's selection amount and location
+        self.row = 1
+        self.col = 0
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
@@ -44,7 +46,7 @@ class Peer:
         self.char_h = self.root.font.metrics("linespace")
 
         self.name.set("Unnamed Peer")
-        self.move(1,0)
+        self.move(self.row, self.col)
 
     def __str__(self):
         return str(self.name.get())
@@ -53,13 +55,15 @@ class Peer:
         """ Updates information about this Peer from a network message.
             TODO - Add an insert cursor for each peer """
 
+        self.row = row
+        self.col = col
+
         x = (self.char_w * (col + 1)) % self.root.winfo_width()
         y = self.root.dlineinfo("{}.{}".format(row, col))
 
         # Only move the cursor if we have a valid index
         if y is not None:
             self.label.place(x=x, y=y[1]+self.char_h)
-            
         return
 
     def select(self, start, end):

@@ -46,16 +46,13 @@ class Sender:
                 raise(ConnectionError("Could not connect to host '{}'".format( self.hostname ) ) )
 
             # Send the password
-            self.conn.send(NetworkMessage.password(md5(password).hexdigest()))
+            self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
             self.connected = bool(int(self.conn.recv(1024)))
             
         return self
 
-    def __call__(self, *args):
-        """ args[0] should always be message type (int or string) """
-        args = list(args)
-        args.insert(1,-1) # This compensates for an ID (checked on the server)
-        self.conn.sendall(NetworkMessage.compile(*args))
+    def __call__(self, message):
+        self.conn.sendall(str(message))
         return
 
     def kill(self):

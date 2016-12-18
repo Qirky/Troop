@@ -5,91 +5,74 @@
     Messages are sent as a series of arguments surrounnded by
     <arrows><like><so>.
 
+    Use -1 as an ID when it doesn't matter
+
 """
 
 import re
 
 re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
+def NetworkMessage(string):
+    
+    # Identify message tags
+    data = re_msg.findall(string)
+
+    # Get the message type
+    msgtype = int(data[0])
+
+    i, pkg = 0, []
+
+    while i < len(data):
+
+        # Find out which message it is, send back a list of messages
+
+        for cls in MESSAGE_TYPE:
+            if cls.type == msgtype:
+                j = len(MSG_HEADER[cls])
+                try:
+                    pkg.append(cls(*data[i+1:i+j]))
+                except TypeError:
+                    print cls.__name__, data
+                    return []
+                i += j
+                
+    return pkg
+
 # Message Types
 
-MSG_CONNECT   = 1
-MSG_INSERT    = 2
-MSG_DELETE    = 3
-MSG_BACKSPACE = 4
-MSG_SELECT    = 5
-MSG_EVALUATE  = 6
-MSG_HIGHLIGHT = 7
-MSG_GET_ALL   = 8
-MSG_SET_ALL   = 9
-MSG_RESPONSE  = 10
-MSG_SET_MARK  = 11
-MSG_REMOVE    = 12
+class MESSAGE(object):
+    """ Abstract base class """
+    def __init__(self, src_id):
+        self.data={'src_id' : int(src_id)}
+        self.keys=self.data.keys()
 
-# Message headers
-
-MSG_HEADER = {
-                MSG_CONNECT   : ("type", "src_id", "name", "hostname", "dst_port"),
-                MSG_INSERT    : ("type", "src_id", "char", "row", "col"),
-                MSG_DELETE    : ("type", "src_id", "row", "col"),
-                MSG_BACKSPACE : ("type", "src_id", "row", "col"),
-                MSG_SELECT    : ("type", "src_id", "start", "end"),
-                MSG_EVALUATE  : ("type", "src_id", "text"),
-                MSG_HIGHLIGHT : ("type", "src_id", "start_line", "end_line"),
-                MSG_GET_ALL   : ("type", "src_id", "client_id"),
-                MSG_SET_ALL   : ("type", "src_id", "text"),
-                MSG_RESPONSE  : ("type", "src_id", "text"),
-                MSG_SET_MARK  : ("type", "src_id", "row", "col"),
-                MSG_REMOVE    : ("type", "src_id")
-             }
-
-
-
-
-class NetworkMessage:
-    """
-        Messages are in the form <type><id>(*<data>)
-    """
-    def __init__(self, string):
-        self.data = re_msg.findall(string)
-
-        if len(self.data) == 0:
-
-            raise EmptyMessageError
+    def __str__(self):
+        return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
         
-        self.raw_string = string
-        self.data[0] = self.type  = int(self.data[0]) # Int
-        self.data[1] = self.id    = int(self.data[1]) # Source ID
-        # self.data  = self.data[1:]     # Data objects
-
     def __repr__(self):
-        return repr(self.data)
+        return self.__class__.__name__ + str(tuple(self))
 
     def __len__(self):
         return len(self.data)
 
     def __iter__(self):
-        for item in self.data:
-            yield item
-
-    def packages(self):
-        i, ret = 0, []
-        while i < len(self.data):
-            len_pkg = len(MSG_HEADER[int(self.data[i])])
-            pkg = self.data[i:i+len_pkg]
-            pkg = NetworkMessage(NetworkMessage.compile(*pkg))
-            ret.append(pkg)
-            i += len_pkg
-        return ret
+        for key in self.keys:
+            yield self.data[key]
 
     def __getitem__(self, key):
-        if type(key) == str:
-            key = MSG_HEADER[self.type].index(key)
         return self.data[key]
 
-    def insert(self, item, index=0):
-        self.data.insert(item, index)
-        return self
+    def __setitem__(self, key, value):
+        if key not in self.keys:
+            self.keys.append(key)
+        self.data[key] = value
+
+    def __eq__(self, other):
+        return self.type == other
+
+    def __ne__(self, other):
+        return self.type != other
 
     @staticmethod
     def compile(*args):
@@ -99,6 +82,132 @@ class NetworkMessage:
     def password(password):
         return NetworkMessage.compile(-1, -1, password)
 
+# Define types of message
+        
+class MSG_CONNECT(MESSAGE):
+    type = 1
+    def __init__(self, src_id, name, hostname, recv_port):
+        MESSAGE.__init__(self, src_id)
+        self['name']      = str(name)
+        self['hostname']  = str(hostname)
+        self['recv_port'] = int(recv_port)
+
+class MSG_INSERT(MESSAGE):
+    type = 2
+    def __init__(self, src_id, char, row, col, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['char']  = str(char)
+        self['row']   = int(row)
+        self['col']   = int(col)
+        self['reply'] = int(reply)
+
+class MSG_DELETE(MESSAGE):
+    type = 3
+    def __init__(self, src_id, row, col, reply=1):
+        MESSAGE.__init__(self,  src_id)
+        self['row']=int(row)
+        self['col']=int(col)
+        self['reply']=int(reply)
+
+class MSG_BACKSPACE(MESSAGE):
+    type = 4
+    def __init__(self, src_id, row, col, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['row']=int(row)
+        self['col']=int(col)
+        self['reply']=int(reply)
+
+class MSG_SELECT(MESSAGE):
+    type = 5
+    def __init__(self, src_id, start, end):
+        MESSAGE.__init__(self, src_id)
+        self['start']=str(start)
+        self['end']=str(end)
+
+class MSG_EVALUATE(MESSAGE):
+    type = 6
+    def __init__(self, src_id, string):
+        MESSAGE.__init__(self, src_id)
+        self['string']=string
+
+class MSG_HIGHLIGHT(MESSAGE):
+    type = 7
+    def __init__(self, src_id, start_line, end_line):
+        MESSAGE.__init__(self, src_id)
+        self['start_line']=int(start_line)
+        self['end_line']=int(end_line)
+
+class MSG_GET_ALL(MESSAGE):
+    type = 8
+    def __init__(self, src_id, client_id):
+        MESSAGE.__init__(self, src_id)
+        self['client_id']=int(client_id)
+
+class MSG_SET_ALL(MESSAGE):
+    type = 9
+    def __init__(self, src_id, string, client_id):
+        MESSAGE.__init__(self, src_id)
+        self['string']=str(string)
+        self['client_id']=int(client_id)
+
+class MSG_RESPONSE(MESSAGE):
+    type = 10
+    def __init__(self, src_id, string):
+        MESSAGE.__init__(self, src_id)
+        self['string']=str(string)
+
+class MSG_SET_MARK(MESSAGE):
+    type = 11
+    def __init__(self, src_id, row, col):
+        MESSAGE.__init__(self, src_id)
+        self['row']=int(row)
+        self['col']=int(col)
+
+class MSG_REMOVE(MESSAGE):
+    type = 12
+    def __init__(self, src_id):
+        MESSAGE.__init__(self, src_id)
+
+class MSG_PASSWORD(MESSAGE):
+    type = 13
+    def __init__(self, src_id, password):
+        MESSAGE.__init__(self, src_id)
+        self['password']=str(password)
+
+
+MESSAGE_TYPE = [ MSG_CONNECT,
+                 MSG_INSERT,
+                 MSG_DELETE,
+                 MSG_BACKSPACE,
+                 MSG_SELECT,
+                 MSG_EVALUATE,
+                 MSG_HIGHLIGHT,
+                 MSG_GET_ALL,
+                 MSG_SET_ALL,
+                 MSG_RESPONSE,
+                 MSG_SET_MARK,
+                 MSG_REMOVE,
+                 MSG_PASSWORD ]
+
+
+MSG_HEADER = {
+                MSG_CONNECT   : ("type", "src_id", "name", "hostname", "dst_port"),
+                MSG_INSERT    : ("type", "src_id", "char", "row", "col", "reply"),
+                MSG_DELETE    : ("type", "src_id", "row", "col", "reply"),
+                MSG_BACKSPACE : ("type", "src_id", "row", "col", "reply"),
+                MSG_SELECT    : ("type", "src_id", "start", "end"),
+                MSG_EVALUATE  : ("type", "src_id", "string"),
+                MSG_HIGHLIGHT : ("type", "src_id", "start_line", "end_line"),
+                MSG_GET_ALL   : ("type", "src_id", "client_id"),
+                MSG_SET_ALL   : ("type", "src_id", "string", "client_id"),
+                MSG_RESPONSE  : ("type", "src_id", "string"),
+                MSG_SET_MARK  : ("type", "src_id", "row", "col"),
+                MSG_REMOVE    : ("type", "src_id"),
+                MSG_PASSWORD  : ("type", "src_id", "password")
+             }
+
+
+# Exceptions
 
 class EmptyMessageError:
     def __init__(self):

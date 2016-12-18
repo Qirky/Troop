@@ -32,7 +32,7 @@ from message import *
 
 def stdout(s=""):
     """ Forces prints to server-side """
-    sys.__stdout__.write(s + "\n")
+    sys.__stdout__.write(str(s) + "\n")
 
 class TroopServer:
     """
@@ -43,7 +43,7 @@ class TroopServer:
     def __init__(self, hostname=socket.gethostname(), port=57890):
         # Addres information
         self.hostname = str(hostname)
-        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0])
+        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0]) # is this the best method?
         self.port     = int(port)
 
         # Look for an empty port
@@ -73,13 +73,20 @@ class TroopServer:
         self.evaluate = Interpreter()
 
         # Set a password for the server
-        self.password = md5(getpass("Password (leave blank for no password): "))
+        try:
+
+            self.password = md5(getpass("Password (leave blank for no password): "))
+
+        except KeyboardInterrupt:
+
+            sys.exit()
 
         # Set up a char queue
         self.char_queue = Queue.Queue()
         self.char_queue_thread = Thread(target=self.update_send)
         self.char_queue_thread.daemon = True
 
+        # All console output is rerouted to the clients
         sys.stdout = self
 
         self.boot()
@@ -102,15 +109,27 @@ class TroopServer:
 
                 client_address, msg = self.char_queue.get_nowait()
 
-                id_num = self.clients.index(client_address)
+                stdout(self.clients)
 
-                outgoing = NetworkMessage.compile(msg['type'], id_num, *msg[2:])
+                msg['src_id'] = self.clients.index(client_address)
 
                 # Update all clients with message
 
                 for client in self.clients:
 
-                    client.send(outgoing)
+                    if 'reply' in msg.data:
+
+                        if msg['reply'] == 1:
+
+                            client.send(msg)
+
+                        elif self.clients.index(client) != msg['src_id']:
+
+                            client.send(msg)
+
+                    else:
+
+                        client.send(msg)
 
             except Queue.Empty:
 
@@ -129,11 +148,12 @@ class TroopServer:
         """ Replaces sys.stdout """
         if string != "\n":
 
-            outgoing = NetworkMessage.compile(MSG_RESPONSE, 0, string)
+            outgoing = MSG_RESPONSE(-1, string)
 
             for client in self.clients:
+                
                 client.send(outgoing)
-
+                    
         return
 
 # Request Handler for TroopServer 
@@ -148,9 +168,9 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # Password test
 
-        msg = NetworkMessage(self.request.recv(1024))
+        network_msg = NetworkMessage(self.request.recv(1024))
 
-        if msg[-1] == self.master.password.hexdigest():
+        if network_msg[0]['password'] == self.master.password.hexdigest():
 
             self.request.send("1")
 
@@ -168,7 +188,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             try:
 
-                msg = NetworkMessage(self.request.recv(1024))
+                network_msg = NetworkMessage(self.request.recv(1024))
 
             except:
 
@@ -191,84 +211,78 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                 # Notify other clients
 
                 for client in self.master.clients:
-
-                    client.send(NetworkMessage.compile(MSG_REMOVE, dead_client.id))
+                    
+                    client.send(MSG_REMOVE(dead_client.id))
 
                 break
 
-            if msg.type == MSG_CONNECT and self.client_address not in self.master.clients:
+            for msg in network_msg:
 
-                # Store information about the new client
+                if isinstance(msg, MSG_CONNECT) and self.client_address not in self.master.clients:
 
-                new_client = Client(self.client_address, len(self.master.clients))                
-                new_client.name = msg[-1]
-                new_client.connect(msg[3])
-                self.master.clients.append(new_client)
+                    # Store information about the new client
 
-                stdout("New Connection from {}".format(self.client_address))
+                    new_client = Client(self.client_address, len(self.master.clients))                
+                    new_client.name = msg['name']
+                    new_client.connect(msg['recv_port'])
+                    self.master.clients.append(new_client)
 
-                # Update all other connected clients & vice versa
+                    stdout("New Connection from {}".format(self.client_address))
 
-                msg1 = NetworkMessage.compile( MSG_CONNECT,
-                                               new_client.id,
-                                               new_client.name,
-                                               new_client.hostname,
-                                               new_client.dst_port)
+                    # Update all other connected clients & vice versa
 
-                for client in self.master.clients:
+                    msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.dst_port)
 
-                    # Tell other clients about the new connection
+                    for client in self.master.clients:
 
-                    client.send(msg1)
+                        # Tell other clients about the new connection
 
-                    # Tell the new client about other clients
+                        client.send(msg1)
 
-                    if client != self.client_address:
+                        # Tell the new client about other clients
 
-                        msg2 = NetworkMessage.compile( MSG_CONNECT,
-                                                       client.id,
-                                                       client.name,
-                                                       client.hostname,
-                                                       client.dst_port)
+                        if client != self.client_address:
 
-                        new_client.send(msg2)
+                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.dst_port)
+
+                            new_client.send(msg2)
+                        
+                    # Request the contents of Client 1 and update the new client
+
+                    if len(self.master.clients) > 1:
+
+                        self.master.clients[0].send(MSG_GET_ALL(0, new_client.id))
+
+                elif isinstance(msg, MSG_SET_ALL):
+
+                    # Send the client *all* of the current code
+
+                    new_client_id = msg['client_id']
+
+                    for client in self.master.clients:
+
+                        if client.id == new_client_id:
+
+                            client.send( MSG_SET_ALL(0, msg['string'], new_client_id) )
+
+                # If we have an execute message, evaluate
+
+                elif isinstance(msg, MSG_EVALUATE):
+
+                    try:
+
+                        response = self.master.evaluate(msg['string'])
+
+                    except Exception as e:
+
+                        stdout(e)
+                        
+                else:
+
+                    # Add character to the Queue
+
+                    self.master.char_queue.put((self.client_address, msg))
                     
-                # Request the contents of Client 1 and update the new client
-
-                if len(self.master.clients) > 1:
-
-                    self.master.clients[0].send(NetworkMessage.compile( MSG_GET_ALL, new_client.id))
-
-            elif msg.type == MSG_SET_ALL:
-
-                # Send the client *all* of the current code
-
-                new_client_id = int(msg[-1])
-
-                for client in self.master.clients:
-
-                    if client.id == new_client_id:
-
-                        client.send(NetworkMessage.compile( MSG_SET_ALL, 0, msg[2] ))
-
-            # If we have an execute message, evaluate
-
-            elif msg.type == MSG_EVALUATE:
-
-                try:
-
-                    response = self.master.evaluate(msg[2])
-
-                except Exception as e:
-
-                    stdout(e)
-                    
-            else:
-
-                # Add character to the Queue
-
-                self.master.char_queue.put((self.client_address, msg))
-                
 
 # Keeps information about each connected client
 
@@ -296,7 +310,7 @@ class Client:
         return repr(self.address)
 
     def send(self, string):
-        self.conn.sendall(string)
+        self.conn.sendall(str(string))
         return
 
     def connect(self, port):

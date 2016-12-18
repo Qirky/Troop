@@ -47,11 +47,13 @@ class Client:
 
         # Send information about this client to the server
 
-        self.send(MSG_CONNECT, self.recv.hostname, self.recv.port, self.name)
+        self.send(MSG_CONNECT(-1, self.name, self.recv.hostname, self.recv.port))
      
         # Get *this* client's ID - the server may not have processed it yet, so wait:
         
         self.id = self.get_client_id()
+
+        self.ui.setMarker(self.id, self.name)
 
         # Give the IDE access to push/pull -> their __call__ methods
         # make them act like methods of self.ui

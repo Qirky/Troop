@@ -86,7 +86,7 @@ class Handler(SocketServer.BaseRequestHandler):
 
             try:
 
-                msg = NetworkMessage(self.request.recv(4096))
+                network_msg = NetworkMessage(self.request.recv(4096))
 
             except EmptyMessageError:               
 
@@ -94,31 +94,27 @@ class Handler(SocketServer.BaseRequestHandler):
 
             # Store information about a newly connected client
 
-            if msg['type'] == MSG_CONNECT:
+            for msg in network_msg:
 
-                step = len(MSG_HEADER[MSG_CONNECT])
+                if isinstance(msg, MSG_CONNECT):
 
-                for n in range(0, len(msg), step):
+                    self.master.nodes[msg['src_id']] = Node(*msg)
 
-                    node_id = int(msg[n+1])
+                # Code feedback from the server
 
-                    self.master.nodes[node_id] = Node(*msg[n+1:n+step])
+                elif isinstance(msg, MSG_RESPONSE):
 
-            # Code feedback from the server
+                    self.master.ui.console.write(msg['string'])
 
-            elif msg['type'] == MSG_RESPONSE:
+                # Write the data to the IDE
 
-                self.master.ui.console.write(msg[-1])
+                else:
 
-            # Write the data to the IDE
+                    while self.master.ui is None:
 
-            else:
-
-                while self.master.ui is None:
-
-                    sleep(0.1)
-                
-                self.master.ui.write(msg)
+                        sleep(0.1)
+                    
+                    self.master.ui.write(msg)
  
 
 class Node:

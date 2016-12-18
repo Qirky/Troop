@@ -110,6 +110,8 @@ class Interface:
     def setMarker(self, id_num, name):
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
+        self.text.peers[id_num] = self.text.marker
+        return
         
     def write(self, msg):
         """ Writes a network message to the queue
@@ -128,8 +130,7 @@ class Interface:
         """
         try:
             while True:
-                args = self.push_queue.get_nowait()
-                self.push(*args)
+                self.push( self.push_queue.get_nowait() )
         # Break when the queue is empty
         except Queue.Empty:
             pass
@@ -140,23 +141,41 @@ class Interface:
     
     def KeyPress(self, event):
         """ 'Pushes' the key-press to the server.
-            - Character
-            - Line and column number
-            - Timestamp (event.time) - not implemented
         """
         row, col = self.text.index(INSERT).split(".")
         row = int(row)
         col = int(col)
+
+        # Reply is set to True by default. If there are no other peers
+        # on the same line, set to 0 and perform keypress action locally
+
+        if self.text.alone(self.text.marker):
+
+            reply = 0
+
+        else:
+
+            reply = 1
 
         # Set to None if not inserting text
 
         ret = "break"
 
         if event.keysym == "Delete":
-            self.push_queue.put((MSG_DELETE, row, col))
+
+            self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
+
+            if not reply:
+
+                self.text.handle_delete(self.text.marker, row, col)
 
         elif event.keysym == "BackSpace":
-            self.push_queue.put((MSG_BACKSPACE, row, col))
+
+            self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
+
+            if not reply:
+
+                self.text.handle_backspace(self.text.marker, row, col)
 
         # Handle key board movement
 
@@ -181,7 +200,7 @@ class Interface:
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
 
             # Add to queue
-            self.push_queue.put((MSG_SET_MARK, row, col))
+            self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
             # Update the actual insert mark
             self.text.mark_set(INSERT, "{}.{}".format(row, col))
@@ -189,8 +208,6 @@ class Interface:
         # Inserting a character
 
         else:
-            
-            msg_type = MSG_INSERT
 
             if event.keysym == "Return":
                 char = "\n"
@@ -210,7 +227,11 @@ class Interface:
 
             # Add to queue to be pushed to server
 
-            self.push_queue.put((msg_type, char, row, col))
+            self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+
+            if not reply:
+
+                self.text.handle_insert(self.text.marker, char, row, col)
 
         # Remove selections
 
@@ -248,14 +269,14 @@ class Interface:
             self.sel_start = self.text.index(INSERT)
             self.sel_end   = self.text.index(INSERT)
         if event is not None:       
-            self.push_queue.put((MSG_SELECT, self.sel_start, self.sel_end))
+            self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
         return
 
     """ Ctrl-Home and Ctrl-End Handling """
 
     def CtrlHome(self, event):
         # Add to queue
-        self.push_queue.put((MSG_SET_MARK, 1, 0))
+        self.push_queue.put( MSG_SET_MARK(-1, 1, 0) )
 
         # Update the actual insert mark
         self.text.mark_set(INSERT, "1.0")
@@ -266,7 +287,7 @@ class Interface:
         row, col = self.text.index(END).split(".")
 
         # Add to queue
-        self.push_queue.put((MSG_SET_MARK, row, col))
+        self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
         # Update the actual insert mark
         self.text.mark_set(INSERT, END)
@@ -341,7 +362,7 @@ class Interface:
         # 2. Send as string to the server
         a, b = ("%d.0" % n for n in lines)
         string = self.text.get( a , b )
-        self.push_queue.put((MSG_EVALUATE, string))
+        self.push_queue.put( MSG_EVALUATE(-1, string) )
         # 3. Send notification to other peers
-        self.push_queue.put((MSG_HIGHLIGHT, lines[0], lines[1]))
+        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1]) )
         return "break"        
