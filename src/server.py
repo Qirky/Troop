@@ -27,8 +27,8 @@ from getpass import getpass
 from hashlib import md5
 from threading import Thread
 from threadserv import ThreadedServer
-from interpreter import *
 from message import *
+from interpreter import *
 
 def stdout(s=""):
     """ Forces prints to server-side """
@@ -40,14 +40,17 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    def __init__(self, hostname=socket.gethostname(), port=57890):
-        # Addres information
+    def __init__(self, hostname=socket.gethostname(), port=57890, local=True):
+        
+        # Address information
+        
         self.hostname = str(hostname)
-        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0]) # is this the best method?
+        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0])            
         self.port     = int(port)
 
         # Look for an empty port
         port_found = False
+        
         while not port_found:
 
             try:
@@ -69,9 +72,6 @@ class TroopServer:
         # Give request handler information about this server
         TroopRequestHandler.master = self
 
-        # This executes code
-        self.evaluate = Interpreter()
-
         # Set a password for the server
         try:
 
@@ -89,6 +89,14 @@ class TroopServer:
         # All console output is rerouted to the clients
         sys.stdout = self
 
+        # This executes code
+        if local:
+            self.is_evaluating_local = True
+            self.lang = Interpreter()
+        else:
+            self.is_evaluating_local = False
+            self.lang = Clock()
+        
         self.boot()
 
     def boot(self):
@@ -108,8 +116,6 @@ class TroopServer:
             try:
 
                 client_address, msg = self.char_queue.get_nowait()
-
-                stdout(self.clients)
 
                 msg['src_id'] = self.clients.index(client_address)
 
@@ -141,7 +147,7 @@ class TroopServer:
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-        self.evaluate.quit()
+        self.lang.quit()
         return
 
     def write(self, string):
@@ -269,14 +275,24 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 elif isinstance(msg, MSG_EVALUATE):
 
-                    try:
+                    if self.master.is_evaluating_local:
 
-                        response = self.master.evaluate(msg['string'])
+                        try:
 
-                    except Exception as e:
+                            response = self.master.lang.evaluate(msg['string'])
 
-                        stdout(e)
-                        
+                        except Exception as e:
+
+                            stdout(e)
+
+                    else:
+
+                        # send to clients
+
+                        for client in self.master.clients:
+
+                            client.send( MSG_EVALUATE(msg['src_id'], msg['string']) )
+                            
                 else:
 
                     # Add character to the Queue

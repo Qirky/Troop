@@ -6,16 +6,34 @@
     for other language communication
 
 """
-try:
-    import FoxDot
-except ImportError:
-    print("ImportError: FoxDot not installed")
+# Option 1: only requiring a clock
 
-class Interpreter:
-    def __call__(self, string):
-        return FoxDot.execute(string)
+import time
+
+class Clock:
+    def __init__(self):
+        self.time = time.time()
     def quit(self):
-        FoxDot.Clock.stop()
-        FoxDot.Server.quit()
+        return
+    def now(self):
+        self.time = time.time() - self.time
+        return self.time
+
+# Option 2: FoxDot
+
+class FoxDotInterpreter:
+    def __init__(self):
+        import FoxDot
+        self.lang = FoxDot
+    def quit(self):
+        self.lang.Clock.stop()
+    def now(self):
+        return self.lang.Clock.now()
+    def evaluate(self, string):
+        return self.lang.execute(string)
+
+### Define
+
+Interpreter = FoxDotInterpreter
     
         

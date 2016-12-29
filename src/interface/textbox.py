@@ -110,6 +110,10 @@ class ThreadSafeText(Text):
                     
                     print("Peer '{}' has disconnected".format(this_peer))
 
+                elif isinstance(msg, MSG_EVALUATE):
+
+                    pass
+
                 # Update any other idle tasks
 
                 self.update_idletasks()
@@ -163,9 +167,10 @@ class ThreadSafeText(Text):
         return
 
     def handle_insert(self, peer, char, row, col):
+        # TODO - Check row / col
         if len(char) > 0 and peer.hasSelection():
             peer.deleteSelection()
-        self.insert(peer.mark, char)
+        self.insert(peer.mark, char, peer.text_tag)
         row, col = (int(i) for i in self.index(peer.mark).split('.'))
         peer.move(row, col)
         return

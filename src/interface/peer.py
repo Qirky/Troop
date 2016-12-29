@@ -30,7 +30,9 @@ class Peer:
                             fg=self.fg,
                             text="" )
 
-        self.tag_name = "tag_" + str(self.id)
+        self.text_tag = "text_" + str(self.id)
+        self.code_tag = "code_" + str(self.id)
+        self.sel_tag  = "sel_"  + str(self.id)
         self.mark     = "mark_" + str(self.id)
         self.root.mark_set(self.mark, "0.0")
 
@@ -40,7 +42,9 @@ class Peer:
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
-        self.root.tag_config(self.tag_name, background=self.bg)
+        self.root.tag_config(self.text_tag, foreground=self.bg)
+        self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
+        self.root.tag_config(self.sel_tag, background=self.bg, foreground=self.fg)
 
         self.char_w = self.root.font.measure(" ")
         self.char_h = self.root.font.metrics("linespace")
@@ -68,11 +72,11 @@ class Peer:
 
     def select(self, start, end):
         """ Highlights text selected by this peer"""
-        self.root.tag_remove(self.tag_name, "1.0", END)
+        self.root.tag_remove(self.sel_tag, "1.0", END)
         self.sel_start = start
         self.sel_end   = end  
         if start != end: # != "0.0":
-            self.root.tag_add(self.tag_name, self.sel_start, self.sel_end)                      
+            self.root.tag_add(self.sel_tag, self.sel_start, self.sel_end)                      
         return
 
     def remove(self):
@@ -83,7 +87,7 @@ class Peer:
         return self.sel_start != self.sel_end != "0.0"
     
     def deleteSelection(self):
-        self.root.tag_remove(self.tag_name, self.sel_start, self.sel_end)
+        self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
         self.root.delete(self.sel_start, self.sel_end)
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
@@ -110,13 +114,13 @@ class Peer:
         return
 
     def highlight(self, start, end):
-        self.root.tag_add("code", start, end)
-        self.root.tag_config("code", background=self.bg, foreground=self.fg)
-        
+        self.root.tag_add(self.code_tag, start, end)
+        self.code_start=start
+        self.code_end=end
         return
 
     def unhighlight(self):
-        self.root.tag_delete("code")
+        self.root.tag_remove(self.code_tag, self.code_start, self.code_end)
         return
     
     def __eq__(self, other):

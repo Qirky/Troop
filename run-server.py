@@ -17,8 +17,16 @@
     SuperCollider running on the local machine.
 
 """
-
+import sys
 from src.server import TroopServer
 
-myServer = TroopServer()
+if len(sys.argv) == 1:
+    
+    server_side_eval = True
+
+elif sys.argv[1] in ("-r", "--remote"):
+
+    server_side_eval = False
+
+myServer = TroopServer(evaluate=server_side_eval)
     

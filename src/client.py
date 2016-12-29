@@ -10,8 +10,9 @@ from hashlib import md5
 import sys
 
 class Client:
-    def __init__(self, hostname, port, name=None):
-
+    
+    def __init__(self, hostname="188.166.144.124", port=57890, name=None):
+        
         self.hostname = str(hostname)
         self.port     = int(port)
         self.name     = str(name if name is not None else hostname)
