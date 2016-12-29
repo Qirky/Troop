@@ -8,6 +8,7 @@
 
 import socket
 from message import *
+from config import *
 from hashlib import md5
 
 class Sender:

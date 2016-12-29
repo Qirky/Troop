@@ -29,10 +29,7 @@ from threading import Thread
 from threadserv import ThreadedServer
 from message import *
 from interpreter import *
-
-def stdout(s=""):
-    """ Forces prints to server-side """
-    sys.__stdout__.write(str(s) + "\n")
+from config import *
 
 class TroopServer:
     """
@@ -41,7 +38,7 @@ class TroopServer:
         to the server, which then sends it on to the others
     """
     def __init__(self, hostname=socket.gethostname(), port=57890, local=True):
-        
+          
         # Address information
         
         self.hostname = str(hostname)
@@ -79,31 +76,38 @@ class TroopServer:
 
         except KeyboardInterrupt:
 
-            sys.exit()
+            sys.exit("Exited")
 
         # Set up a char queue
         self.char_queue = Queue.Queue()
         self.char_queue_thread = Thread(target=self.update_send)
         self.char_queue_thread.daemon = True
 
-        # All console output is rerouted to the clients
-        sys.stdout = self
-
         # This executes code
-        if local:
+        if local is True:
+
             self.is_evaluating_local = True
             self.lang = Interpreter()
+            sys.stdout = self
+
         else:
+
             self.is_evaluating_local = False
             self.lang = Clock()
         
-        self.boot()
+        # self.boot()
 
-    def boot(self):
+    def start(self):
         self.running = True
         self.server_thread.start()
         self.char_queue_thread.start()
         stdout("Server running @ {} on port {}\n".format(self.ip_addr, self.port))
+        while True:
+            try:
+                sleep(1)
+            except KeyboardInterrupt:
+                self.kill()
+                break
         return
 
     def update_send(self):
@@ -147,7 +151,7 @@ class TroopServer:
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-        self.lang.quit()
+        self.lang.kill()
         return
 
     def write(self, string):
@@ -252,12 +256,17 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                             msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.dst_port)
 
                             new_client.send(msg2)
+
+                        # Update times on all clients
+
+                        self.master.char_queue.put((client.address, MSG_TIME(0, self.master.lang.now())))
                         
                     # Request the contents of Client 1 and update the new client
 
                     if len(self.master.clients) > 1:
 
                         self.master.clients[0].send(MSG_GET_ALL(0, new_client.id))
+
 
                 elif isinstance(msg, MSG_SET_ALL):
 
@@ -289,9 +298,11 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # send to clients
 
+                        src_id = self.master.clients.index(self.client_address)
+
                         for client in self.master.clients:
 
-                            client.send( MSG_EVALUATE(msg['src_id'], msg['string']) )
+                            client.send( MSG_EVALUATE(src_id, msg['string']) )
                             
                 else:
 

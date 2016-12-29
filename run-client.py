@@ -17,6 +17,7 @@
 """
 
 from src.client import Client
+from src.config import *
 import os.path
 
 if os.path.isfile('client.cfg'):

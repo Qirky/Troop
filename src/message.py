@@ -174,6 +174,12 @@ class MSG_PASSWORD(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['password']=str(password)
 
+class MSG_TIME(MESSAGE):
+    type = 14
+    def __init__(self, src_id, time):
+        MESSAGE.__init__(self, src_id)
+        self['time']=str(time)
+
 
 MESSAGE_TYPE = [ MSG_CONNECT,
                  MSG_INSERT,
@@ -187,7 +193,8 @@ MESSAGE_TYPE = [ MSG_CONNECT,
                  MSG_RESPONSE,
                  MSG_SET_MARK,
                  MSG_REMOVE,
-                 MSG_PASSWORD ]
+                 MSG_PASSWORD,
+                 MSG_TIME ]
 
 
 MSG_HEADER = {
@@ -203,7 +210,8 @@ MSG_HEADER = {
                 MSG_RESPONSE  : ("type", "src_id", "string"),
                 MSG_SET_MARK  : ("type", "src_id", "row", "col"),
                 MSG_REMOVE    : ("type", "src_id"),
-                MSG_PASSWORD  : ("type", "src_id", "password")
+                MSG_PASSWORD  : ("type", "src_id", "password"),
+                MSG_TIME      : ("type", "src_id", "time")
              }
 
 

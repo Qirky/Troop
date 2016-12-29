@@ -59,11 +59,24 @@ class Peer:
         """ Updates information about this Peer from a network message.
             TODO - Add an insert cursor for each peer """
 
-        self.row = row
-        self.col = col
+        index = "{}.{}".format(row, col)
 
-        x = (self.char_w * (col + 1)) % self.root.winfo_width()
-        y = self.root.dlineinfo("{}.{}".format(row, col))
+        if index == self.root.index(END):
+
+            self.row = row - 1
+            end_index = self.root.index(str(self.row) + ".end")
+
+            self.col = int(end_index.split(".")[1])
+
+        else:
+
+            self.row = row
+            self.col = col
+
+        index = "{}.{}".format(self.row, self.col)
+
+        x = (self.char_w * (self.col + 1)) % self.root.winfo_width()
+        y = self.root.dlineinfo(index)
 
         # Only move the cursor if we have a valid index
         if y is not None:
@@ -115,12 +128,10 @@ class Peer:
 
     def highlight(self, start, end):
         self.root.tag_add(self.code_tag, start, end)
-        self.code_start=start
-        self.code_end=end
         return
 
     def unhighlight(self):
-        self.root.tag_remove(self.code_tag, self.code_start, self.code_end)
+        self.root.tag_remove(self.code_tag, "1.0", END)
         return
     
     def __eq__(self, other):

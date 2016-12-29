@@ -2,6 +2,7 @@ from interface import *
 from sender import *
 from receiver import *
 from message import *
+from config import *
 
 from time import sleep, time
 from getpass import getpass
@@ -63,6 +64,7 @@ class Client:
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
+
         self.ui.run()
 
     def get_client_id(self):

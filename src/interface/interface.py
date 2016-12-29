@@ -8,6 +8,7 @@ from peer import Peer
 from Tkinter import *
 import tkFont
 import Queue
+import sys
 
 # TODO
 """
@@ -41,6 +42,7 @@ class Interface:
         self.c_scroll = Scrollbar(self.root)
         self.c_scroll.grid(row=1, column=1, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
+        sys.stdout = self.console
 
         # Key bindings
         
@@ -99,8 +101,10 @@ class Interface:
         try:
             self.pull.kill()
             self.push.kill()
+            self.text.lang.kill()
         except(Exception) as e:
-            print(e)
+            stdout(e)
+        stdout("Quitting")
         self.root.destroy()
 
     @staticmethod
@@ -131,6 +135,7 @@ class Interface:
         try:
             while True:
                 self.push( self.push_queue.get_nowait() )
+                self.root.update_idletasks()
         # Break when the queue is empty
         except Queue.Empty:
             pass

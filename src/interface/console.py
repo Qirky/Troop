@@ -14,11 +14,13 @@ class Console(Text):
                 string = self.queue.get_nowait()
                 self.insert(END, string + "\n")
                 self.see(END)
+                self.update_idletasks()
         except Queue.Empty:
             pass
         self.after(100, self.update_me)
 
     def write(self, string):
-        self.queue.put(string)
+        if string != "\n":
+            self.queue.put(string)
         return
         

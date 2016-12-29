@@ -1,5 +1,6 @@
 from ..config import *
 from ..message import *
+from ..interpreter import *
 from Tkinter import *
 import tkFont
 import Queue
@@ -21,6 +22,9 @@ class ThreadSafeText(Text):
 
         # Tags
         self.tag_config("code", background="Red", foreground="White")
+
+        # Code interpreter
+        self.lang = Interpreter()
         
         self.update_me()
 
@@ -112,7 +116,14 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_EVALUATE):
 
-                    pass
+                    # Handles code evaluation
+                    self.lang.evaluate(msg['string'])
+
+                elif isinstance(msg, MSG_TIME):
+
+                    # Update local clock
+
+                    self.lang.settime(msg['time'])
 
                 # Update any other idle tasks
 

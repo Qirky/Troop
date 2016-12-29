@@ -1,5 +1,9 @@
 import sys
 
+def stdout(s=""):
+    """ Forces prints to server-side """
+    sys.__stdout__.write(str(s) + "\n")
+
 # Check for OS -> mac, linux, win
 
 SYSTEM  = 0
@@ -18,3 +22,13 @@ elif sys.platform.startswith('win'):
 elif sys.platform.startswith('linux'):
 
     SYSTEM = LINUX
+
+# Choose a language:
+
+LANGUAGE      = 0
+FOXDOT        = 0
+TIDAL         = 1
+SUPERCOLLIDER = 2
+
+LANGUAGE = FOXDOT
+

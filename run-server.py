@@ -28,5 +28,8 @@ elif sys.argv[1] in ("-r", "--remote"):
 
     server_side_eval = False
 
-myServer = TroopServer(evaluate=server_side_eval)
+myServer = TroopServer(local=server_side_eval)
+myServer.start()
+
+    
     

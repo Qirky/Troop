@@ -8,32 +8,51 @@
 """
 # Option 1: only requiring a clock
 
+from config import *
 import time
 
 class Clock:
     def __init__(self):
-        self.time = time.time()
-    def quit(self):
+        self.time = 0
+    def kill(self):
         return
     def now(self):
+        if self.time <= 0:
+            self.time = time.time() 
         self.time = time.time() - self.time
         return self.time
 
+class EmptyInterpreter(Clock):
+    lang = None
+    clock = None
+    def settime(self, t):
+        self.time = t
+    def evaluate(self, string):
+        return 
+
 # Option 2: FoxDot
 
-class FoxDotInterpreter:
+class FoxDotInterpreter(EmptyInterpreter):
     def __init__(self):
         import FoxDot
-        self.lang = FoxDot
-    def quit(self):
-        self.lang.Clock.stop()
+        self.lang  = FoxDot
+        self.clock = FoxDot.Clock
+    def kill(self):
+        self.clock.stop()
     def now(self):
-        return self.lang.Clock.now()
+        return self.clock.now()
+    def settime(self, t):
+        """ t is in seconds, sets clock time to  """
+        bpm   = float(self.clock.bpm)
+        beats = float(t) * (bpm / 60)
+        self.clock.time = beats
     def evaluate(self, string):
         return self.lang.execute(string)
 
 ### Define
 
-Interpreter = FoxDotInterpreter
+if LANGUAGE == FOXDOT:
+
+    Interpreter = FoxDotInterpreter
     
         

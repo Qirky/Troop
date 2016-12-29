@@ -11,6 +11,7 @@ from threading import Thread
 from threadserv import ThreadedServer
 from time import sleep
 from message import *
+from config import *
 
 class Receiver:
     """
@@ -73,7 +74,6 @@ class Receiver:
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-
 
 class Handler(SocketServer.BaseRequestHandler):
     """ Class for handling messages sent to the peers from
