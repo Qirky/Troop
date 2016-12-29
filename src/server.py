@@ -45,6 +45,10 @@ class TroopServer:
         self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0])            
         self.port     = int(port)
 
+        # ID numbers
+
+        self.legacy_clients = []
+
         # Look for an empty port
         port_found = False
         
@@ -179,6 +183,8 @@ class TroopServer:
 
 class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
+    def client_id(self):
+        return self.master.legacy_clients.index(self.client_address[0]))
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
@@ -191,7 +197,11 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         if network_msg[0]['password'] == self.master.password.hexdigest():
 
-            self.request.send("1")
+            # Reply with the client id
+
+            self.master.connected_clients.append(self.client_address[0])
+
+            self.request.send(str(self.client_id()))
 
         else:
 
@@ -241,11 +251,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     # Store information about the new client
 
-                    new_client = Client(self.client_address, len(self.master.clients), self.request)                
+                    new_client = Client(self.client_address, self.client_id(), self.request)                
                     new_client.name = msg['name']
                     self.master.clients.append(new_client)
 
                     stdout("New Connection from {}".format(self.client_address))
+
+                    stdout("All clients:\n", self.master.clients, self.master.legacy_clients)
 
                     # Update all other connected clients & vice versa
 

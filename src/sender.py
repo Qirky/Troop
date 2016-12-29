@@ -23,6 +23,7 @@ class Sender:
         self.address  = None
         
         self.conn      = None
+        self.conn_id   = None
         self.connected = False
 
     def connect(self, hostname, port=57890, password=""):
@@ -48,7 +49,8 @@ class Sender:
 
             # Send the password
             self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
-            self.connected = bool(int(self.conn.recv(1024)))
+            self.conn_id   = int(self.conn.recv(1024))
+            self.connected = bool(self.conn_id)
             
         return self
 

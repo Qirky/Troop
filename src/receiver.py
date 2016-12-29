@@ -19,26 +19,6 @@ class Receiver:
         and send keystroke data
 
     """
-##    def __init__(self, hostname=socket.gethostname(), port=57891, boot=True):
-##        self.hostname = hostname
-##        self.port     = int(port)
-##
-##        # Make sure we find a port
-##        setting_port = True
-##
-##        while setting_port:
-##
-##            try:
-##
-##                self.server = ThreadedServer((self.hostname, self.port), Handler)
-##                setting_port = False
-##                
-##            except:
-##                
-##                self.port += 1
-
-##        self.ip_addr = socket.gethostbyname_ex(self.hostname)[-1][0]
-##        self.address = (self.ip_addr, self.port)
 
     def __init__(self, socket):
 
@@ -121,6 +101,8 @@ class Node:
         self.hostname = hostname
         self.port     = int(port)
         self.address  = (self.hostname, self.port)
+    def __repr__(self):
+        return "{}: {}".format(self.hostname, self.port)        
     def __eq__(self, other):
         return self.address == other
     def __ne__(self, other):

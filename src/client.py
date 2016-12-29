@@ -31,6 +31,8 @@ class Client:
 
             else:
 
+                self.id = self.send.conn_id
+
                 print("Password accepted")
             
         except ConnectionError as e:
@@ -50,11 +52,7 @@ class Client:
 
         # Send information about this client to the server
 
-        self.send( MSG_CONNECT(-1, self.name, self.send.hostname, self.send.port) )
-     
-        # Get *this* client's ID - the server may not have processed it yet, so wait:
-        
-        self.id = self.get_client_id()
+        self.send( MSG_CONNECT(self.id, self.name, self.send.hostname, self.send.port) )
 
         self.ui.setMarker(self.id, self.name)
 
@@ -65,18 +63,7 @@ class Client:
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
-
         self.ui.run()
-
-    def get_client_id(self):
-        timeout = 0
-        while self.id == None:
-            self.id = self.recv.get_id()
-            timeout += 0.1
-            sleep(0.1)
-            if timeout > 8:
-                raise(ConnectionError("Server timed out"))
-        return self.id
 
     @staticmethod
     def read_configuration_file(filename):
