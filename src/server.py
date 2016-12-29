@@ -110,6 +110,15 @@ class TroopServer:
                 break
         return
 
+    @staticmethod
+    def read_configuration_file(filename):
+        conf = {}
+        with open(filename) as f:
+            for line in f.readlines():
+                line = line.strip().split("=")
+                conf[line[0]] = line[1]
+        return conf['host'], int(conf['port'])
+
     def update_send(self):
         """ This continually sends any characters to clients
         """

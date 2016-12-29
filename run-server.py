@@ -17,7 +17,7 @@
     SuperCollider running on the local machine.
 
 """
-import sys
+import sys, os
 from src.server import TroopServer
 
 if len(sys.argv) == 1:
@@ -28,7 +28,15 @@ elif sys.argv[1] in ("-r", "--remote"):
 
     server_side_eval = False
 
-myServer = TroopServer(local=server_side_eval)
+if os.path.isfile('server.cfg'):
+
+    args = Server.read_configuration_file('server.cfg')
+
+else:
+
+    args = ()
+
+myServer = TroopServer(*args, local=server_side_eval)
 myServer.start()
 
     
