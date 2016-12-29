@@ -37,19 +37,20 @@ class Client:
 
             sys.exit(e)
 
-        # Set up a receiver
+        # Set up a receiver on the connected socket
           
-        self.recv = Receiver()
+        self.recv = Receiver(self.send.conn)
+        self.recv.start()
 
-        self.address  = (self.recv.hostname, self.recv.port)
+        self.address  = (self.send.hostname, self.send.port)
 
         # Set up a user interface
 
-        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.recv.hostname, self.recv.port))
+        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port))
 
         # Send information about this client to the server
 
-        self.send(MSG_CONNECT(-1, self.name, self.recv.hostname, self.recv.port))
+        self.send( MSG_CONNECT(-1, self.name, self.send.hostname, self.send.port) )
      
         # Get *this* client's ID - the server may not have processed it yet, so wait:
         
@@ -73,7 +74,7 @@ class Client:
             self.id = self.recv.get_id()
             timeout += 0.1
             sleep(0.1)
-            if timeout > 3:
+            if timeout > 8:
                 raise(ConnectionError("Server timed out"))
         return self.id
 

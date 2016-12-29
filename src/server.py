@@ -241,16 +241,15 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     # Store information about the new client
 
-                    new_client = Client(self.client_address, len(self.master.clients))                
+                    new_client = Client(self.client_address, len(self.master.clients), self.request)                
                     new_client.name = msg['name']
-                    new_client.connect(msg['recv_port'])
                     self.master.clients.append(new_client)
 
                     stdout("New Connection from {}".format(self.client_address))
 
                     # Update all other connected clients & vice versa
 
-                    msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.dst_port)
+                    msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
 
                     for client in self.master.clients:
 
@@ -262,7 +261,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         if client != self.client_address:
 
-                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.dst_port)
+                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
                             new_client.send(msg2)
 
@@ -275,7 +274,6 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                     if len(self.master.clients) > 1:
 
                         self.master.clients[0].send(MSG_GET_ALL(0, new_client.id))
-
 
                 elif isinstance(msg, MSG_SET_ALL):
 
@@ -324,16 +322,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
 class Client:
 
-    def __init__(self, address, id_num):
+    def __init__(self, address, id_num, request_handle):
 
         self.hostname = address[0]
-        self.src_port = address[1]
+        self.port     = address[1]
         self.address  = address
-
-        self.dst_port = None
-        self.dst_addr = None
-
-        self.conn     = None
+        
+        self.source = request_handle
 
         # For identification purposes
 
@@ -346,17 +341,8 @@ class Client:
         return repr(self.address)
 
     def send(self, string):
-        self.conn.sendall(str(string))
+        self.source.send(str(string))
         return
-
-    def connect(self, port):
-        self.dst_port = int(port)
-        self.dst_addr = (self.hostname, self.dst_port)
-        
-        self.conn = socket.socket()
-        self.conn.connect(self.dst_addr)
-        return self
-
 
     def __eq__(self, other):
         return self.address == other

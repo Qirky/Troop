@@ -30,7 +30,7 @@ elif sys.argv[1] in ("-r", "--remote"):
 
 if os.path.isfile('server.cfg'):
 
-    args = Server.read_configuration_file('server.cfg')
+    args = TroopServer.read_configuration_file('server.cfg')
 
 else:
 

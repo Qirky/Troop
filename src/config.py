@@ -1,8 +1,8 @@
 import sys
 
-def stdout(s=""):
+def stdout(*args):
     """ Forces prints to server-side """
-    sys.__stdout__.write(str(s) + "\n")
+    sys.__stdout__.write(" ".join([str(s) for s in args]) + "\n")
 
 # Check for OS -> mac, linux, win
 

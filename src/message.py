@@ -86,11 +86,11 @@ class MESSAGE(object):
         
 class MSG_CONNECT(MESSAGE):
     type = 1
-    def __init__(self, src_id, name, hostname, recv_port):
+    def __init__(self, src_id, name, hostname, port):
         MESSAGE.__init__(self, src_id)
         self['name']      = str(name)
         self['hostname']  = str(hostname)
-        self['recv_port'] = int(recv_port)
+        self['port']      = int(port)
 
 class MSG_INSERT(MESSAGE):
     type = 2
@@ -198,7 +198,7 @@ MESSAGE_TYPE = [ MSG_CONNECT,
 
 
 MSG_HEADER = {
-                MSG_CONNECT   : ("type", "src_id", "name", "hostname", "dst_port"),
+                MSG_CONNECT   : ("type", "src_id", "name", "hostname", "port"),
                 MSG_INSERT    : ("type", "src_id", "char", "row", "col", "reply"),
                 MSG_DELETE    : ("type", "src_id", "row", "col", "reply"),
                 MSG_BACKSPACE : ("type", "src_id", "row", "col", "reply"),
