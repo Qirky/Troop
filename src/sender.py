@@ -50,7 +50,7 @@ class Sender:
             # Send the password
             self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
             self.conn_id   = int(self.conn.recv(1024))
-            self.connected = bool(self.conn_id)
+            self.connected = bool(self.conn_id >= 0)
             
         return self
 

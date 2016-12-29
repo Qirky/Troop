@@ -184,7 +184,7 @@ class TroopServer:
 class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
     def client_id(self):
-        return self.master.legacy_clients.index(self.client_address[0]))
+        return self.master.legacy_clients.index(self.client_address[0])
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
@@ -199,13 +199,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             # Reply with the client id
 
-            self.master.connected_clients.append(self.client_address[0])
+            self.master.legacy_clients.append(self.client_address[0])
 
             self.request.send(str(self.client_id()))
 
         else:
 
-            self.request.send("0")
+            self.request.send("-1")
 
             stdout("Failed login from {}".format(self.client_address[0]))
 
@@ -256,8 +256,6 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                     self.master.clients.append(new_client)
 
                     stdout("New Connection from {}".format(self.client_address))
-
-                    stdout("All clients:\n", self.master.clients, self.master.legacy_clients)
 
                     # Update all other connected clients & vice versa
 
@@ -317,11 +315,9 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # send to clients
 
-                        src_id = self.master.clients.index(self.client_address)
-
                         for client in self.master.clients:
 
-                            client.send( MSG_EVALUATE(src_id, msg['string']) )
+                            client.send( MSG_EVALUATE(self.client_id(), msg['string']) )
                             
                 else:
 
