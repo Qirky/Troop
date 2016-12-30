@@ -18,25 +18,28 @@ def NetworkMessage(string):
     # Identify message tags
     data = re_msg.findall(string)
 
-    # Get the message type
-    msgtype = int(data[0])
-
     i, pkg = 0, []
 
     while i < len(data):
 
+        # Get the message type
+        MSGTYPE = int(data[i])
+
         # Find out which message it is, send back a list of messages
 
-        for cls in MESSAGE_TYPE:
-            if cls.type == msgtype:
-                j = len(MSG_HEADER[cls])
-                try:
-                    pkg.append(cls(*data[i+1:i+j]))
-                except TypeError:
-                    print cls.__name__, data
-                    return []
-                i += j
-                
+        cls = MESSAGE_TYPE[MSGTYPE]
+        j = len(MSG_HEADER[cls])
+        
+        try:
+
+            pkg.append(cls(*data[i+1:i+j]))
+
+        except TypeError as e:
+
+            print cls.__name__, e
+
+        i += j
+
     return pkg
 
 # Message Types
@@ -196,6 +199,7 @@ MESSAGE_TYPE = [ MSG_CONNECT,
                  MSG_PASSWORD,
                  MSG_TIME ]
 
+MESSAGE_TYPE = dict([(msg.type, msg) for msg in MESSAGE_TYPE])
 
 MSG_HEADER = {
                 MSG_CONNECT   : ("type", "src_id", "name", "hostname", "port"),
