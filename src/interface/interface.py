@@ -66,6 +66,10 @@ class Interface:
         self.text.bind("<Shift-End>",   self.SelectEnd)
         self.text.bind("<Shift-Home>",  self.SelectHome)
 
+        # Local execution (only on the local machine)
+
+        self.text.bind("<Alt-Return>", self.LocalEvaluate)
+
         # Disabled Key bindings (for now)
 
         for key in "qwertyuiopasdfghjklzxcvbnm":
@@ -360,6 +364,19 @@ class Interface:
         block[1] = line
 
         return block
+
+
+    def LocalEvaluate(self, event):
+        # 1. Get the block of code
+        lines = self.currentBlock()
+        # 2. Convert to string
+        a, b = ("%d.0" % n for n in lines)
+        string = self.text.get( a , b )
+        # 3. Evaluate locally
+        self.text.lang.evaluate(string)
+        # 4. Send a highlight message
+        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1]) )
+        return "break"
 
     def Evaluate(self, event):
         # 1. Get the block of code

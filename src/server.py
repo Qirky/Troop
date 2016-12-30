@@ -46,8 +46,8 @@ class TroopServer:
         self.port     = int(port)
 
         # ID numbers
-
-        self.legacy_clients = []
+        self.clientIDs = {}
+        self.last_id = -1
 
         # Look for an empty port
         port_found = False
@@ -67,8 +67,8 @@ class TroopServer:
         self.server_thread = Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         
-        # List of clients (hostname, ip)
-        self.clients     = []
+        # Clients (hostname, ip)
+        self.clients = []
 
         # Give request handler information about this server
         TroopRequestHandler.master = self
@@ -114,6 +114,10 @@ class TroopServer:
                 break
         return
 
+    def get_next_id(self):
+        self.last_id += 1
+        return self.last_id
+
     @staticmethod
     def read_configuration_file(filename):
         conf = {}
@@ -134,7 +138,7 @@ class TroopServer:
 
                 client_address, msg = self.char_queue.get_nowait()
 
-                msg['src_id'] = self.clients.index(client_address)
+                msg['src_id'] = self.clientIDs[client_address]
 
                 # Update all clients with message
 
@@ -146,7 +150,7 @@ class TroopServer:
 
                             client.send(msg)
 
-                        elif self.clients.index(client) != msg['src_id']:
+                        elif client.id != msg['src_id']:
 
                             client.send(msg)
 
@@ -184,7 +188,7 @@ class TroopServer:
 class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
     def client_id(self):
-        return self.master.legacy_clients.index(self.client_address[0])
+        return self.master.clientIDs[self.client_address]
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
@@ -199,7 +203,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             # Reply with the client id
 
-            self.master.legacy_clients.append(self.client_address[0])
+            self.master.clientIDs[self.client_address] = self.master.get_next_id()
 
             self.request.send(str(self.client_id()))
 
@@ -233,9 +237,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         dead_client = client
 
-                # Remove from list
+                # Remove from list(s)
 
-                self.master.clients.remove(self.client_address)
+                if self.client_address in self.master.clients:
+
+                    self.master.clients.remove(self.client_address)
+
+                del self.master.clientIDs[self.client_address]
 
                 # Notify other clients
 
@@ -277,13 +285,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # Update times on all clients
 
-                        self.master.char_queue.put((client.address, MSG_TIME(0, self.master.lang.now())))
+                        self.master.char_queue.put((client.address, MSG_TIME(self.client_id(), self.master.lang.now())))
                         
                     # Request the contents of Client 1 and update the new client
 
                     if len(self.master.clients) > 1:
 
-                        self.master.clients[0].send(MSG_GET_ALL(0, new_client.id))
+                        self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
 
                 elif isinstance(msg, MSG_SET_ALL):
 
@@ -295,7 +303,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         if client.id == new_client_id:
 
-                            client.send( MSG_SET_ALL(0, msg['string'], new_client_id) )
+                            client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
 
                 # If we have an execute message, evaluate
 

@@ -16,7 +16,7 @@ class Peer:
 
         self.name = StringVar()
         
-        self.bg = sorted(PeerColours.keys())[self.id]
+        self.bg = sorted(PeerColours.keys())[self.id % len(PeerColours)]
         self.fg = PeerColours[self.bg]
         
         self.label = Label(self.root,
@@ -81,6 +81,7 @@ class Peer:
         # Only move the cursor if we have a valid index
         if y is not None:
             self.label.place(x=x, y=y[1]+self.char_h)
+            
         return
 
     def select(self, start, end):

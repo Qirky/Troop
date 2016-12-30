@@ -4,6 +4,7 @@ from ..interpreter import *
 from Tkinter import *
 import tkFont
 import Queue
+import re
 
 class ThreadSafeText(Text):
     def __init__(self, root, **options):
@@ -91,7 +92,7 @@ class ThreadSafeText(Text):
 
                     # Return the contents of the text box
 
-                    text = self.get("1.0", END)[:-1]
+                    text = self.handle_getall()
 
                     self.root.push_queue.put( MSG_SET_ALL(-1, text, msg['client_id']) )
 
@@ -99,11 +100,15 @@ class ThreadSafeText(Text):
 
                     # Set the contents of the text box
 
-                    text = msg['string']
+                    self.handle_setall(msg['string'])
 
-                    self.delete("1.0", END)
-                    self.insert("1.0", text)
+                    dest_peer = self.peers[msg['client_id']]
+                    
+                    dest_peer.move(1,0)
+
                     self.mark_set(INSERT, "1.0")
+
+                    self.mark_set(dest_peer.mark, "1.0")
 
                 elif isinstance(msg, MSG_REMOVE):
 
@@ -186,3 +191,57 @@ class ThreadSafeText(Text):
         peer.move(row, col)
         return
 
+    def handle_getall(self):
+        """ String starts with the name of text tags and their ranges in brackets """
+        data = []
+
+        for tag in self.tag_names():
+
+            if tag.startswith("text"):
+
+                tag_range = [str(tag)]
+
+                loc = self.tag_ranges(tag)
+
+                if len(loc) > 0:
+
+                    for index in loc:
+
+                        tag_range.append(str(index))
+
+                    data.append(tag_range)
+                    
+        contents = "".join([str(item) for item in data])
+
+        contents += self.get("1.0", END)[:-1]
+
+        return contents
+
+    def handle_setall(self, data):
+        # Find tags
+        i = 0
+        tag_ranges = {}
+        for tag in self.tag_names():
+            if tag.startswith("text"):
+                tag_data = match_tag(tag, data)
+                tag_ranges[tag] = match_indices(tag_data)
+                i += len(tag_data)
+
+        # Insert the text
+        self.delete("1.0", END)
+        self.insert("1.0", data[i:])
+
+        # Add tags
+        for tag, loc in tag_ranges.items():
+            for i in range(0, len(loc), 2):
+                self.tag_add(tag, loc[i], loc[i+1])
+                
+        return
+
+def match_tag(tag_name, string):
+    re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name
+    match = re.search(re_tag_range, string)
+    return match.group(0) if match else str()
+
+def match_indices(string):
+    return re.findall(r"'(\d+\.+\d+)'", string)
