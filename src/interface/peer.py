@@ -36,6 +36,10 @@ class Peer:
         self.mark     = "mark_" + str(self.id)
         self.root.mark_set(self.mark, "0.0")
 
+        # Stat graph
+        self.count = 0
+        self.graph = self.root.root.graphs.create_rectangle(0,0,0,0, fill=self.bg)
+
         # Tracks a peer's selection amount and location
         self.row = 1
         self.col = 0

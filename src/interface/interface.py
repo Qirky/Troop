@@ -30,32 +30,33 @@ class Interface:
 
         # Text box
         self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="white", height=15)
-        self.text.grid(row=0, column=0, sticky="nsew")
+        self.text.grid(row=0, column=0, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
         # Remove standard highlight tag config
         self.text.tag_config(SEL, background="black")
 
         # Console Box
-        self.console = Console(self.root, bg="black", fg="white", height=6, font="Font")
+        self.console = Console(self.root, bg="black", fg="white", height=5, width=10, font="Font")
         self.console.grid(row=1, column=0, stick="nsew")
         self.c_scroll = Scrollbar(self.root)
-        self.c_scroll.grid(row=1, column=1, sticky='nsew')
+        self.c_scroll.grid(row=1, column=2, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
         sys.stdout = self.console
+
+        # Statistics Graphs
+        self.graphs = Canvas(self.root, bg="black")
+        self.graphs.grid(row=1, column=1, sticky="nsew")
+        self.graph_queue = Queue.Queue()
 
         # Key bindings
         
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
         self.text.bind("<Key>",             self.KeyPress)
-
         self.text.bind("<<Selection>>",     self.Selection)
-
         self.text.bind("<{}-Return>".format(CtrlKey),  self.Evaluate)
-
         self.text.bind("<{}-Home>".format(CtrlKey),  self.CtrlHome)
-
         self.text.bind("<{}-End>".format(CtrlKey),   self.CtrlEnd)
 
         # Key bindings to handle select
@@ -89,7 +90,6 @@ class Interface:
 
         # Sender
         self.push = lambda *x: None
-        
         self.push_queue = Queue.Queue()
 
         # Set the window focus
@@ -97,6 +97,7 @@ class Interface:
 
         # Continually check for messages to be sent
         self.update_send()
+        self.update_graphs()
         
     def run(self):
         self.root.mainloop()
@@ -113,7 +114,7 @@ class Interface:
 
     @staticmethod
     def convert(index):
-        return (int(value) for value in index.split("."))
+        return tuple(int(value) for value in str(index).split("."))
 
     def setMarker(self, id_num, name):
         self.text.marker=Peer(id_num, self.text)
@@ -131,6 +132,79 @@ class Interface:
             self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
         # Add message to queue
         self.text.queue.put(msg)
+        return
+
+    def update_graphs(self):
+        """ Continually counts the number of coloured chars
+            and update self.graphs """
+        # For each connected peer, find the range covered by the tag
+        
+        for peer in self.text.peers.values():
+
+            tag_name = peer.text_tag
+
+            loc = self.text.tag_ranges(tag_name)
+
+            count = 0
+
+            if len(loc) > 0:
+
+                for i in range(0, len(loc), 2):
+
+                    start, end = loc[i], loc[i+1]
+
+                    start = self.convert(start)
+                    end   = self.convert(end)
+
+                    # If the range is on the same line, just count
+
+                    if start[0] == end[0]:
+
+                        count += (end[1] - start[1])
+
+                    else:
+
+                        # Get the first line
+
+                        count += (self.convert(self.text.index("{}.end".format(start[0])))[1] - start[1])
+
+                        # If it spans multiple lines, just count all characters
+
+                        for line in range(start[0] + 1, end[0]):
+
+                            count += self.convert(self.text.index("{}.end".format(line)))[1]
+
+                        # Add the number of the last line
+
+                        count += end[1]
+
+            peer.count = count
+
+        # Once we count all, work out percentages and draw graphs
+
+        total = float(sum([p.count for p in self.text.peers.values()]))
+
+        max_height = 250
+
+        offset_x = 10
+        offset_y = 10
+
+        graph_w = 25
+
+        for n, peer in enumerate(self.text.peers.values()):
+
+            height = ((peer.count / total) * max_height) if total > 0 else 0
+
+            x1 = (n * graph_w) + offset_x
+            y1 = max_height + offset_y
+            x2 = x1 + graph_w
+            y2 = y1 - (int(height))
+            self.graphs.coords(peer.graph, (x1, y1, x2, y2))
+
+            # Write number / name?
+                    
+        self.root.update_idletasks()
+        self.root.after(100, self.update_graphs)
         return
 
     def update_send(self):
@@ -172,16 +246,20 @@ class Interface:
 
         if event.keysym == "Delete":
 
+            reply = 1
+
             self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
 
-            if not reply:
-
-                self.text.handle_delete(self.text.marker, row, col)
+##            if not reply:
+##
+##                self.text.handle_delete(self.text.marker, row, col)
 
         elif event.keysym == "BackSpace":
 
+            reply = 0
+            
             self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
-
+            
             if not reply:
 
                 self.text.handle_backspace(self.text.marker, row, col)
