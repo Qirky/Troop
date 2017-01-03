@@ -34,7 +34,9 @@ class Peer:
         self.code_tag = "code_" + str(self.id)
         self.sel_tag  = "sel_"  + str(self.id)
         self.mark     = "mark_" + str(self.id)
+
         self.root.mark_set(self.mark, "0.0")
+        self.root.peer_tags.append(self.text_tag)
 
         # Stat graph
         self.count = 0
@@ -99,6 +101,7 @@ class Peer:
 
     def remove(self):
         self.label.destroy()
+        self.root.root.graphs.delete(self.graph)
         return
     
     def hasSelection(self):

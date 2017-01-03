@@ -12,12 +12,12 @@ class ThreadSafeText(Text):
         self.queue = Queue.Queue()
         self.root = root
         
-        # Markers for users, including the current one
-        self.marker = None
+        # Information about other connected users
         self.peers = {}
+        self.peer_tags = []
 
         # Font
-        self.font = tkFont.Font(font=("Consolas", 16), name="Font")
+        self.font = tkFont.Font(font=("Consolas", 12), name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
         self.configure(font="Font")
 
@@ -102,20 +102,20 @@ class ThreadSafeText(Text):
 
                     self.handle_setall(msg['string'])
 
-                    dest_peer = self.peers[msg['client_id']]
+                    target_peer = self.peers[msg['client_id']]
                     
-                    dest_peer.move(1,0)
+                    target_peer.move(1,0)
 
                     self.mark_set(INSERT, "1.0")
 
-                    self.mark_set(dest_peer.mark, "1.0")
+                    self.mark_set(target_peer.mark, "1.0")
 
                 elif isinstance(msg, MSG_REMOVE):
 
                     # Remove a Peer
                     this_peer.remove()
                     
-                    del self.peers[msg['src_id']]
+                    # del self.peers[msg['src_id']]
                     
                     print("Peer '{}' has disconnected".format(this_peer))
 
@@ -195,22 +195,22 @@ class ThreadSafeText(Text):
         """ String starts with the name of text tags and their ranges in brackets """
         data = []
 
-        for tag in self.tag_names():
+        for tag in self.peer_tags:
 
-            if tag.startswith("text"):
+            # if tag.startswith("text"):
 
-                tag_range = [str(tag)]
+            tag_range = [str(tag)]
 
-                loc = self.tag_ranges(tag)
+            loc = self.tag_ranges(tag)
 
-                if len(loc) > 0:
+            if len(loc) > 0:
 
-                    for index in loc:
+                for index in loc:
 
-                        tag_range.append(str(index))
+                    tag_range.append(str(index))
 
-                    data.append(tag_range)
-                    
+                data.append(tag_range)
+                
         contents = "".join([str(item) for item in data])
 
         contents += self.get("1.0", END)[:-1]
@@ -221,11 +221,11 @@ class ThreadSafeText(Text):
         # Find tags
         i = 0
         tag_ranges = {}
-        for tag in self.tag_names():
-            if tag.startswith("text"):
-                tag_data = match_tag(tag, data)
-                tag_ranges[tag] = match_indices(tag_data)
-                i += len(tag_data)
+        for n in range(10): # max_clients
+            tag = "text_%d" % n
+            tag_data = match_tag(tag, data)
+            tag_ranges[tag] = match_indices(tag_data)
+            i += len(tag_data)
 
         # Insert the text
         self.delete("1.0", END)
