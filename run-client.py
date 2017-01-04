@@ -37,8 +37,8 @@ if os.path.isfile('client.cfg'):
 
 else:
 
-    host = raw_input("Troop server address: ")
-    port = raw_input("Port number: ")
+    host = "188.166.144.124"
+    port = 57890
     name = raw_input("Enter a name: ")
 
 myClient = Client(host, port, name)
