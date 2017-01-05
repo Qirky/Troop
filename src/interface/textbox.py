@@ -50,7 +50,7 @@ class ThreadSafeText(Text):
 
                 # Identify the src peer
 
-                if not isinstance(msg, MSG_TIME):
+                if 'src_id' in msg:
 
                     this_peer = self.peers[msg['src_id']]
 

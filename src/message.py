@@ -71,6 +71,9 @@ class MESSAGE(object):
             self.keys.append(key)
         self.data[key] = value
 
+    def __contains__(self, key):
+        return key in self.data
+
     def __eq__(self, other):
         return self.type == other
 
@@ -243,4 +246,5 @@ class DeadClientError(Exception):
 
 if __name__ == "__main__":
 
-    pass
+    a = MSG_GET_ALL(1,2)
+    print 'src_id' in a
