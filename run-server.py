@@ -21,10 +21,14 @@ import sys, os
 from src.server import TroopServer
 
 if len(sys.argv) == 1:
+
+    sys.exit("Usage: python run-server.py --remote or --local")
+
+elif sys.argv[1] in ("-r", "--remote"):
     
     server_side_eval = True
 
-elif sys.argv[1] in ("-r", "--remote"):
+elif sys.argv[1] in ("-l", "--local"):
 
     server_side_eval = False
 

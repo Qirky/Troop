@@ -19,6 +19,7 @@
 from src.client import Client
 from src.config import *
 import os.path
+import sys
 
 if os.path.isfile('client.cfg'):
 
@@ -37,8 +38,15 @@ if os.path.isfile('client.cfg'):
 
 else:
 
-    host = "188.166.144.124"
-    port = 57890
+    if sys.argv[-1] in ("-p", "--public"):
+
+        host, port = PUBLIC_SERVER_ADDRESS
+        
+    else:
+
+        host = raw_input("Troop Server Address: ")
+        port = raw_input("Port Number: ")
+
     name = raw_input("Enter a name: ")
 
 myClient = Client(host, port, name)

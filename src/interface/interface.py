@@ -26,7 +26,7 @@ class Interface:
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
-        self.scroll.grid(row=0, column=1, sticky='nsew')
+        self.scroll.grid(row=0, column=2, sticky='nsew')
 
         # Text box
         self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="white", height=15)
@@ -77,6 +77,11 @@ class Interface:
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
+        # Allowed key-bindings
+
+        self.text.bind("<{}-equal>".format(CtrlKey),  self.IncreaseFontSize)
+        self.text.bind("<{}-minus>".format(CtrlKey),  self.DecreaseFontSize)
+
         # Directional commands
 
         self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
@@ -117,6 +122,7 @@ class Interface:
         return tuple(int(value) for value in str(index).split("."))
 
     def setMarker(self, id_num, name):
+        self.text.local_peer = id_num
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
         self.text.peers[id_num] = self.text.marker
@@ -324,6 +330,10 @@ class Interface:
 
         self.text.tag_remove(SEL, "1.0", END)
         self.Selection()
+
+        # Make sure the user sees their cursor
+
+        self.text.see(INSERT)
     
         return ret
 
@@ -367,6 +377,9 @@ class Interface:
 
         # Update the actual insert mark
         self.text.mark_set(INSERT, "1.0")
+
+        # Make sure the user sees their cursor
+        self.text.see(INSERT)
         
         return "break"
 
@@ -390,6 +403,10 @@ class Interface:
             prev_line = self.text.index("{}.end".format(row-1)).split(".")
             row = int(prev_line[0])
             col = int(prev_line[1])
+
+        # Make sure the user sees their cursor
+        self.text.see(INSERT)
+        
         return row, col
     
     def Right(self, row, col):
@@ -399,12 +416,20 @@ class Interface:
             row += 1
         else:
             col += 1
+
+        # Make sure the user sees their cursor
+        self.text.see(INSERT)
+        
         return row, col
     
     def Down(self, row, col):
         row += 1
         next_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
         col = min(col, next_end_col)
+
+        # Make sure the user sees their cursor
+        self.text.see(INSERT)
+        
         return row, col
     
     def Up(self, row, col):
@@ -412,6 +437,10 @@ class Interface:
             row -= 1
             prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
             col = min(col, prev_end_col)
+
+        # Make sure the user sees their cursor
+        self.text.see(INSERT)
+        
         return row, col
 
     def currentBlock(self):
@@ -452,8 +481,8 @@ class Interface:
         string = self.text.get( a , b )
         # 3. Evaluate locally
         self.text.lang.evaluate(string)
-        # 4. Send a highlight message
-        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1]) )
+        # 4. Highlight the text
+        self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
 
     def Evaluate(self, event):
@@ -464,5 +493,24 @@ class Interface:
         string = self.text.get( a , b )
         self.push_queue.put( MSG_EVALUATE(-1, string) )
         # 3. Send notification to other peers
-        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1]) )
-        return "break"        
+        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1], 0) )
+        # 4. Highlight the text
+        self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
+        return "break"
+
+    def ChangeFontSize(self, amount):
+        self.root.grid_propagate(False)
+        font = tkFont.nametofont("Font")
+        size = max(8, font.actual()["size"] + amount)
+        font.configure(size=size)
+        self.text.char_w = self.text.font.measure(" ")
+        self.text.char_h = self.text.font.metrics("linespace")
+        return
+
+    def DecreaseFontSize(self, event):
+        self.ChangeFontSize(-2)
+        return 'break'
+
+    def IncreaseFontSize(self, event):
+        self.ChangeFontSize(+2)
+        return 'break'

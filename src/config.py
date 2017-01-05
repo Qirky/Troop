@@ -23,6 +23,10 @@ elif sys.platform.startswith('linux'):
 
     SYSTEM = LINUX
 
+# Public server
+
+PUBLIC_SERVER_ADDRESS = ("188.166.144.124", 57890)
+
 # Choose a language:
 
 LANGUAGE      = 0

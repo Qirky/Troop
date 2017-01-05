@@ -144,25 +144,62 @@ class TroopServer:
 
                 for client in self.clients:
 
-                    if 'reply' in msg.data:
+                    try:
 
-                        if msg['reply'] == 1:
+                        if 'reply' in msg.data:
+
+                            if msg['reply'] == 1:
+
+                                client.send(msg)
+
+                            elif client.id != msg['src_id']:
+
+                                client.send(msg)
+
+                        else:
 
                             client.send(msg)
 
-                        elif client.id != msg['src_id']:
+                    except DeadClientError as err:
 
-                            client.send(msg)
+                        # Remove client if no longer contactable
 
-                    else:
+                        self.remove_client(client.address)
 
-                        client.send(msg)
+                        stdout(err)
 
             except Queue.Empty:
 
                 sleep(0.01)
 
         return
+
+    def remove_client(self, client_address):
+
+        # Get the ID of the dead clienet
+
+        for client in self.clients:
+
+            if client == client_address:
+
+                dead_client = client
+
+        # Remove from list(s)
+
+        if client_address in self.clients:
+
+            self.clients.remove(client_address)
+
+        del self.clientIDs[client_address]
+
+        # Notify other clients
+
+        for client in self.clients:
+            
+            client.send(MSG_REMOVE(dead_client.id))
+
+        return
+
         
     def kill(self):
         self.running = False
@@ -229,27 +266,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 stdout("Client @ {} has disconnected".format(self.client_address))
 
-                # Get the ID of the dead clienet
-
-                for client in self.master.clients:
-
-                    if client == self.client_address:
-
-                        dead_client = client
-
-                # Remove from list(s)
-
-                if self.client_address in self.master.clients:
-
-                    self.master.clients.remove(self.client_address)
-
-                del self.master.clientIDs[self.client_address]
-
-                # Notify other clients
-
-                for client in self.master.clients:
-                    
-                    client.send(MSG_REMOVE(dead_client.id))
+                self.master.remove_client(self.client_address)
 
                 break
 
@@ -292,6 +309,12 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                     if len(self.master.clients) > 1:
 
                         self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
+
+                    else:
+
+                    # If this is the first client to connect, set clock to 0
+
+                        self.master.lang.reset()
 
                 elif isinstance(msg, MSG_SET_ALL):
 
@@ -357,7 +380,10 @@ class Client:
         return repr(self.address)
 
     def send(self, string):
-        self.source.send(str(string))
+        try:
+            self.source.send(str(string))
+        except:
+            raise DeadClientError(self.hostname)
         return
 
     def __eq__(self, other):

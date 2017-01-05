@@ -4,7 +4,8 @@ PeerColours = {"red"    : "white",
                "green"  : "white",
                "blue"   : "white",
                "yellow" : "black",
-               "purple" : "white" }
+               "purple" : "white",
+               "white"  : "black" }
 
 
 class Peer:
@@ -81,12 +82,13 @@ class Peer:
 
         index = "{}.{}".format(self.row, self.col)
 
-        x = (self.char_w * (self.col + 1)) % self.root.winfo_width()
+        x = (self.root.char_w * (self.col + 1)) % self.root.winfo_width()
         y = self.root.dlineinfo(index)
 
         # Only move the cursor if we have a valid index
         if y is not None:
-            self.label.place(x=x, y=y[1]+self.char_h)
+            
+            self.label.place(x=x, y=y[1]+self.root.char_h, anchor="nw")
             
         return
 

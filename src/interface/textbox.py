@@ -20,6 +20,9 @@ class ThreadSafeText(Text):
         self.font = tkFont.Font(font=("Consolas", 12), name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
         self.configure(font="Font")
+        
+        self.char_w = self.font.measure(" ")
+        self.char_h = self.font.metrics("linespace")
 
         # Tags
         self.tag_config("code", background="Red", foreground="White")

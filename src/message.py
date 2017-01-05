@@ -135,10 +135,11 @@ class MSG_EVALUATE(MESSAGE):
 
 class MSG_HIGHLIGHT(MESSAGE):
     type = 7
-    def __init__(self, src_id, start_line, end_line):
+    def __init__(self, src_id, start_line, end_line, reply=1):
         MESSAGE.__init__(self, src_id)
         self['start_line']=int(start_line)
         self['end_line']=int(end_line)
+        self['reply']=int(reply)
 
 class MSG_GET_ALL(MESSAGE):
     type = 8
@@ -208,7 +209,7 @@ MSG_HEADER = {
                 MSG_BACKSPACE : ("type", "src_id", "row", "col", "reply"),
                 MSG_SELECT    : ("type", "src_id", "start", "end"),
                 MSG_EVALUATE  : ("type", "src_id", "string"),
-                MSG_HIGHLIGHT : ("type", "src_id", "start_line", "end_line"),
+                MSG_HIGHLIGHT : ("type", "src_id", "start_line", "end_line", "reply"),
                 MSG_GET_ALL   : ("type", "src_id", "client_id"),
                 MSG_SET_ALL   : ("type", "src_id", "string", "client_id"),
                 MSG_RESPONSE  : ("type", "src_id", "string"),
@@ -221,7 +222,7 @@ MSG_HEADER = {
 
 # Exceptions
 
-class EmptyMessageError:
+class EmptyMessageError(Exception):
     def __init__(self):
         self.value = "Message contained no data"
     def __str__(self):
@@ -232,6 +233,12 @@ class ConnectionError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+class DeadClientError(Exception):
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return "Could not connect to {}".format(self.name)
     
 
 if __name__ == "__main__":

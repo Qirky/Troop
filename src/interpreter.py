@@ -16,6 +16,10 @@ class Clock:
         self.time = 0
     def kill(self):
         return
+    def reset(self):
+        self.time = 0
+    def settime(self, t):
+        self.time = t
     def now(self):
         if self.time <= 0:
             self.time = time.time() 
@@ -25,8 +29,6 @@ class Clock:
 class EmptyInterpreter(Clock):
     lang = None
     clock = None
-    def settime(self, t):
-        self.time = t
     def evaluate(self, string):
         return 
 
