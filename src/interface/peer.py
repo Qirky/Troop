@@ -1,11 +1,14 @@
 from Tkinter import *
 
-PeerColours = {"red"    : "white",
-               "green"  : "white",
-               "blue"   : "white",
-               "yellow" : "black",
-               "purple" : "white",
-               "white"  : "black" }
+PeerColours = [
+    ("green", "white"),
+    ("cyan", "black"),
+    ("yellow", "black"),
+    ("magenta", "white"),
+    ("blue", "white"),
+    ("white", "black"),
+    ("red",  "white")
+]
 
 
 class Peer:
@@ -17,8 +20,8 @@ class Peer:
 
         self.name = StringVar()
         
-        self.bg = sorted(PeerColours.keys())[self.id % len(PeerColours)]
-        self.fg = PeerColours[self.bg]
+        self.bg = PeerColours[self.id % len(PeerColours)][0]
+        self.fg = PeerColours[self.id % len(PeerColours)][1]
         
         self.label = Label(self.root,
                            textvariable=self.name,

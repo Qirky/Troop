@@ -72,5 +72,5 @@ class Client:
             for line in f.readlines():
                 line = line.strip().split("=")
                 conf[line[0]] = line[1]
-        return conf['host'], int(conf['port']), conf['name']
+        return conf['host'], int(conf['port'])
             

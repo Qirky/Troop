@@ -14,16 +14,18 @@ import time
 class Clock:
     def __init__(self):
         self.time = 0
+        self.mark = time.time()
     def kill(self):
         return
     def reset(self):
         self.time = 0
+        self.mark = time.time()
     def settime(self, t):
         self.time = t
     def now(self):
-        if self.time <= 0:
-            self.time = time.time() 
-        self.time = time.time() - self.time
+        now = time.time()
+        self.time += now - self.mark
+        self.mark = now
         return self.time
 
 class EmptyInterpreter(Clock):
@@ -47,7 +49,9 @@ class FoxDotInterpreter(EmptyInterpreter):
         """ t is in seconds, sets clock time to  """
         bpm   = float(self.clock.bpm)
         beats = float(t) * (bpm / 60)
-        self.clock.time = beats
+        now   = float(self.now())
+        if beats < 0.95 * now or beats > 1.05 * now:
+            self.clock.time = beats
     def evaluate(self, string):
         return self.lang.execute(string)
 

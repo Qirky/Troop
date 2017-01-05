@@ -102,16 +102,35 @@ class TroopServer:
         # self.boot()
 
     def start(self):
+
         self.running = True
         self.server_thread.start()
         self.char_queue_thread.start()
+
         stdout("Server running @ {} on port {}\n".format(self.ip_addr, self.port))
+
         while True:
+
+            # Send a message every 1 second with the server time
+
             try:
+                
+                self.ping_clients()
+
                 sleep(1)
+
             except KeyboardInterrupt:
+
                 self.kill()
+
                 break
+        return
+
+    def ping_clients(self):
+        ''' Sends a clock-time message to clients '''
+        if self.is_evaluating_local is False:
+            for client in self.clients:
+                client.send(MSG_TIME(self.lang.now()))
         return
 
     def get_next_id(self):
@@ -299,10 +318,6 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                             msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
                             new_client.send(msg2)
-
-                        # Update times on all clients
-
-                        self.master.char_queue.put((client.address, MSG_TIME(self.client_id(), self.master.lang.now())))
                         
                     # Request the contents of Client 1 and update the new client
 
@@ -312,7 +327,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     else:
 
-                    # If this is the first client to connect, set clock to 0
+                        # If this is the first client to connect, set clock to 0
 
                         self.master.lang.reset()
 

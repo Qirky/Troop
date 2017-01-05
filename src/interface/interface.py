@@ -131,13 +131,22 @@ class Interface:
     def write(self, msg):
         """ Writes a network message to the queue
         """
+        assert isinstance(msg, MESSAGE)
+        
         # Keep information about new peers
-        sender_id = msg['src_id']
-        if sender_id not in self.text.peers:
-            self.text.peers[sender_id] = Peer(sender_id, self.text)
-            self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
+
+        if 'src_id' in msg:
+
+            sender_id = msg['src_id']
+
+            if sender_id not in self.text.peers:
+
+                self.text.peers[sender_id] = Peer(sender_id, self.text)
+                self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
+
         # Add message to queue
         self.text.queue.put(msg)
+
         return
 
     def update_graphs(self):

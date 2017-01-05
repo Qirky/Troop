@@ -50,7 +50,9 @@ class ThreadSafeText(Text):
 
                 # Identify the src peer
 
-                this_peer = self.peers[msg['src_id']]
+                if not isinstance(msg, MSG_TIME):
+
+                    this_peer = self.peers[msg['src_id']]
 
                 # Handles selection changes
 
@@ -129,7 +131,7 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_TIME):
 
-                    # Update local clock
+                    # Update local clock -- todo: only change if time is +- 5% or something
 
                     self.lang.settime(msg['time'])
 

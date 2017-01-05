@@ -48,7 +48,7 @@ class MESSAGE(object):
     """ Abstract base class """
     def __init__(self, src_id):
         self.data={'src_id' : int(src_id)}
-        self.keys=self.data.keys()
+        self.keys = self.data.keys()
 
     def __str__(self):
         return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
@@ -180,9 +180,9 @@ class MSG_PASSWORD(MESSAGE):
 
 class MSG_TIME(MESSAGE):
     type = 14
-    def __init__(self, src_id, time):
-        MESSAGE.__init__(self, src_id)
-        self['time']=str(time)
+    def __init__(self, time):
+        self.data = {'time' : str(time)}
+        self.keys = self.data.keys()
 
 
 MESSAGE_TYPE = [ MSG_CONNECT,
@@ -216,7 +216,7 @@ MSG_HEADER = {
                 MSG_SET_MARK  : ("type", "src_id", "row", "col"),
                 MSG_REMOVE    : ("type", "src_id"),
                 MSG_PASSWORD  : ("type", "src_id", "password"),
-                MSG_TIME      : ("type", "src_id", "time")
+                MSG_TIME      : ("type", "time")
              }
 
 

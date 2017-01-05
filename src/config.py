@@ -4,6 +4,12 @@ def stdout(*args):
     """ Forces prints to server-side """
     sys.__stdout__.write(" ".join([str(s) for s in args]) + "\n")
 
+def readin(prompt=""):
+    while True:
+        val = raw_input(prompt)
+        if val != "":
+            return val
+
 # Check for OS -> mac, linux, win
 
 SYSTEM  = 0

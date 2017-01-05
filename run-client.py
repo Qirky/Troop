@@ -21,9 +21,13 @@ from src.config import *
 import os.path
 import sys
 
-if os.path.isfile('client.cfg'):
+if sys.argv[-1] in ("-p", "--public"):
 
-    host, port, name = Client.read_configuration_file('client.cfg')
+    host, port = PUBLIC_SERVER_ADDRESS
+
+elif os.path.isfile('client.cfg'):
+
+    host, port = Client.read_configuration_file('client.cfg')
 
     """
     You can set a configuration file if you are connecting to the same
@@ -38,15 +42,9 @@ if os.path.isfile('client.cfg'):
 
 else:
 
-    if sys.argv[-1] in ("-p", "--public"):
+    host = readin("Troop Server Address: ")
+    port = readin("Port Number: ")
 
-        host, port = PUBLIC_SERVER_ADDRESS
-        
-    else:
-
-        host = raw_input("Troop Server Address: ")
-        port = raw_input("Port Number: ")
-
-    name = raw_input("Enter a name: ")
+name = readin("Enter a name: ")
 
 myClient = Client(host, port, name)
