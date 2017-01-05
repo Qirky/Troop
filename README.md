@@ -1,5 +1,5 @@
 # Troop v0.2
----
+
 ## Real-time collaborative live coding with FoxDot
 
 Troop is a real-time collaborative tool that enables group live coding within the same document. There are two modes of use: local and remote. In local mode, code is executed on the client side and on the server side in remote mode. How you set up Troop is up to you and your preferences.
@@ -34,6 +34,8 @@ You will be asked to enter a password. You can leave this blank if you wish - bu
 
 #### Local
 
+To run the server for client-side code execution, add the `local` flag when running the script. Code isn't run on the server side but it's still a good idea to use a good password. 
+
 	python run-server.py --local
 
 ### Running Troop Client
@@ -46,6 +48,11 @@ Run the `run-client.py` Python file as above. You will be asked for four things:
 - The password for the Troop Server
 
 If you've connected successfully then you'll open a black text box. Just type in some Python and press Ctrl+Return to evaluate the block of code your cursor is in. If there are any other collaborators you should see coloured markers in the text displaying their names. You can even execute code they've written and vice versa.
+
+You can create a `client.cfg` file in the root directory if you have a host / port that you want to connect to regulary. It's contents should contain two lines:
+
+	host=<hostname_or_ip_address>
+	port=<port_number>
 
 There are no bells or whistles in the Troop editor: so there's currently no automatic bracketing, keyboard short-cuts, or syntax highlighting. To stop all current sound, type `Clock.clear()` and press Ctrl+Return to evaluate.  
 
