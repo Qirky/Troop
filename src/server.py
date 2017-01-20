@@ -163,7 +163,9 @@ class TroopServer:
 
                 except KeyError as e:
 
-                    print e
+                    self.remove_client(client_address)
+
+                    stdout(e)
 
                 # Update all clients with message
 
