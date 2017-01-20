@@ -130,7 +130,11 @@ class TroopServer:
         ''' Sends a clock-time message to clients '''
         if self.is_evaluating_local is False:
             for client in self.clients:
-                client.send(MSG_TIME(self.lang.now()))
+                try:    
+                    client.send(MSG_TIME(self.lang.now()))
+                except DeadClientError as err:
+                    self.remove_client(client.address)
+                    stdout(err, "- Client has been removed")
         return
 
     def get_next_id(self):
@@ -161,11 +165,11 @@ class TroopServer:
 
                     msg['src_id'] = self.clientIDs[client_address]
 
-                except KeyError as e:
+                except KeyError as err:
 
                     self.remove_client(client_address)
 
-                    stdout(e)
+                    stdout(err)
 
                 # Update all clients with message
 

@@ -55,9 +55,13 @@ class Interface:
 
         self.text.bind("<Key>",             self.KeyPress)
         self.text.bind("<<Selection>>",     self.Selection)
-        self.text.bind("<{}-Return>".format(CtrlKey),  self.Evaluate)
-        self.text.bind("<{}-Home>".format(CtrlKey),  self.CtrlHome)
-        self.text.bind("<{}-End>".format(CtrlKey),   self.CtrlEnd)
+        self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
+        self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
+        self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
+        self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
+        self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
+        
+        
 
         # Key bindings to handle select
         self.text.bind("<Shift-Left>",  self.SelectLeft)
@@ -419,6 +423,90 @@ class Interface:
         self.text.mark_set(INSERT, END)
         
         return "break"
+
+    def findWordLeft(self):
+        # Go back until you find the next " "
+        index = self.text.index(INSERT)
+
+        if index == "1.0":
+
+            return 1, 0
+
+        row, col = self.convert(index)
+
+        if col == 0:
+
+            row, col = self.convert(self.text.index("{}.end", row-1))
+
+        while self.text.get("{}.{}".format(row, col-1)) == " " and col > 0:
+
+            col -= 1
+
+        for col in range(col, 0, -1):
+
+            index="{}.{}".format(row, col - 1)
+
+            if self.text.get(index) == " ":
+
+                return row, col
+
+        return 1, 0
+
+
+    def CtrlLeft(self, event):
+
+        row, col = self.findWordLeft()
+
+        self.text.mark_set(INSERT, "{}.{}".format(row,col))
+
+        self.push_queue.put( MSG_SET_MARK(-1, row, col) )
+                    
+        return "break"
+
+    def CtrlRight(self, event):
+
+        row, col = self.findWordRight()
+
+        self.text.mark_set(INSERT, "{}.{}".format(row,col))
+
+        self.push_queue.put( MSG_SET_MARK(-1, row, col) )
+                    
+        return "break"
+        
+
+    def findWordRight(self):
+        index = self.text.index(INSERT)
+
+        row, col = self.convert(index)
+
+        _, end_col = self.convert(self.text.index("{}.end".format(row)))
+
+        while self.text.get("{}.{}".format(row, col)) == " " and col < end_col:
+
+            col += 1
+
+        end_row, end_col = self.convert(self.text.index(END))
+
+        for r in range(row, end_row + 1):
+            
+            if r == row:
+                start_col = col
+
+            else:
+                
+                start_col = 0
+
+            _, end_c = self.convert(self.text.index("{}.end".format(row)))
+
+            for c in range(start_col, end_c):
+
+                index="{}.{}".format(r, c)
+
+                if self.text.get(index) == " ":
+
+                    return r, c
+                    
+        return end_row, end_col
 
     """ Directional key-presses """    
 
