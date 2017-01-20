@@ -67,13 +67,23 @@ class Interface:
         self.text.bind("<Shift-End>",   self.SelectEnd)
         self.text.bind("<Shift-Home>",  self.SelectHome)
 
+        # Copy and paste key bindings
+
+        self.text.bind("<{}-c>".format(CtrlKey), self.Copy)
+        self.text.bind("<{}-x>".format(CtrlKey), self.Cut)
+        self.text.bind("<{}-v>".format(CtrlKey), self.Paste)
+
+        # Handling mouse events
+        self.text.bind("<Button-1>", self.leftMousePress)
+        self.text.bind("<Button-2>", self.rightMousePress)
+
         # Local execution (only on the local machine)
 
         self.text.bind("<Alt-Return>", self.LocalEvaluate)
 
         # Disabled Key bindings (for now)
 
-        for key in "qwertyuiopasdfghjklzxcvbnm":
+        for key in "qwertyuiopasdfghjklzbnm":
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
@@ -81,6 +91,8 @@ class Interface:
 
         self.text.bind("<{}-equal>".format(CtrlKey),  self.IncreaseFontSize)
         self.text.bind("<{}-minus>".format(CtrlKey),  self.DecreaseFontSize)
+
+        self.CtrlKeys = (CtrlKey + "_L", CtrlKey + "_R")
 
         # Directional commands
 
@@ -240,6 +252,11 @@ class Interface:
     def KeyPress(self, event):
         """ 'Pushes' the key-press to the server.
         """
+
+        # Ignore the CtrlKey
+
+        if event.keysym in self.CtrlKeys: return
+        
         row, col = self.text.index(INSERT).split(".")
         row = int(row)
         col = int(col)
@@ -523,3 +540,44 @@ class Interface:
     def IncreaseFontSize(self, event):
         self.ChangeFontSize(+2)
         return 'break'
+
+    def leftMousePress(self, event):
+
+        index = self.text.index("@{},{}".format( event.x, event.y ))
+
+        row, col = index.split(".")
+
+        self.push_queue.put( MSG_SET_MARK(-1, row, col) )
+
+        self.text.mark_set( INSERT, index )
+
+        self.sel_start = self.text.index(INSERT)
+
+        self.sel_end   = self.text.index(INSERT)
+
+        self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
+
+        return "break"
+
+    def rightMousePress(self, event):
+        return "break"
+
+    def Copy(self, event):
+        text = self.text.get(self.sel_start, self.sel_end)
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        return "break"
+
+    def Cut(self, event):
+        text = self.text.get(self.sel_start, self.sel_end)
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        row, col = self.convert(self.text.index(INSERT))
+        self.push_queue.put( MSG_BACKSPACE(-1, row, col) )
+        return "break"
+    
+    def Paste(self, event):
+        text = self.root.clipboard_get()
+        row, col = self.convert(self.text.index(INSERT))
+        self.push_queue.put( MSG_INSERT(-1, text, row, col) )
+        return "break"
