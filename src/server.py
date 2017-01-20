@@ -157,7 +157,13 @@ class TroopServer:
 
                 client_address, msg = self.char_queue.get_nowait()
 
-                msg['src_id'] = self.clientIDs[client_address]
+                try:
+
+                    msg['src_id'] = self.clientIDs[client_address]
+
+                except KeyError as e:
+
+                    print e
 
                 # Update all clients with message
 
