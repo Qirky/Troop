@@ -10,11 +10,6 @@ import tkFont
 import Queue
 import sys
 
-# TODO
-"""
-- Handle mouse click
-"""
-
 class Interface:
     def __init__(self, title="Troop"):
         
@@ -434,9 +429,9 @@ class Interface:
 
         row, col = self.convert(index)
 
-        if col == 0:
+        while col == 0:
 
-            row, col = self.convert(self.text.index("{}.end", row-1))
+            row, col = self.convert(self.text.index("{}.end".format(row-1)))
 
         while self.text.get("{}.{}".format(row, col-1)) == " " and col > 0:
 
@@ -450,7 +445,7 @@ class Interface:
 
                 return row, col
 
-        return 1, 0
+        return row, 0
 
 
     def CtrlLeft(self, event):

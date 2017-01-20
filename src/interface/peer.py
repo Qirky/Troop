@@ -1,13 +1,13 @@
 from Tkinter import *
 
 PeerColours = [
-    ("green", "white"),
-    ("cyan", "black"),
-    ("yellow", "black"),
+    ("green",   "black"),
+    ("cyan",    "black"),
+    ("yellow",  "black"),
     ("magenta", "white"),
-    ("blue", "white"),
-    ("white", "black"),
-    ("red",  "white")
+    ("white",   "black"),
+    ("red",     "white"),
+    ("blue",    "white")
 ]
 
 
