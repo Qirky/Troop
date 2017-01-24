@@ -1,6 +1,7 @@
 # Compiled Python file
 *.pyc
 client.cfg
+todo.txt
 
 # Windows image file caches
 Thumbs.db

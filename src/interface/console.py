@@ -5,8 +5,11 @@ class Console(Text):
     def __init__(self, root, **kwargs):
         Text.__init__(self, root, **kwargs)
         self.queue = Queue.Queue()
-        self.bind("<Key>", lambda e: "break")
+        self.bind("<Key>", self.null)
         self.update_me()
+
+    def null(self, event):
+        return "break"
 
     def update_me(self):
         try:

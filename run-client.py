@@ -31,12 +31,11 @@ elif os.path.isfile('client.cfg'):
 
     """
     You can set a configuration file if you are connecting to the same
-    server on repeated occassions. A password should not be stored. The
+    server on repeated occasions. A password should not be stored. The
     file (client.cfg) should look like:
 
     host=<host_ip>
     port=<port_no>
-    name=<your_name>
 
     """
 

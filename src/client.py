@@ -70,7 +70,10 @@ class Client:
         conf = {}
         with open(filename) as f:
             for line in f.readlines():
-                line = line.strip().split("=")
-                conf[line[0]] = line[1]
+                try:
+                    line = line.strip().split("=")
+                    conf[line[0]] = line[1]
+                except:
+                    pass
         return conf['host'], int(conf['port'])
             

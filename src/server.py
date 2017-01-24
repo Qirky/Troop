@@ -361,6 +361,8 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     if self.master.is_evaluating_local:
 
+                        # Evaluate on server
+
                         try:
 
                             response = self.master.lang.evaluate(msg['string'])
@@ -371,7 +373,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     else:
 
-                        # send to clients
+                        # send to clients to evaluate
 
                         for client in self.master.clients:
 
@@ -379,7 +381,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                             
                 else:
 
-                    # Add character to the Queue
+                    # Add any other messages to the send queue
 
                     self.master.char_queue.put((self.client_address, msg))
                     

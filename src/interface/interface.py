@@ -138,6 +138,12 @@ class Interface:
         self.text.marker.name.set(name)
         self.text.peers[id_num] = self.text.marker
         return
+
+    def setInsert(self, index):
+        ''' sets the INSERT and peer mark '''
+        self.text.mark_set(INSERT, index)
+        self.text.mark_set(self.text.marker.mark, index)
+        return
         
     def write(self, msg):
         """ Writes a network message to the queue
@@ -318,10 +324,12 @@ class Interface:
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
 
             # Add to queue
-            self.push_queue.put( MSG_SET_MARK(-1, row, col) )
+            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
 
-            # Update the actual insert mark
-            self.text.mark_set(INSERT, "{}.{}".format(row, col))
+            # print ", ".join([event.keysym, str(row), str(col)])
+
+            # Update the insert mark
+            self.setInsert( "{}.{}".format(row, col) )                               
 
         # Inserting a character
 
@@ -401,7 +409,7 @@ class Interface:
         self.push_queue.put( MSG_SET_MARK(-1, 1, 0) )
 
         # Update the actual insert mark
-        self.text.mark_set(INSERT, "1.0")
+        self.setInsert( "1.0" )
 
         # Make sure the user sees their cursor
         self.text.see(INSERT)
@@ -415,7 +423,7 @@ class Interface:
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
         # Update the actual insert mark
-        self.text.mark_set(INSERT, END)
+        self.setInsert( END )
         
         return "break"
 
@@ -452,7 +460,7 @@ class Interface:
 
         row, col = self.findWordLeft()
 
-        self.text.mark_set(INSERT, "{}.{}".format(row,col))
+        self.setInsert( "{}.{}".format(row,col) )
 
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
                     
@@ -462,7 +470,7 @@ class Interface:
 
         row, col = self.findWordRight()
 
-        self.text.mark_set(INSERT, "{}.{}".format(row,col))
+        self.setInsert( "{}.{}".format(row,col) )
 
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
                     
@@ -625,14 +633,21 @@ class Interface:
         return 'break'
 
     def leftMousePress(self, event):
+        ''' Override for left mouse click '''
+
+        # Get text index of click location
 
         index = self.text.index("@{},{}".format( event.x, event.y ))
 
         row, col = index.split(".")
 
+        # Set the mark
+
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
-        self.text.mark_set( INSERT, index )
+        self.setInsert( index )
+
+        # De-select text
 
         self.sel_start = self.text.index(INSERT)
 
@@ -640,12 +655,17 @@ class Interface:
 
         self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
 
+        # Make sure the text box gets focus
+
+        self.text.focus_set()        
+
         return "break"
 
     def rightMousePress(self, event):
         return "break"
 
     def Copy(self, event):
+        ''' Override for Ctrl+C '''
         text = self.text.get(self.sel_start, self.sel_end)
         self.root.clipboard_clear()
         self.root.clipboard_append(text)

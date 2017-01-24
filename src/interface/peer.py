@@ -17,6 +17,7 @@ class Peer:
     def __init__(self, id_num, widget):
         self.id = id_num
         self.root = widget
+        self.root_parent = widget.root
 
         self.name = StringVar()
         
@@ -44,7 +45,7 @@ class Peer:
 
         # Stat graph
         self.count = 0
-        self.graph = self.root.root.graphs.create_rectangle(0,0,0,0, fill=self.bg)
+        self.graph = self.root_parent.graphs.create_rectangle(0,0,0,0, fill=self.bg)
 
         # Tracks a peer's selection amount and location
         self.row = 1
@@ -146,6 +147,9 @@ class Peer:
     def unhighlight(self):
         self.root.tag_remove(self.code_tag, "1.0", END)
         return
+
+    def index(self):
+        return "{}.{}".format(self.row, self.col)
     
     def __eq__(self, other):
         return self.id == other

@@ -165,10 +165,11 @@ class MSG_RESPONSE(MESSAGE):
 
 class MSG_SET_MARK(MESSAGE):
     type = 11
-    def __init__(self, src_id, row, col):
+    def __init__(self, src_id, row, col, reply=1):
         MESSAGE.__init__(self, src_id)
         self['row']=int(row)
         self['col']=int(col)
+        self['reply']=int(reply)
 
 class MSG_REMOVE(MESSAGE):
     type = 12
@@ -205,6 +206,8 @@ MESSAGE_TYPE = [ MSG_CONNECT,
 
 MESSAGE_TYPE = dict([(msg.type, msg) for msg in MESSAGE_TYPE])
 
+# TODO- use inspect to do this automatically
+
 MSG_HEADER = {
                 MSG_CONNECT   : ("type", "src_id", "name", "hostname", "port"),
                 MSG_INSERT    : ("type", "src_id", "char", "row", "col", "reply"),
@@ -216,7 +219,7 @@ MSG_HEADER = {
                 MSG_GET_ALL   : ("type", "src_id", "client_id"),
                 MSG_SET_ALL   : ("type", "src_id", "string", "client_id"),
                 MSG_RESPONSE  : ("type", "src_id", "string"),
-                MSG_SET_MARK  : ("type", "src_id", "row", "col"),
+                MSG_SET_MARK  : ("type", "src_id", "row", "col", "reply"),
                 MSG_REMOVE    : ("type", "src_id"),
                 MSG_PASSWORD  : ("type", "src_id", "password"),
                 MSG_TIME      : ("type", "time")

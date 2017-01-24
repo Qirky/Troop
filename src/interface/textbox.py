@@ -81,13 +81,16 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_SET_MARK):
 
-                    line = str(msg['row'])
-                    col  = str(msg['col'])
+                    row = str(msg['row'])
+                    col = str(msg['col'])
 
-                    index = line + "." + col
+                    index = row + "." + col
 
                     self.mark_set(this_peer.mark, index)
-                    this_peer.move(int(line), int(col))                        
+
+                    # print ",".join([str(s) for s in (this_peer.name.get(), index)])
+                    
+                    this_peer.move(int(row), int(col))                        
 
                 elif isinstance(msg, MSG_INSERT):
 
