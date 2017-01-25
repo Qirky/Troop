@@ -171,6 +171,19 @@ class TroopServer:
 
                     stdout(err)
 
+                # If the message is a set_mark message, keep track of that client's row/col
+
+                if type(msg) == MSG_SET_MARK or type(msg) == MSG_INSERT:
+
+                    for client in self.clients:
+
+                        if client == client_address:
+
+                            client.row = msg['row']
+                            client.col = msg['col']
+
+                            break
+
                 # Update all clients with message
 
                 for client in self.clients:
@@ -179,11 +192,7 @@ class TroopServer:
 
                         if 'reply' in msg.data:
 
-                            if msg['reply'] == 1:
-
-                                client.send(msg)
-
-                            elif client.id != msg['src_id']:
+                            if msg['reply'] == 1 or client.id != msg['src_id']:
 
                                 client.send(msg)
 
@@ -230,7 +239,6 @@ class TroopServer:
             client.send(MSG_REMOVE(dead_client.id))
 
         return
-
         
     def kill(self):
         self.running = False
@@ -276,6 +284,8 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
             self.request.send(str(self.client_id()))
 
         else:
+
+            # Negative ID indicates failed login
 
             self.request.send("-1")
 
@@ -327,7 +337,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         if client != self.client_address:
 
-                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
+                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.row, client.col)
 
                             new_client.send(msg2)
                         
@@ -401,9 +411,10 @@ class Client:
         # For identification purposes
 
         self.id = id_num
-        self.name = None 
-        self.line = 0
-        self.column = 0
+        self.name = None
+        
+        self.row = 0
+        self.col = 0
 
     def __repr__(self):
         return repr(self.address)

@@ -14,7 +14,7 @@ PeerColours = [
 class Peer:
     """ Class representing the connected performers within the Tk Widget
     """
-    def __init__(self, id_num, widget):
+    def __init__(self, id_num, widget, row=1, col=0):
         self.id = id_num
         self.root = widget
         self.root_parent = widget.root
@@ -33,14 +33,16 @@ class Peer:
         self.insert = Label(self.root,
                             bg=self.bg,
                             fg=self.fg,
-                            text="" )
+                            bd=0,
+                            height=2,
+                            text="", font="Font" )
 
         self.text_tag = "text_" + str(self.id)
         self.code_tag = "code_" + str(self.id)
         self.sel_tag  = "sel_"  + str(self.id)
         self.mark     = "mark_" + str(self.id)
 
-        self.root.mark_set(self.mark, "0.0")
+        self.root.mark_set(self.mark, str(row) + "." + str(col))
         self.root.peer_tags.append(self.text_tag)
 
         # Stat graph
@@ -48,8 +50,8 @@ class Peer:
         self.graph = self.root_parent.graphs.create_rectangle(0,0,0,0, fill=self.bg)
 
         # Tracks a peer's selection amount and location
-        self.row = 1
-        self.col = 0
+        self.row = row
+        self.col = col
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
@@ -57,18 +59,16 @@ class Peer:
         self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
         self.root.tag_config(self.sel_tag, background=self.bg, foreground=self.fg)
 
-        self.char_w = self.root.font.measure(" ")
-        self.char_h = self.root.font.metrics("linespace")
-
         self.name.set("Unnamed Peer")
-        self.move(self.row, self.col)
 
     def __str__(self):
         return str(self.name.get())
         
     def move(self, row, col):
-        """ Updates information about this Peer from a network message.
-            TODO - Add an insert cursor for each peer """
+        """ Updates the location of the Peer's label """
+
+        row = int(row)
+        col = int(col)
 
         index = "{}.{}".format(row, col)
 
@@ -86,13 +86,14 @@ class Peer:
 
         index = "{}.{}".format(self.row, self.col)
 
-        x = (self.root.char_w * (self.col + 1)) % self.root.winfo_width()
+        x = (self.root.char_w * (self.col)) % self.root.winfo_width()
         y = self.root.dlineinfo(index)
 
         # Only move the cursor if we have a valid index
         if y is not None:
             
             self.label.place(x=x, y=y[1]+self.root.char_h, anchor="nw")
+            self.insert.place(x=x, y=y[1], anchor="nw")
             
         return
 
@@ -116,6 +117,8 @@ class Peer:
     def deleteSelection(self):
         self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
         self.root.delete(self.sel_start, self.sel_end)
+        row, col = self.sel_start.split(".")
+        self.move(row, col)
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
         return

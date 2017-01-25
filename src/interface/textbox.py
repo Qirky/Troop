@@ -32,11 +32,13 @@ class ThreadSafeText(Text):
         
         self.update_me()
 
-    def alone(self, peer):
-        """ Returns True if there are no other peers editing the same line """
+    def alone(self, peer, row=None):
+        """ Returns True if there are no other peers editing the same line.
+            Row can be specified. """
+        row = peer.row if row is None else row
         # Possible todo -> make sure there's a 1 line gap
         for other in self.peers.values():
-            if peer != other and peer.row == other.row:
+            if peer != other and row == other.row:
                 return False
         return True
     
@@ -71,7 +73,7 @@ class ThreadSafeText(Text):
 
                     self.handle_delete(this_peer, msg['row'],  msg['col'])
 
-                elif isinstance(msg, MSG_BACKSPACE):
+                elif type(msg) == MSG_BACKSPACE:
 
                     self.handle_backspace(this_peer, msg['row'], msg['col'])
 
@@ -88,11 +90,17 @@ class ThreadSafeText(Text):
 
                     self.mark_set(this_peer.mark, index)
 
+                    # If this is a local peer, set the insert too
+
+                    if this_peer == self.marker:
+
+                        self.mark_set(INSERT, index)
+
                     # print ",".join([str(s) for s in (this_peer.name.get(), index)])
                     
                     this_peer.move(int(row), int(col))                        
 
-                elif isinstance(msg, MSG_INSERT):
+                elif type(msg) == MSG_INSERT:
 
                     self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
 
@@ -104,19 +112,18 @@ class ThreadSafeText(Text):
 
                     self.root.push_queue.put( MSG_SET_ALL(-1, text, msg['client_id']) )
 
-                elif isinstance(msg, MSG_SET_ALL):
+                elif type(msg) == MSG_SET_ALL:
 
                     # Set the contents of the text box
 
                     self.handle_setall(msg['string'])
 
-                    target_peer = self.peers[msg['client_id']]
-                    
-                    target_peer.move(1,0)
+                    for _, peer in self.peers.items():
+
+                        peer.move(peer.row, peer.col)
+                        self.mark_set(peer.mark, peer.index())
 
                     self.mark_set(INSERT, "1.0")
-
-                    self.mark_set(target_peer.mark, "1.0")
 
                 elif isinstance(msg, MSG_REMOVE):
 
@@ -191,11 +198,31 @@ class ThreadSafeText(Text):
         return
 
     def handle_insert(self, peer, char, row, col):
-        # TODO - Check row / col
+        ''' Manual character insert for connected peer '''
+
+        # print "mark: " + str(self.index(peer.mark)) + ", adding @ " + str(row) + "." + str(col)
+        index = str(row) + "." + str(col)
+
+        # Delete a selection if inputting a character
         if len(char) > 0 and peer.hasSelection():
             peer.deleteSelection()
+
+        # Insert character
+##
+##        # Check if the locations are the same
+##
+##        if index != self.index(peer.mark):
+##
+##            peer.row = row
+##            peer.col = col
+##
+##            self.mark_set(peer.mark, index)
+        
         self.insert(peer.mark, char, peer.text_tag)
+
         row, col = (int(i) for i in self.index(peer.mark).split('.'))
+
+        # Update label
         peer.move(row, col)
         return
 

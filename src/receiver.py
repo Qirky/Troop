@@ -66,17 +66,19 @@ class Receiver:
 
                 break
 
-            # Store information about a newly connected client
-
             for msg in network_msg:
 
-                if isinstance(msg, MSG_CONNECT):
+                # Store information about a newly connected client
+
+                if type(msg) == MSG_CONNECT:
 
                     self.nodes[msg['src_id']] = Node(*msg)
 
+                    self.update_text(msg)
+
                 # Code feedback from the server
 
-                elif isinstance(msg, MSG_RESPONSE):
+                elif type(msg) == MSG_RESPONSE:
 
                     self.ui.console.write(msg['string'])
 
@@ -84,23 +86,29 @@ class Receiver:
 
                 else:
 
-                    while self.ui is None:
-
-                        sleep(0.1)
+                    self.update_text(msg)
                     
-                    self.ui.write(msg)
+        return
+
+    def update_text(self, message):
+        ''' Add a Troop message to the Queue '''
+        while self.ui is None:
+            sleep(0.1)
+        self.ui.write(message)
+        return
  
 class Node:
     """ Class for basic information on other nodes within the network.
-        Contains no information about code/text.
     """
-    attributes = ('id_num', 'name', 'hostname', 'port')
-    def __init__(self, id_num, name, hostname, port):
+    attributes = ('id_num', 'name', 'hostname', 'port', 'row', 'col')
+    def __init__(self, id_num, name, hostname, port, row, col):
         self.id       = int(id_num)
         self.name     = name
         self.hostname = hostname
         self.port     = int(port)
         self.address  = (self.hostname, self.port)
+        self.row = row
+        self.col = col
     def __repr__(self):
         return "{}: {}".format(self.hostname, self.port)        
     def __eq__(self, other):

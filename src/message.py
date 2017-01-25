@@ -10,6 +10,7 @@
 """
 
 import re
+import inspect
 
 re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
@@ -22,13 +23,10 @@ def NetworkMessage(string):
 
     while i < len(data):
 
-        # Get the message type
-        MSGTYPE = int(data[i])
-
         # Find out which message it is, send back a list of messages
 
-        cls = MESSAGE_TYPE[MSGTYPE]
-        j = len(MSG_HEADER[cls])
+        cls = MESSAGE_TYPE[int(data[i])]
+        j = len(cls.header())
         
         try:
 
@@ -88,15 +86,23 @@ class MESSAGE(object):
     def password(password):
         return NetworkMessage.compile(-1, -1, password)
 
+    @classmethod
+    def header(cls):
+        args = inspect.getargspec(cls.__init__).args
+        args[0] = 'type'
+        return args
+
 # Define types of message
         
 class MSG_CONNECT(MESSAGE):
     type = 1
-    def __init__(self, src_id, name, hostname, port):
+    def __init__(self, src_id, name, hostname, port, row=1, col=0):
         MESSAGE.__init__(self, src_id)
         self['name']      = str(name)
         self['hostname']  = str(hostname)
         self['port']      = int(port)
+        self['row']       = int(row)
+        self['col']       = int(col)
 
 class MSG_INSERT(MESSAGE):
     type = 2
@@ -188,6 +194,7 @@ class MSG_TIME(MESSAGE):
         self.data = {'time' : str(time)}
         self.keys = self.data.keys()
 
+# Create a dictionary of message type to message class 
 
 MESSAGE_TYPE = [ MSG_CONNECT,
                  MSG_INSERT,
@@ -204,27 +211,7 @@ MESSAGE_TYPE = [ MSG_CONNECT,
                  MSG_PASSWORD,
                  MSG_TIME ]
 
-MESSAGE_TYPE = dict([(msg.type, msg) for msg in MESSAGE_TYPE])
-
-# TODO- use inspect to do this automatically
-
-MSG_HEADER = {
-                MSG_CONNECT   : ("type", "src_id", "name", "hostname", "port"),
-                MSG_INSERT    : ("type", "src_id", "char", "row", "col", "reply"),
-                MSG_DELETE    : ("type", "src_id", "row", "col", "reply"),
-                MSG_BACKSPACE : ("type", "src_id", "row", "col", "reply"),
-                MSG_SELECT    : ("type", "src_id", "start", "end"),
-                MSG_EVALUATE  : ("type", "src_id", "string"),
-                MSG_HIGHLIGHT : ("type", "src_id", "start_line", "end_line", "reply"),
-                MSG_GET_ALL   : ("type", "src_id", "client_id"),
-                MSG_SET_ALL   : ("type", "src_id", "string", "client_id"),
-                MSG_RESPONSE  : ("type", "src_id", "string"),
-                MSG_SET_MARK  : ("type", "src_id", "row", "col", "reply"),
-                MSG_REMOVE    : ("type", "src_id"),
-                MSG_PASSWORD  : ("type", "src_id", "password"),
-                MSG_TIME      : ("type", "time")
-             }
-
+MESSAGE_TYPE = {msg.type: msg for msg in MESSAGE_TYPE}
 
 # Exceptions
 

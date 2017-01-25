@@ -24,7 +24,7 @@ class Interface:
         self.scroll.grid(row=0, column=2, sticky='nsew')
 
         # Text box
-        self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="white", height=15)
+        self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15)
         self.text.grid(row=0, column=0, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
@@ -55,8 +55,6 @@ class Interface:
         self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
         self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
         self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
-        
-        
 
         # Key bindings to handle select
         self.text.bind("<Shift-Left>",  self.SelectLeft)
@@ -72,6 +70,9 @@ class Interface:
         self.text.bind("<{}-x>".format(CtrlKey), self.Cut)
         self.text.bind("<{}-v>".format(CtrlKey), self.Paste)
 
+        # Undo -- not implemented
+        self.text.bind("<{}-z>".format(CtrlKey), self.Undo)        
+
         # Handling mouse events
         self.text.bind("<Button-1>", self.leftMousePress)
         self.text.bind("<Button-2>", self.rightMousePress)
@@ -82,7 +83,7 @@ class Interface:
 
         # Disabled Key bindings (for now)
 
-        for key in "qwertyuiopasdfghjklzbnm":
+        for key in "qwertyuiopasdfghjklbnm":
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
@@ -136,6 +137,7 @@ class Interface:
         self.text.local_peer = id_num
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
+        self.text.marker.move(1,0)
         self.text.peers[id_num] = self.text.marker
         return
 
@@ -148,6 +150,7 @@ class Interface:
     def write(self, msg):
         """ Writes a network message to the queue
         """
+        # msg must be a Troop message
         assert isinstance(msg, MESSAGE)
         
         # Keep information about new peers
@@ -158,8 +161,14 @@ class Interface:
 
             if sender_id not in self.text.peers:
 
-                self.text.peers[sender_id] = Peer(sender_id, self.text)
-                self.text.peers[sender_id].name.set(self.pull(sender_id, "name"))
+                # Get peer's current location & name
+
+                row  = self.pull(sender_id, "row")
+                col  = self.pull(sender_id, "col")
+                name = self.pull(sender_id, "name")
+
+                self.text.peers[sender_id] = Peer(sender_id, self.text, row, col)
+                self.text.peers[sender_id].name.set(name)
 
         # Add message to queue
         self.text.queue.put(msg)
@@ -258,6 +267,9 @@ class Interface:
         """ 'Pushes' the key-press to the server.
         """
 
+        # TODO -> Creative Constraints
+        # if not constraint_satisfied(event, self.text): return
+
         # Ignore the CtrlKey
 
         if event.keysym in self.CtrlKeys: return
@@ -283,13 +295,11 @@ class Interface:
 
         if event.keysym == "Delete":
 
+            # Deletes are tricky - send to server to make sure they work
+
             reply = 1
 
             self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
-
-##            if not reply:
-##
-##                self.text.handle_delete(self.text.marker, row, col)
 
         elif event.keysym == "BackSpace":
 
@@ -305,17 +315,21 @@ class Interface:
 
         elif event.keysym in self.directions:
 
+            # reply = 1
+
+            old_row, old_col = row, col
+
             if event.keysym == "Left":
-                row, col = self.Left(row, col)
+                row, col = self.Left(old_row, old_col)
 
             elif event.keysym == "Right":
-                row, col = self.Right(row, col)
+                row, col = self.Right(old_row, old_col)
 
             elif event.keysym == "Up":
-                row, col = self.Up(row, col)
+                row, col = self.Up(old_row, old_col)
 
             elif event.keysym == "Down":
-                row, col = self.Down(row, col)
+                row, col = self.Down(old_row, old_col)
 
             elif event.keysym == "Home":
                 col = 0
@@ -323,13 +337,18 @@ class Interface:
             elif event.keysym == "End":
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
 
+            # Move the label locally if not getting a reply from server
+
+            if not reply:
+
+                # Update the INSERT marker
+
+                self.setInsert( "{}.{}".format(row, col) )
+
+                self.text.marker.move(row, col)
+
             # Add to queue
-            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
-
-            # print ", ".join([event.keysym, str(row), str(col)])
-
-            # Update the insert mark
-            self.setInsert( "{}.{}".format(row, col) )                               
+            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )                       
 
         # Inserting a character
 
@@ -624,12 +643,18 @@ class Interface:
         self.text.char_h = self.text.font.metrics("linespace")
         return
 
+    def refreshPeerLabels(self):
+        for peer in self.text.peers.values():
+            peer.move(peer.row, peer.col)
+
     def DecreaseFontSize(self, event):
         self.ChangeFontSize(-2)
+        self.refreshPeerLabels()
         return 'break'
 
     def IncreaseFontSize(self, event):
         self.ChangeFontSize(+2)
+        self.refreshPeerLabels()
         return 'break'
 
     def leftMousePress(self, event):
@@ -662,6 +687,11 @@ class Interface:
         return "break"
 
     def rightMousePress(self, event):
+        return "break"
+
+    def Undo(self, event):
+        ''' Override for Ctrl+Z -- Not implemented '''
+        # self.text.edit_undo()
         return "break"
 
     def Copy(self, event):
