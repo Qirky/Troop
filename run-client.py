@@ -22,10 +22,6 @@ import os.path
 import sys
 
 if sys.argv[-1] in ("-p", "--public"):
-##
-##    pass
-##
-##if True:
 
     host, port = PUBLIC_SERVER_ADDRESS
 

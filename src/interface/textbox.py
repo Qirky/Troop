@@ -36,7 +36,6 @@ class ThreadSafeText(Text):
         """ Returns True if there are no other peers editing the same line.
             Row can be specified. """
         row = peer.row if row is None else row
-        # Possible todo -> make sure there's a 1 line gap
         for other in self.peers.values():
             if peer != other and row == other.row:
                 return False
@@ -98,7 +97,9 @@ class ThreadSafeText(Text):
 
                     # print ",".join([str(s) for s in (this_peer.name.get(), index)])
                     
-                    this_peer.move(int(row), int(col))                        
+                    this_peer.move(int(row), int(col))
+
+                    # self.refreshPeerLabels()
 
                 elif type(msg) == MSG_INSERT:
 
@@ -156,6 +157,17 @@ class ThreadSafeText(Text):
         # Recursive call
         self.after(100, self.update_me)
         return
+    
+    def refreshPeerLabels(self):
+        ''' Updates the locations of the peers to their marks'''
+        loc = []
+        for peer in self.peers.values():
+            i = self.index(peer.mark)
+            row, col = i.split(".")
+            raised = (row, col) in loc
+            peer.move(row, col, raised)
+            loc.append((row, col))
+        return
 
     # handling key events
 
@@ -165,7 +177,8 @@ class ThreadSafeText(Text):
         else:
             index = "{}.{}".format(row, col)
             self.delete(index)
-        peer.move(row, col)
+        # peer.move(row, col)
+        self.refreshPeerLabels()
         return
 
     def handle_backspace(self, peer, row, col):
@@ -183,7 +196,7 @@ class ThreadSafeText(Text):
 
                 self.delete(index)
 
-                peer.move(row, col-1)
+                # peer.move(row, col-1)
 
             elif row > 1 and col == 0:
 
@@ -193,7 +206,9 @@ class ThreadSafeText(Text):
 
                 col = int(self.index(index).split('.')[1])
 
-                peer.move(row-1, col)
+                # peer.move(row-1, col)
+
+        self.refreshPeerLabels()
 
         return
 
@@ -220,10 +235,12 @@ class ThreadSafeText(Text):
         
         self.insert(peer.mark, char, peer.text_tag)
 
-        row, col = (int(i) for i in self.index(peer.mark).split('.'))
+        self.refreshPeerLabels()
+
+        #row, col = (int(i) for i in self.index(peer.mark).split('.'))
 
         # Update label
-        peer.move(row, col)
+        #peer.move(row, col)
         return
 
     def handle_getall(self):

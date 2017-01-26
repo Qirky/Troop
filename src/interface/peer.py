@@ -64,7 +64,7 @@ class Peer:
     def __str__(self):
         return str(self.name.get())
         
-    def move(self, row, col):
+    def move(self, row, col, raised = False):
         """ Updates the location of the Peer's label """
 
         row = int(row)
@@ -86,14 +86,25 @@ class Peer:
 
         index = "{}.{}".format(self.row, self.col)
 
-        x = (self.root.char_w * (self.col)) % self.root.winfo_width()
         y = self.root.dlineinfo(index)
 
         # Only move the cursor if we have a valid index
         if y is not None:
+
+            x_val = (self.root.char_w * (self.col)) % (self.root.winfo_width()-self.root.char_w)
+
+            # Label can go on top of the cursor
+
+            if raised:
+
+                y_val = (y[1] - self.root.char_h, y[1] - self.root.char_h)
+
+            else:
+
+                y_val = (y[1] + self.root.char_h, y[1])
             
-            self.label.place(x=x, y=y[1]+self.root.char_h, anchor="nw")
-            self.insert.place(x=x, y=y[1], anchor="nw")
+            self.label.place(x=x_val, y=y_val[0], anchor="nw")
+            self.insert.place(x=x_val, y=y_val[1], anchor="nw")
             
         return
 
@@ -102,12 +113,13 @@ class Peer:
         self.root.tag_remove(self.sel_tag, "1.0", END)
         self.sel_start = start
         self.sel_end   = end  
-        if start != end: # != "0.0":
+        if start != end:
             self.root.tag_add(self.sel_tag, self.sel_start, self.sel_end)                      
         return
 
     def remove(self):
         self.label.destroy()
+        self.insert.destroy()
         self.root.root.graphs.delete(self.graph)
         return
     

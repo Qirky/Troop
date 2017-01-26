@@ -76,6 +76,12 @@ class Receiver:
 
                     self.update_text(msg)
 
+                    # Notify user of newly connected users
+
+                    if self.ui.text.marker.id != msg['src_id']:
+
+                        print("Peer '{}' has joined the session".format(msg['name']))
+
                 # Code feedback from the server
 
                 elif type(msg) == MSG_RESPONSE:

@@ -40,7 +40,7 @@ class Interface:
         sys.stdout = self.console
 
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg="black")
+        self.graphs = Canvas(self.root, bg="black", width=250)
         self.graphs.grid(row=1, column=1, sticky="nsew")
         self.graph_queue = Queue.Queue()
 
@@ -139,6 +139,11 @@ class Interface:
         self.text.marker.name.set(name)
         self.text.marker.move(1,0)
         self.text.peers[id_num] = self.text.marker
+
+        # Tell any other peers about this location
+        self.push_queue.put( MSG_SET_MARK(-1, 1, 0, 0) )
+        
+        
         return
 
     def setInsert(self, index):
@@ -377,6 +382,9 @@ class Interface:
             if not reply:
 
                 self.text.handle_insert(self.text.marker, char, row, col)
+
+        # Update markers
+        self.text.refreshPeerLabels()
 
         # Remove selections
 
@@ -643,18 +651,14 @@ class Interface:
         self.text.char_h = self.text.font.metrics("linespace")
         return
 
-    def refreshPeerLabels(self):
-        for peer in self.text.peers.values():
-            peer.move(peer.row, peer.col)
-
     def DecreaseFontSize(self, event):
         self.ChangeFontSize(-2)
-        self.refreshPeerLabels()
+        self.text.refreshPeerLabels()
         return 'break'
 
     def IncreaseFontSize(self, event):
         self.ChangeFontSize(+2)
-        self.refreshPeerLabels()
+        self.text.refreshPeerLabels()
         return 'break'
 
     def leftMousePress(self, event):
