@@ -142,7 +142,7 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_TIME):
 
-                    # Update local clock -- todo: only change if time is +- 5% or something
+                    # Update local clock
 
                     self.lang.settime(msg['time'])
 

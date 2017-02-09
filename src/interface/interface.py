@@ -143,7 +143,6 @@ class Interface:
         # Tell any other peers about this location
         self.push_queue.put( MSG_SET_MARK(-1, 1, 0, 0) )
         
-        
         return
 
     def setInsert(self, index):

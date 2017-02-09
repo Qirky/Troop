@@ -41,17 +41,29 @@ class FoxDotInterpreter(EmptyInterpreter):
         import FoxDot
         self.lang  = FoxDot
         self.clock = FoxDot.Clock
+        self.counter = None
     def kill(self):
         self.clock.stop()
     def now(self):
         return self.clock.now()
     def settime(self, t):
-        """ t is in seconds, sets clock time to  """
+            
         bpm   = float(self.clock.bpm)
-        beats = float(t) * (bpm / 60)
+
+        if self.counter is None:
+
+            self.counter = float(t) * (bpm / 60)
+
+        else:
+
+            self.counter += (bpm / 60)
+
         now   = float(self.now())
-        if beats < 0.95 * now or beats > 1.05 * now:
-            self.clock.time = beats
+
+        if self.counter < 0.95 * now or self.counter > 1.05 * now:
+            
+            self.clock.time = self.counter
+            
     def evaluate(self, string):
         return self.lang.execute(string)
 
