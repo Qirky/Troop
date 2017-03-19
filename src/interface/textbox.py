@@ -28,16 +28,16 @@ class ThreadSafeText(Text):
         self.tag_config("code", background="Red", foreground="White")
 
         # Code interpreter
-        self.lang = Interpreter()
+        self.lang = self.root.lang()
         
         self.update_me()
 
     def alone(self, peer, row=None):
-        """ Returns True if there are no other peers editing the same line.
+        """ Returns True if there are no other peers editing the same line +- 1.
             Row can be specified. """
         row = peer.row if row is None else row
         for other in self.peers.values():
-            if peer != other and row == other.row:
+            if peer != other and (other.row + 1) >= row >= (other.row - 1):
                 return False
         return True
     

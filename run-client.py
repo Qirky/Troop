@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
     Troop-Client
     ------------
@@ -21,7 +22,17 @@ from src.config import *
 import os.path
 import sys
 
-if sys.argv[-1] in ("-p", "--public"):
+if "--lang" in sys.argv:
+
+    name = sys.argv[ sys.argv.index("--lang") + 1 ]
+
+    lang = langnames[name]
+
+else:
+
+    lang = FOXDOT
+
+if "-p" in sys.argv or "--public" in sys.argv:
 
     host, port = PUBLIC_SERVER_ADDRESS
 
@@ -46,4 +57,4 @@ else:
 
 name = readin("Enter a name: ")
 
-myClient = Client(host, port, name)
+myClient = Client(host, port, name, lang)

@@ -35,10 +35,10 @@ PUBLIC_SERVER_ADDRESS = ("188.166.144.124", 57890)
 
 # Choose a language:
 
-LANGUAGE      = 0
 FOXDOT        = 0
 TIDAL         = 1
 SUPERCOLLIDER = 2
 
-LANGUAGE = FOXDOT
+langnames = { "FoxDot" : FOXDOT,
+              "SuperCollider" : SUPERCOLLIDER }
 

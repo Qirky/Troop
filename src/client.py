@@ -3,6 +3,7 @@ from sender import *
 from receiver import *
 from message import *
 from config import *
+from interpreter import *
 
 from time import sleep, time
 from getpass import getpass
@@ -11,8 +12,10 @@ from hashlib import md5
 import sys
 
 class Client:
+
+    version = '0.2'
     
-    def __init__(self, hostname="188.166.144.124", port=57890, name=None):
+    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT):
         
         self.hostname = str(hostname)
         self.port     = int(port)
@@ -46,9 +49,13 @@ class Client:
 
         self.address  = (self.send.hostname, self.send.port)
 
+        # Choose the language to use
+
+        self.lang = langtypes[lang]
+
         # Set up a user interface
 
-        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port))
+        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang)
 
         # Send information about this client to the server
 

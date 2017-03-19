@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
     Troop-Server
     ------------
@@ -17,6 +19,7 @@
     SuperCollider running on the local machine.
 
 """
+
 import sys, os
 from src.server import TroopServer
 

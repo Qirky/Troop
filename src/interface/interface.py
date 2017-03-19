@@ -11,7 +11,9 @@ import Queue
 import sys
 
 class Interface:
-    def __init__(self, title="Troop"):
+    def __init__(self, title, language):
+
+        self.lang = language
         
         self.root=Tk()
         self.root.title(title)
