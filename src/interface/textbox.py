@@ -131,7 +131,7 @@ class ThreadSafeText(Text):
                     # Remove a Peer
                     this_peer.remove()
                     
-                    # del self.peers[msg['src_id']]
+                    del self.peers[msg['src_id']]
                     
                     print("Peer '{}' has disconnected".format(this_peer))
 
@@ -223,10 +223,14 @@ class ThreadSafeText(Text):
             peer.deleteSelection()
 
         # Insert character
-##
-##        # Check if the locations are the same
-##
+
+        # Check if the locations are the same
+
+        # Need to keep track on the server
+
 ##        if index != self.index(peer.mark):
+##
+##            print "src co-ords do not match for", peer
 ##
 ##            peer.row = row
 ##            peer.col = col

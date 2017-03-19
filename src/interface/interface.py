@@ -286,7 +286,7 @@ class Interface:
 
         # Reply is set to True by default. If there are no other peers
         # on the same line, set to 0 and perform keypress action locally
-
+        """
         if self.text.alone(self.text.marker):
 
             reply = 0
@@ -294,6 +294,9 @@ class Interface:
         else:
 
             reply = 1
+        """
+
+        reply = 1 # Force all messages to go via the server
 
         # Set to None if not inserting text
 
@@ -320,8 +323,6 @@ class Interface:
         # Handle key board movement
 
         elif event.keysym in self.directions:
-
-            # reply = 1
 
             old_row, old_col = row, col
 
