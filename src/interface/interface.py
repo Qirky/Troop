@@ -259,15 +259,14 @@ class Interface:
         """
         try:
             while True:
-                msg = self.push_queue.get_nowait()
-                self.push( msg )
+                self.push( self.push_queue.get_nowait() )
                 self.root.update_idletasks()
         # Break when the queue is empty
         except Queue.Empty:
             pass
 
         # Recursive call
-        self.root.after(30, self.update_send)
+        self.root.after(50, self.update_send)
         return
     
     def KeyPress(self, event):
