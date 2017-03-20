@@ -7,6 +7,7 @@
 """
 
 import socket
+import cPickle as pickle
 from message import *
 from config import *
 from hashlib import md5
@@ -48,14 +49,18 @@ class Sender:
                 raise(ConnectionError("Could not connect to host '{}'".format( self.hostname ) ) )
 
             # Send the password
-            self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
+            #self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
+            self.__call__(MSG_PASSWORD(-1, md5(password).hexdigest()))
             self.conn_id   = int(self.conn.recv(1024))
             self.connected = bool(self.conn_id >= 0)
             
         return self
 
     def __call__(self, message):
-        self.conn.sendall(str(message))
+        """ Use pickle to serialise the message """
+        f = self.conn.makefile()
+        pickle.dump(message, f, protocol=-1)
+        f.close()
         return
 
     def kill(self):

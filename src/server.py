@@ -22,6 +22,7 @@ import socket
 import SocketServer
 import Queue
 import sys
+import cPickle as pickle
 from time import sleep
 from getpass import getpass
 from hashlib import md5
@@ -265,6 +266,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
     def client_id(self):
         return self.master.clientIDs[self.client_address]
+
+    def get_message(self):
+        mkf = self.request.makefile()
+        msg = pickle.load(mkf)
+        mkf.close()
+        return msg
+    
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
@@ -273,9 +281,9 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # Password test
 
-        network_msg = NetworkMessage(self.request.recv(1024))
+        msg = self.get_message()
 
-        if network_msg[0]['password'] == self.master.password.hexdigest():
+        if msg['password'] == self.master.password.hexdigest():
 
             # Reply with the client id
 
@@ -299,7 +307,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             try:
 
-                network_msg = NetworkMessage(self.request.recv(1024))
+                msg = self.get_message()
 
             except:
 
@@ -311,89 +319,91 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 break
 
-            for msg in network_msg:
+            if isinstance(msg, MSG_CONNECT) and self.client_address not in self.master.clients:
 
-                if isinstance(msg, MSG_CONNECT) and self.client_address not in self.master.clients:
+                # Store information about the new client
 
-                    # Store information about the new client
+                new_client = Client(self.client_address, self.client_id(), self.request)                
+                new_client.name = msg['name']
+                self.master.clients.append(new_client)
 
-                    new_client = Client(self.client_address, self.client_id(), self.request)                
-                    new_client.name = msg['name']
-                    self.master.clients.append(new_client)
+                stdout("New Connection from {}".format(self.client_address))
 
-                    stdout("New Connection from {}".format(self.client_address))
+                # Update all other connected clients & vice versa
 
-                    # Update all other connected clients & vice versa
+                msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
 
-                    msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
+                for client in self.master.clients:
 
-                    for client in self.master.clients:
+                    # Tell other clients about the new connection
 
-                        # Tell other clients about the new connection
+                    client.send(msg1)
 
-                        client.send(msg1)
+                    # Tell the new client about other clients
 
-                        # Tell the new client about other clients
+                    if client != self.client_address:
 
-                        if client != self.client_address:
+                        msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.row, client.col)
 
-                            msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.row, client.col)
+                        new_client.send(msg2)
+                    
+                # Request the contents of Client 1 and update the new client
 
-                            new_client.send(msg2)
-                        
-                    # Request the contents of Client 1 and update the new client
+                if len(self.master.clients) > 1:
 
-                    if len(self.master.clients) > 1:
+                    self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
 
-                        self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
-
-                    else:
-
-                        # If this is the first client to connect, set clock to 0
-
-                        self.master.lang.reset()
-
-                elif isinstance(msg, MSG_SET_ALL):
-
-                    # Send the client *all* of the current code
-
-                    new_client_id = msg['client_id']
-
-                    for client in self.master.clients:
-
-                        if client.id == new_client_id:
-
-                            client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
-
-                # If we have an execute message, evaluate
-
-                elif isinstance(msg, MSG_EVALUATE):
-
-                    if self.master.is_evaluating_local:
-
-                        # Evaluate on server
-
-                        try:
-
-                            response = self.master.lang.evaluate(msg['string'])
-
-                        except Exception as e:
-
-                            stdout(e)
-
-                    else:
-
-                        # send to clients to evaluate
-
-                        for client in self.master.clients:
-
-                            client.send( MSG_EVALUATE(self.client_id(), msg['string']) )
-                            
                 else:
 
-                    # Add any other messages to the send queue
+                    # If this is the first client to connect, set clock to 0
 
-                    self.master.char_queue.put((self.client_address, msg))
+                    self.master.lang.reset()
+
+            elif isinstance(msg, MSG_SET_ALL):
+
+                # Send the client *all* of the current code
+
+                new_client_id = msg['client_id']
+
+                for client in self.master.clients:
+
+                    if client.id == new_client_id:
+
+                        # Wait for the client to be *actually* connected
+
+                        sleep(0.25)
+
+                        client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
+
+            # If we have an execute message, evaluate
+
+            elif isinstance(msg, MSG_EVALUATE):
+
+                if self.master.is_evaluating_local:
+
+                    # Evaluate on server
+
+                    try:
+
+                        response = self.master.lang.evaluate(msg['string'])
+
+                    except Exception as e:
+
+                        stdout(e)
+
+                else:
+
+                    # send to clients to evaluate
+
+                    for client in self.master.clients:
+
+                        client.send( MSG_EVALUATE(self.client_id(), msg['string']) )
+                        
+            else:
+
+                # Add any other messages to the send queue
+
+                self.master.char_queue.put((self.client_address, msg))
                     
 
 # Keeps information about each connected client
@@ -419,11 +429,17 @@ class Client:
     def __repr__(self):
         return repr(self.address)
 
-    def send(self, string):
+    def send(self, data):
         try:
-            self.source.send(str(string))
+
+            # if type(data) != MSG_TIME: self.log.write(str(data) + "\n")
+            
+            f = self.source.makefile()
+            pickle.dump(data, f, protocol=-1)
+            f.close()
+            
         except:
-            raise DeadClientError(self.hostname)
+            raise DeadClientError(str(address))
         return
 
     def __eq__(self, other):

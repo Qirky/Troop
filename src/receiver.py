@@ -7,6 +7,7 @@
 """
 
 import SocketServer, socket
+import cPickle as pickle
 from threading import Thread
 from threadserv import ThreadedServer
 from time import sleep
@@ -60,40 +61,42 @@ class Receiver:
 
             try:
 
-                network_msg = NetworkMessage(self.sock.recv(1024))
+                f = self.sock.makefile()
+                msg = pickle.load(f)
+                f.close()
 
-            except EmptyMessageError:               
+            except socket.error as e:               
 
-                break
+                print(">>> Connection to server was lost.\n>>>Please close the application and check the connection")
 
-            for msg in network_msg:
+                return
 
-                # Store information about a newly connected client
+            # Store information about a newly connected client
 
-                if type(msg) == MSG_CONNECT:
+            if type(msg) == MSG_CONNECT:
 
-                    self.nodes[msg['src_id']] = Node(*msg)
+                self.nodes[msg['src_id']] = Node(*msg)
 
-                    self.update_text(msg)
+                self.update_text(msg)
 
-                    # Notify user of newly connected users
+                # Notify user of newly connected users
 
-                    if self.ui.text.marker.id != msg['src_id']:
+                if self.ui.text.marker.id != msg['src_id']:
 
-                        print("Peer '{}' has joined the session".format(msg['name']))
+                    print("Peer '{}' has joined the session".format(msg['name']))
 
-                # Code feedback from the server
+            # Code feedback from the server
 
-                elif type(msg) == MSG_RESPONSE:
+            elif type(msg) == MSG_RESPONSE:
 
-                    self.ui.console.write(msg['string'])
+                self.ui.console.write(msg['string'])
 
-                # Write the data to the IDE
+            # Write the data to the IDE
 
-                else:
+            else:
 
-                    self.update_text(msg)
-                    
+                self.update_text(msg)
+                
         return
 
     def update_text(self, message):

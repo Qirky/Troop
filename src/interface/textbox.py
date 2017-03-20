@@ -155,7 +155,7 @@ class ThreadSafeText(Text):
             pass
 
         # Recursive call
-        self.after(100, self.update_me)
+        self.after(30, self.update_me)
         return
     
     def refreshPeerLabels(self):
@@ -215,11 +215,11 @@ class ThreadSafeText(Text):
     def handle_insert(self, peer, char, row, col):
         ''' Manual character insert for connected peer '''
 
-        # print "mark: " + str(self.index(peer.mark)) + ", adding @ " + str(row) + "." + str(col)
         index = str(row) + "." + str(col)
 
         # Delete a selection if inputting a character
         if len(char) > 0 and peer.hasSelection():
+
             peer.deleteSelection()
 
         # Insert character
