@@ -138,9 +138,10 @@ class MSG_SELECT(MESSAGE):
 
 class MSG_EVALUATE(MESSAGE):
     type = 6
-    def __init__(self, src_id, string):
+    def __init__(self, src_id, string, reply=1):
         MESSAGE.__init__(self, src_id)
-        self['string']=string
+        self['string']=str(string)
+        self['reply']=int(reply)
 
 class MSG_HIGHLIGHT(MESSAGE):
     type = 7
@@ -196,22 +197,20 @@ class MSG_TIME(MESSAGE):
 
 # Create a dictionary of message type to message class 
 
-MESSAGE_TYPE = [ MSG_CONNECT,
-                 MSG_INSERT,
-                 MSG_DELETE,
-                 MSG_BACKSPACE,
-                 MSG_SELECT,
-                 MSG_EVALUATE,
-                 MSG_HIGHLIGHT,
-                 MSG_GET_ALL,
-                 MSG_SET_ALL,
-                 MSG_RESPONSE,
-                 MSG_SET_MARK,
-                 MSG_REMOVE,
-                 MSG_PASSWORD,
-                 MSG_TIME ]
-
-MESSAGE_TYPE = {msg.type: msg for msg in MESSAGE_TYPE}
+MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
+                                             MSG_INSERT,
+                                             MSG_DELETE,
+                                             MSG_BACKSPACE,
+                                             MSG_SELECT,
+                                             MSG_EVALUATE,
+                                             MSG_HIGHLIGHT,
+                                             MSG_GET_ALL,
+                                             MSG_SET_ALL,
+                                             MSG_RESPONSE,
+                                             MSG_SET_MARK,
+                                             MSG_REMOVE,
+                                             MSG_PASSWORD,
+                                             MSG_TIME ] }
 
 # Exceptions
 
