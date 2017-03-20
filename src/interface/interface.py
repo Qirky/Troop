@@ -266,7 +266,7 @@ class Interface:
             pass
 
         # Recursive call
-        self.root.after(50, self.update_send)
+        self.root.after(30, self.update_send)
         return
     
     def KeyPress(self, event):

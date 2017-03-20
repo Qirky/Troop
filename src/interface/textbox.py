@@ -155,7 +155,7 @@ class ThreadSafeText(Text):
             pass
 
         # Recursive call
-        self.after(100, self.update_me)
+        self.after(30, self.update_me)
         return
     
     def refreshPeerLabels(self):
