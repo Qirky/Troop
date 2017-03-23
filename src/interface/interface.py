@@ -119,7 +119,11 @@ class Interface:
         self.update_graphs()
         
     def run(self):
-        self.root.mainloop()
+        try:
+            self.root.mainloop()
+        except (KeyboardInterrupt, SystemExit):
+            self.kill()
+        return
         
     def kill(self):
         try:
@@ -312,7 +316,7 @@ class Interface:
 
         elif event.keysym == "BackSpace":
 
-            reply = 0
+            reply = 1
             
             self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
             
