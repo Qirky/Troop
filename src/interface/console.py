@@ -3,9 +3,14 @@ import Queue
 
 class Console(Text):
     def __init__(self, root, **kwargs):
-        Text.__init__(self, root, **kwargs)
+        # Inherit
+        Text.__init__(self, root, **kwargs)       
+
+        # Queue waits for messages to be added to the console
         self.queue = Queue.Queue()
+        
         self.bind("<Key>", self.null)
+
         self.update_me()
 
     def null(self, event):

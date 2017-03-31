@@ -16,9 +16,25 @@ class ThreadSafeText(Text):
         self.peers = {}
         self.peer_tags = []
 
+        if SYSTEM == MAC_OS:
+
+            fontfamily = "Monaco"
+
+        elif SYSTEM == WINDOWS:
+
+            fontfamily = "Consolas"
+
+        else:
+
+            fontfamily = "Courier New"
+
         # Font
-        self.font = tkFont.Font(font=("Consolas", 12), name="Font")
+        self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
+
+        self.font_bold = tkFont.Font(family=fontfamily, size=12, weight="bold", name="BoldFont")
+        self.font_bold.configure(**tkFont.nametofont("BoldFont").configure())
+        
         self.configure(font="Font")
         
         self.char_w = self.font.measure(" ")
@@ -28,7 +44,7 @@ class ThreadSafeText(Text):
         self.tag_config("code", background="Red", foreground="White")
 
         # Code interpreter
-        self.lang = self.root.lang()
+        self.lang = self.root.lang
         
         self.update_me()
 
@@ -146,6 +162,24 @@ class ThreadSafeText(Text):
 
                     self.lang.settime(msg['time'])
 
+                elif isinstance(msg, MSG_BRACKET):
+
+                    # Highlight brackets on local client only
+
+                    if this_peer.id == self.local_peer:
+
+                        row1, col1 = msg['row1'], msg['col1']
+                        row2, col2 = msg['row2'], msg['col2']
+
+                        peer_col = int(self.index(this_peer.mark).split(".")[1])
+
+                        # If the *actual* mark is a ahead, adjust
+
+                        col2 = col2 + (peer_col - col2) - 1
+
+                        self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
+                        self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
+
                 # Update any other idle tasks
 
                 self.update_idletasks()
@@ -161,30 +195,60 @@ class ThreadSafeText(Text):
     def refreshPeerLabels(self):
         ''' Updates the locations of the peers to their marks'''
         loc = []
+        
         for peer in self.peers.values():
+            
+            # Get the location of a peer
             i = self.index(peer.mark)
-            row, col = i.split(".")
-            raised = (row, col) in loc
+            
+            row, col = (int(x) for x in i.split("."))
+
+            # Find out if it is close to another peer
+
+            raised = False
+
+            for peer_row, peer_col in loc:
+
+                #if (row == peer_row or row == peer_row + 1) and (col - 2 < peer_col < col + 2):
+                if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
+
+                    raised = True
+
+                    break
+
+            # Move the peer
             peer.move(row, col, raised)
+
+            # Store location
             loc.append((row, col))
+            
         return
 
     # handling key events
 
     def handle_delete(self, peer, row, col):
         if peer.hasSelection():
+            
             peer.deleteSelection()
+            
         else:
-            index = "{}.{}".format(row, col)
-            self.delete(index)
+
+            self.delete("{}.{}".format(row, col))
+            
         # peer.move(row, col)
         self.refreshPeerLabels()
+
         return
 
     def handle_backspace(self, peer, row, col):
+        
         if peer.hasSelection():
             
             peer.deleteSelection()
+
+            # Treat as if 1 char was deleted
+            
+            self.root.last_col += 1
 
         else:
 

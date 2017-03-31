@@ -195,6 +195,20 @@ class MSG_TIME(MESSAGE):
         self.data = {'time' : str(time)}
         self.keys = self.data.keys()
 
+class MSG_BRACKET(MESSAGE):
+    type = 15
+    def __init__(self, src_id, row1, col1, row2, col2, reply):
+        MESSAGE.__init__(self, src_id)
+
+        self['row1'] = int(row1)
+        self['col1'] = int(col1)
+        
+        self['row2'] = int(row2)
+        self['col2'] = int(col2)
+
+        self['reply'] = int(reply)
+        
+
 # Create a dictionary of message type to message class 
 
 MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
@@ -210,7 +224,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_SET_MARK,
                                              MSG_REMOVE,
                                              MSG_PASSWORD,
-                                             MSG_TIME ] }
+                                             MSG_TIME,
+                                             MSG_BRACKET] }
 
 # Exceptions
 

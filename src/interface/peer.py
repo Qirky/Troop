@@ -16,7 +16,7 @@ class Peer:
     """
     def __init__(self, id_num, widget, row=1, col=0):
         self.id = id_num
-        self.root = widget
+        self.root = widget # Text
         self.root_parent = widget.root
 
         self.name = StringVar()
@@ -86,22 +86,25 @@ class Peer:
 
         index = "{}.{}".format(self.row, self.col)
 
-        y = self.root.dlineinfo(index)
+        bbox = self.root.bbox(index)
 
         # Only move the cursor if we have a valid index
-        if y is not None:
 
-            x_val = (self.root.char_w * (self.col)) % (self.root.winfo_width()-self.root.char_w)
+        if bbox is not None:
+
+            x, y, width, height = bbox
+
+            x_val = x - 2
 
             # Label can go on top of the cursor
 
             if raised:
 
-                y_val = (y[1] - self.root.char_h, y[1] - self.root.char_h)
+                y_val = (y - height, y - height)
 
             else:
 
-                y_val = (y[1] + self.root.char_h, y[1])
+                y_val = (y + height, y)
             
             self.label.place(x=x_val, y=y_val[0], anchor="nw")
             self.insert.place(x=x_val, y=y_val[1], anchor="nw")

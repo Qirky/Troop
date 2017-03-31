@@ -4,8 +4,11 @@ from ..message import *
 from textbox import ThreadSafeText
 from console import Console
 from peer import Peer
+from drag import Dragbar
+from bracket import BracketHandler
 
 from Tkinter import *
+import os.path
 import tkFont
 import Queue
 import sys
@@ -13,13 +16,30 @@ import sys
 class Interface:
     def __init__(self, title, language):
 
-        self.lang = language
+        self.lang = language()
         
         self.root=Tk()
         self.root.title(title)
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=2)
+
+        self.root.columnconfigure(0, weight=1) # Text and console
+
+        self.root.rowconfigure(0, weight=1) # Textbox
+        self.root.rowconfigure(1, weight=0) # Dragbar
+        self.root.rowconfigure(2, weight=0) # Console
+        
         self.root.protocol("WM_DELETE_WINDOW", self.kill )
+
+        icon = os.path.join(os.path.dirname(__file__), "img", "icon")
+
+        try:
+
+            # Use .ico file by default
+            self.root.iconbitmap(icon + ".ico")
+            
+        except:
+
+            # Use .gif if necessary
+            self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
@@ -30,20 +50,27 @@ class Interface:
         self.text.grid(row=0, column=0, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
+        # Automatic brackets
+        self.handle_bracket = BracketHandler(self)
+
         # Remove standard highlight tag config
         self.text.tag_config(SEL, background="black")
+        
+        # Drag is a small line that changes the size of the console
+        self.drag = Dragbar( self )
+        self.drag.grid(row=1, column=0, stick="nsew", columnspan=3)
 
         # Console Box
         self.console = Console(self.root, bg="black", fg="white", height=5, width=10, font="Font")
-        self.console.grid(row=1, column=0, stick="nsew")
+        self.console.grid(row=2, column=0, stick="nsew")
         self.c_scroll = Scrollbar(self.root)
-        self.c_scroll.grid(row=1, column=2, sticky='nsew')
+        self.c_scroll.grid(row=2, column=2, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
         sys.stdout = self.console
 
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg="black", width=250)
-        self.graphs.grid(row=1, column=1, sticky="nsew")
+        self.graphs = Canvas(self.root, bg="black", width=250, bd=0, relief="sunken")
+        self.graphs.grid(row=2, column=1, sticky="nsew")
         self.graph_queue = Queue.Queue()
 
         # Key bindings
@@ -57,6 +84,7 @@ class Interface:
         self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
         self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
         self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
+        self.text.bind("<{}-period>".format(CtrlKey), self.stopSound)
 
         # Key bindings to handle select
         self.text.bind("<Shift-Left>",  self.SelectLeft)
@@ -94,11 +122,16 @@ class Interface:
         self.text.bind("<{}-equal>".format(CtrlKey),  self.IncreaseFontSize)
         self.text.bind("<{}-minus>".format(CtrlKey),  self.DecreaseFontSize)
 
-        self.CtrlKeys = (CtrlKey + "_L", CtrlKey + "_R")
+        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling")
 
         # Directional commands
 
         self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
+
+        # Store information about the last key pressed
+        self.last_keypress  = ""
+        self.last_row       = 0
+        self.last_col       = 0
 
         # Selection indices
         self.sel_start = "0.0"
@@ -150,6 +183,11 @@ class Interface:
         self.push_queue.put( MSG_SET_MARK(-1, 1, 0, 0) )
         
         return
+
+    def stopSound(self, event):
+        """ Sends a kill all sound message to the server based on the language """
+        self.push_queue.put( MSG_EVALUATE(-1, self.lang.stop_sound(), reply=1) )
+        return "break"
 
     def setInsert(self, index):
         ''' sets the INSERT and peer mark '''
@@ -235,7 +273,7 @@ class Interface:
 
         total = float(sum([p.count for p in self.text.peers.values()]))
 
-        max_height = 250
+        max_height = self.graphs.winfo_height()
 
         offset_x = 10
         offset_y = 10
@@ -280,13 +318,17 @@ class Interface:
         # TODO -> Creative Constraints
         # if not constraint_satisfied(event, self.text): return
 
-        # Ignore the CtrlKey
+        # Ignore the CtrlKey and non-ascii chars
 
-        if event.keysym in self.CtrlKeys: return
+        if event.keysym in self.ignored_keys: return "break"
         
         row, col = self.text.index(INSERT).split(".")
         row = int(row)
         col = int(col)
+
+        # Un-highlight any brackets
+
+        self.text.tag_remove("tag_open_brackets", "1.0", END)
 
         # Reply is set to True by default. If there are no other peers
         # on the same line, set to 0 and perform keypress action locally
@@ -311,18 +353,23 @@ class Interface:
             # Deletes are tricky - send to server to make sure they work
 
             reply = 1
-
+            
             self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
 
         elif event.keysym == "BackSpace":
 
             reply = 1
-            
-            self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
-            
-            if not reply:
 
-                self.text.handle_backspace(self.text.marker, row, col)
+            # Only add a backspace if the last has been updated
+
+            if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
+            
+                self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
+
+            # OLD            
+            #if not reply:
+            #
+            #    self.text.handle_backspace(self.text.marker, row, col)
 
         # Handle key board movement
 
@@ -383,7 +430,13 @@ class Interface:
 
             # Add to queue to be pushed to server
 
-            self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+            if char in ["(",")","{","}","[","]"]:
+
+                self.handle_bracket(char, row, col, reply) # Handles automatically adding closing brackets etc
+
+            else:
+
+                self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
 
             if not reply:
 
@@ -397,6 +450,12 @@ class Interface:
         self.text.tag_remove(SEL, "1.0", END)
         self.Selection()
 
+        # Store the key info
+
+        self.last_keypress  = event.keysym
+        self.last_row       = row
+        self.last_col       = col
+        
         # Make sure the user sees their cursor
 
         self.text.see(INSERT)
@@ -433,6 +492,12 @@ class Interface:
             self.sel_end   = self.text.index(INSERT)
         if event is not None:       
             self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
+        return
+
+    """ Update colour / formatting """
+
+    def colour_line(self, line):
+        # Maybe use bold on keywords? TODO
         return
 
     """ Ctrl-Home and Ctrl-End Handling """
@@ -650,11 +715,12 @@ class Interface:
 
     def ChangeFontSize(self, amount):
         self.root.grid_propagate(False)
-        font = tkFont.nametofont("Font")
-        size = max(8, font.actual()["size"] + amount)
-        font.configure(size=size)
-        self.text.char_w = self.text.font.measure(" ")
-        self.text.char_h = self.text.font.metrics("linespace")
+        for font in ("Font", "BoldFont"):
+            font = tkFont.nametofont("Font")
+            size = max(8, font.actual()["size"] + amount)
+            font.configure(size=size)
+            self.text.char_w = self.text.font.measure(" ")
+            self.text.char_h = self.text.font.metrics("linespace")
         return
 
     def DecreaseFontSize(self, event):

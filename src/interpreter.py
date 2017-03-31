@@ -34,6 +34,8 @@ class Interpreter(Clock):
     clock    = None
     def evaluate(self, string):
         return
+    def stop_sound(self):
+        return ""
 
 class FoxDotInterpreter(Interpreter):
     def __init__(self):
@@ -44,6 +46,9 @@ class FoxDotInterpreter(Interpreter):
 
     def kill(self):
         self.clock.stop()
+
+    def stop_sound(self):
+        return "Clock.clear()"
 
     def now(self):
         return self.clock.now()
@@ -83,6 +88,9 @@ class SuperColliderInterpreter(Interpreter):
 
         # Define a function to produce new OSC messages
         self.new_msg = lambda: OSC.OSCMessage()
+
+    def stop_sound(self):
+        return "s.freeAll"
         
     def evaluate(self, string):
         msg = self.new_msg()

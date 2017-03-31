@@ -16,7 +16,6 @@
         do other interesting things with the evaluated portions of code.
 
 """
-
 from src.client import Client
 from src.config import *
 import os.path
