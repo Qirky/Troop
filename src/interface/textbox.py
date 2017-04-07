@@ -11,6 +11,8 @@ class ThreadSafeText(Text):
         Text.__init__(self, root.root, **options)
         self.queue = Queue.Queue()
         self.root = root
+        self.padx = 2
+        self.pady = 2
         
         # Information about other connected users
         self.peers = {}
@@ -42,6 +44,7 @@ class ThreadSafeText(Text):
 
         # Tags
         self.tag_config("code", background="Red", foreground="White")
+        self.tag_config("tag_bold", font="BoldFont")
 
         # Code interpreter
         self.lang = self.root.lang
@@ -56,6 +59,11 @@ class ThreadSafeText(Text):
             if peer != other and (other.row + 1) >= row >= (other.row - 1):
                 return False
         return True
+
+    def readlines(self):
+        """ Returns the text in a list of lines. The first row is empty
+            to accommodate TKinter's 1-indexing of rows and columns """
+        return [""] + self.get("1.0", END).split("\n")[:-1]
     
     def update_me(self):
         try:
@@ -88,9 +96,13 @@ class ThreadSafeText(Text):
 
                     self.handle_delete(this_peer, msg['row'],  msg['col'])
 
+                    self.root.colour_line(msg['row'])
+
                 elif type(msg) == MSG_BACKSPACE:
 
                     self.handle_backspace(this_peer, msg['row'], msg['col'])
+
+                    self.root.colour_line(msg['row'])
 
                 elif isinstance(msg, MSG_HIGHLIGHT):
 
@@ -111,6 +123,8 @@ class ThreadSafeText(Text):
 
                         self.mark_set(INSERT, index)
 
+                        self.see(INSERT)
+
                     # print ",".join([str(s) for s in (this_peer.name.get(), index)])
                     
                     this_peer.move(int(row), int(col))
@@ -120,6 +134,10 @@ class ThreadSafeText(Text):
                 elif type(msg) == MSG_INSERT:
 
                     self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
+
+                    # Update IDE keywords
+
+                    self.root.colour_line(msg['row'])
 
                 elif isinstance(msg, MSG_GET_ALL):
 
@@ -139,6 +157,10 @@ class ThreadSafeText(Text):
 
                         peer.move(peer.row, peer.col)
                         self.mark_set(peer.mark, peer.index())
+
+                    for line,  _ in enumerate(self.readlines()[:-1]):
+
+                        self.root.colour_line(line + 1)
 
                     self.mark_set(INSERT, "1.0")
 
@@ -341,7 +363,7 @@ class ThreadSafeText(Text):
         # Find tags
         i = 0
         tag_ranges = {}
-        for n in range(10): # max_clients
+        for n in range(99): # max_clients - TODO: be more elegant about it
             tag = "text_%d" % n
             tag_data = match_tag(tag, data)
             tag_ranges[tag] = match_indices(tag_data)

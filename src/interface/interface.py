@@ -49,9 +49,7 @@ class Interface:
         self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15)
         self.text.grid(row=0, column=0, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
-
-        # Automatic brackets
-        self.handle_bracket = BracketHandler(self)
+        
 
         # Remove standard highlight tag config
         self.text.tag_config(SEL, background="black")
@@ -127,6 +125,12 @@ class Interface:
         # Directional commands
 
         self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
+
+        # Information about brackets
+
+        self.handle_bracket = BracketHandler(self)
+
+        self.closing_bracket_types = [")", "]", "}"]
 
         # Store information about the last key pressed
         self.last_keypress  = ""
@@ -384,6 +388,7 @@ class Interface:
                 row, col = self.Right(old_row, old_col)
 
             elif event.keysym == "Up":
+                
                 row, col = self.Up(old_row, old_col)
 
             elif event.keysym == "Down":
@@ -397,13 +402,13 @@ class Interface:
 
             # Move the label locally if not getting a reply from server
 
-            if not reply:
+            # if not reply:
 
                 # Update the INSERT marker
 
-                self.setInsert( "{}.{}".format(row, col) )
+            #    self.setInsert( "{}.{}".format(row, col) )
 
-                self.text.marker.move(row, col)
+            #    self.text.marker.move(row, col)
 
             # Add to queue
             self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )                       
@@ -428,19 +433,50 @@ class Interface:
 
                 if char == "": ret = None
 
-            # Add to queue to be pushed to server
+            if char in self.closing_bracket_types:
 
-            if char in ["(",")","{","}","[","]"]:
+                # Work out if we need to add this bracket
 
-                self.handle_bracket(char, row, col, reply) # Handles automatically adding closing brackets etc
+                text = self.text.readlines()
+
+                # "insert" the bracket in the text to simulate actually adding it
+
+                text[row] = text[row][:col] + char + text[row][col:]
+
+                # If we need to add a closing bracket, just insert
+
+                if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
+
+                    self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+
+                # else, move to the right one space
+
+                else:
+
+                    new_row, new_col = self.Right(row, col)
+
+                    self.push_queue.put( MSG_SET_MARK(-1, new_row, new_col, reply) )
+
+                # Work out where the appropriate enclosing bracket is and send a message to highlight
+
+                loc = self.handle_bracket.find_starting_bracket(text, row, col - 1, event.char)
+
+                if loc is not None:
+
+                    row1, col1 = loc
+                    row2, col2 = row, col
+
+                    self.push_queue.put( MSG_BRACKET(-1, row1, col1, row2, col2, reply))
+
+            # Add any other character
 
             else:
 
                 self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
 
-            if not reply:
+            # if not reply:
 
-                self.text.handle_insert(self.text.marker, char, row, col)
+            #    self.text.handle_insert(self.text.marker, char, row, col)
 
         # Update markers
         self.text.refreshPeerLabels()
@@ -497,7 +533,18 @@ class Interface:
     """ Update colour / formatting """
 
     def colour_line(self, line):
-        # Maybe use bold on keywords? TODO
+        """ Embold keywords defined in Interpreter.py """
+
+        start, end = "{}.0".format(line), "{}.end".format(line)
+        string = self.text.get(start, end)
+
+        self.text.tag_remove("tag_bold", start, end)
+        
+        for match in self.lang.re.finditer(string):
+            start = "{}.{}".format(line, match.start())
+            end   = "{}.{}".format(line, match.end())
+            self.text.tag_add("tag_bold", start, end)
+            
         return
 
     """ Ctrl-Home and Ctrl-End Handling """
@@ -617,11 +664,7 @@ class Interface:
         elif row > 1:
             prev_line = self.text.index("{}.end".format(row-1)).split(".")
             row = int(prev_line[0])
-            col = int(prev_line[1])
-
-        # Make sure the user sees their cursor
-        self.text.see(INSERT)
-        
+            col = int(prev_line[1])        
         return row, col
     
     def Right(self, row, col):
@@ -630,31 +673,62 @@ class Interface:
             col = 0
             row += 1
         else:
-            col += 1
-
-        # Make sure the user sees their cursor
-        self.text.see(INSERT)
-        
+            col += 1        
         return row, col
-    
-    def Down(self, row, col):
-        row += 1
-        next_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
-        col = min(col, next_end_col)
 
-        # Make sure the user sees their cursor
-        self.text.see(INSERT)
-        
+    def Down(self, row, col):
+        """ For up and down presses, find the index based on height """
+
+        index = "{}.{}".format(row, col)
+
+        try:
+
+            x,y,w,h = self.text.bbox(index)
+
+        except TypeError:
+
+            y, h = self.text.winfo_height(), self.text.pady
+
+        if y + h < self.text.winfo_height() - self.text.pady:
+
+            next_index = self.text.index("@{},{}".format(x, y + h))
+
+            row, col = [int(val) for val in next_index.split(".")]
+
+        else:
+
+            row += 1
+            next_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
+            col = min(col, next_end_col)
+            
         return row, col
     
     def Up(self, row, col):
-        if row > 1:
-            row -= 1
-            prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
-            col = min(col, prev_end_col)
+        """ For up and down presses, find the index based on height """
 
-        # Make sure the user sees their cursor
-        self.text.see(INSERT)
+        if row > 1:
+
+            index = "{}.{}".format(row, col)
+
+            try:
+
+                x,y,w,h = self.text.bbox(index)
+
+            except TypeError:
+
+                y, h = 0, 0
+
+            if y >= self.text.pady + h:
+
+                next_index = self.text.index("@{},{}".format(x, y - h))
+
+                row, col = [int(val) for val in next_index.split(".")]
+
+            else:
+
+                row -= 1
+                prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
+                col = min(col, prev_end_col)
         
         return row, col
 
@@ -716,7 +790,7 @@ class Interface:
     def ChangeFontSize(self, amount):
         self.root.grid_propagate(False)
         for font in ("Font", "BoldFont"):
-            font = tkFont.nametofont("Font")
+            font = tkFont.nametofont(font)
             size = max(8, font.actual()["size"] + amount)
             font.configure(size=size)
             self.text.char_w = self.text.font.measure(" ")
