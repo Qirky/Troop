@@ -2,6 +2,7 @@
 *.pyc
 client.cfg
 todo.txt
+debug.py
 
 # Windows image file caches
 Thumbs.db

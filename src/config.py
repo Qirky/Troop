@@ -40,5 +40,6 @@ TIDAL         = 1
 SUPERCOLLIDER = 2
 
 langnames = { "FoxDot" : FOXDOT,
+              "TidalCycles" : TIDAL,
               "SuperCollider" : SUPERCOLLIDER }
 

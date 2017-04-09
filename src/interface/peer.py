@@ -4,7 +4,7 @@ PeerColours = [
     ("green",   "black"),
     ("cyan",    "black"),
     ("yellow",  "black"),
-    ("magenta", "white"),
+    ("magenta", "black"),
     ("white",   "black"),
     ("red",     "white"),
     ("blue",    "white")

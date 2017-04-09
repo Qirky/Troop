@@ -11,6 +11,7 @@ class ThreadSafeText(Text):
         Text.__init__(self, root.root, **options)
         self.queue = Queue.Queue()
         self.root = root
+
         self.padx = 2
         self.pady = 2
         

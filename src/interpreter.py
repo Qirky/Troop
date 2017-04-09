@@ -6,7 +6,8 @@
     for other language communication
 
 """
-
+from subprocess import Popen
+from subprocess import PIPE, STDOUT
 from config import *
 import time
 import re
@@ -38,6 +39,7 @@ class Clock:
 class Interpreter(Clock):
     lang     = None
     clock    = None
+    re       = compile_regex([])
     def evaluate(self, string):
         return
     def stop_sound(self):
@@ -142,5 +144,35 @@ class SuperColliderInterpreter(Interpreter):
         self.lang.send(msg)
         return
 
-langtypes = { FOXDOT : FoxDotInterpreter,
+class TidalInterpreter(Interpreter):
+    def __init__(self):
+        self.lang = Popen(['ghci'], shell=False,
+                       stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+
+        self.lang.stdin.write("import Sound.Tidal.Context\n")
+        self.lang.stdin.write(":set -XOverloadedStrings\n")
+        self.lang.stdin.write("(cps, getNow) <- bpsUtils\n")
+        for n in range(1,10):
+            self.lang.stdin.write("(d{}, t{}) <- superDirtSetters getNow\n".format(n, n))
+
+        self.keywords  = ["d{}".format(n) for n in range(1,10)]
+        self.keywords += ["\$", "#"] # add string regex?
+        self.re = compile_regex(self.keywords) 
+
+    def evaluate(self, string):
+        # prints to console -- maybe have the author or each eval?
+        print("Tidal> " + string.strip()) 
+        self.lang.stdin.write(":{\n"+string+"\n:}\n")
+        return
+
+    def stop_sound(self):
+        return "hush"
+
+    def kill(self):
+        self.lang.communicate()
+        self.lang.kill()
+
+
+langtypes = { FOXDOT        : FoxDotInterpreter,
+              TIDAL         : TidalInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter }

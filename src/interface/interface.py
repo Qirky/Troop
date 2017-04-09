@@ -6,6 +6,7 @@ from console import Console
 from peer import Peer
 from drag import Dragbar
 from bracket import BracketHandler
+from line_numbers import LineNumbers
 
 from Tkinter import *
 import os.path
@@ -21,7 +22,8 @@ class Interface:
         self.root=Tk()
         self.root.title(title)
 
-        self.root.columnconfigure(0, weight=1) # Text and console
+        self.root.columnconfigure(0, weight=0) # Line numbers
+        self.root.columnconfigure(1, weight=1) # Text and console
 
         self.root.rowconfigure(0, weight=1) # Textbox
         self.root.rowconfigure(1, weight=0) # Dragbar
@@ -43,33 +45,38 @@ class Interface:
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
-        self.scroll.grid(row=0, column=2, sticky='nsew')
+        self.scroll.grid(row=0, column=3, sticky='nsew')
 
         # Text box
         self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15)
-        self.text.grid(row=0, column=0, sticky="nsew", columnspan=2)
+        self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
-        
+
+        # Line numbers
+        self.line_numbers = LineNumbers(self.text, width=30, bg="black", bd=0, highlightthickness=0)
+        self.line_numbers.grid(row=0, column=0, sticky='nsew')
 
         # Remove standard highlight tag config
         self.text.tag_config(SEL, background="black")
         
         # Drag is a small line that changes the size of the console
         self.drag = Dragbar( self )
-        self.drag.grid(row=1, column=0, stick="nsew", columnspan=3)
+        self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
         self.console = Console(self.root, bg="black", fg="white", height=5, width=10, font="Font")
-        self.console.grid(row=2, column=0, stick="nsew")
-        self.c_scroll = Scrollbar(self.root)
-        self.c_scroll.grid(row=2, column=2, sticky='nsew')
-        self.c_scroll.config(command=self.console.yview)
-        sys.stdout = self.console
+        self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
+        sys.stdout = self.console # routes stdout to print to console
 
         # Statistics Graphs
         self.graphs = Canvas(self.root, bg="black", width=250, bd=0, relief="sunken")
-        self.graphs.grid(row=2, column=1, sticky="nsew")
+        self.graphs.grid(row=2, column=2, sticky="nsew")
         self.graph_queue = Queue.Queue()
+
+        # Console scroll bar
+        self.c_scroll = Scrollbar(self.root)
+        self.c_scroll.grid(row=2, column=3, sticky='nsew')
+        self.c_scroll.config(command=self.console.yview)
 
         # Key bindings
         
@@ -783,8 +790,6 @@ class Interface:
         self.push_queue.put( MSG_EVALUATE(-1, string, reply=1) )
         # 3. Send notification to other peers
         self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1], reply=1) )
-        # 4. Highlight the text
-        # self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
 
     def ChangeFontSize(self, amount):
@@ -798,12 +803,14 @@ class Interface:
         return
 
     def DecreaseFontSize(self, event):
-        self.ChangeFontSize(-2)
-        self.text.refreshPeerLabels()
+        self.ChangeFontSize(-1)
+        self.line_numbers.config(width=self.line_numbers.winfo_width() - 2)
+        self.text.refreshPeerLabels() # -- why this doesn't work?
         return 'break'
 
     def IncreaseFontSize(self, event):
-        self.ChangeFontSize(+2)
+        self.ChangeFontSize(+1)
+        self.line_numbers.config(width=self.line_numbers.winfo_width() + 2)
         self.text.refreshPeerLabels()
         return 'break'
 
