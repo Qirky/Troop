@@ -9,6 +9,7 @@
 from subprocess import Popen
 from subprocess import PIPE, STDOUT
 from config import *
+import sys
 import time
 import re
 
@@ -40,6 +41,7 @@ class Interpreter(Clock):
     lang     = None
     clock    = None
     re       = compile_regex([])
+    stdout   = None
     def evaluate(self, string):
         return
     def stop_sound(self):
@@ -146,23 +148,35 @@ class SuperColliderInterpreter(Interpreter):
 
 class TidalInterpreter(Interpreter):
     def __init__(self):
-        self.lang = Popen(['ghci'], shell=False,
+        self.lang = Popen(['ghci'], shell=False, universal_newlines=True,
                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
         self.lang.stdin.write("import Sound.Tidal.Context\n")
         self.lang.stdin.write(":set -XOverloadedStrings\n")
         self.lang.stdin.write("(cps, getNow) <- bpsUtils\n")
-        for n in range(1,10):
+
+        d_vals = range(1,10)
+        
+        for n in d_vals:
             self.lang.stdin.write("(d{}, t{}) <- superDirtSetters getNow\n".format(n, n))
 
-        self.keywords  = ["d{}".format(n) for n in range(1,10)]
-        self.keywords += ["\$", "#"] # add string regex?
-        self.re = compile_regex(self.keywords) 
+        self.lang.stdin.write("let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]\n")
+
+        self.keywords  = ["d{}".format(n) for n in d_vals]
+        self.keywords += ["\$", "#", "hush"] # add string regex?
+        self.re = compile_regex(self.keywords)
 
     def evaluate(self, string):
         # prints to console -- maybe have the author or each eval?
-        print("Tidal> " + string.strip()) 
+
         self.lang.stdin.write(":{\n"+string+"\n:}\n")
+
+        self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
+        buf_end = self.lang.stdout.tell()
+        self.lang.stdout.seek(0)
+
+        print self.lang.stdout.read(buf_end)
+        
         return
 
     def stop_sound(self):
@@ -170,8 +184,7 @@ class TidalInterpreter(Interpreter):
 
     def kill(self):
         self.lang.communicate()
-        self.lang.kill()
-
+        self.lang.kill()        
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,

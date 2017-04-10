@@ -16,7 +16,7 @@ class LineNumbers(Tk.Canvas):
         w = self.winfo_width() - 5
         h = self.winfo_height()
 
-        self.create_line(w, 0, w, h, fill="gray")
+        # self.create_line(w, 0, w, h, fill="gray")
 
         i = self.textwidget.index("@0,0")
         

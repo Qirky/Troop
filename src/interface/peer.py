@@ -1,4 +1,5 @@
 from Tkinter import *
+from ..config import *
 
 PeerColours = [
     ("green",   "black"),
@@ -114,10 +115,11 @@ class Peer:
     def select(self, start, end):
         """ Highlights text selected by this peer"""
         self.root.tag_remove(self.sel_tag, "1.0", END)
+        start, end = self.root.sort_indices([start, end])
         self.sel_start = start
         self.sel_end   = end  
         if start != end:
-            self.root.tag_add(self.sel_tag, self.sel_start, self.sel_end)                      
+            self.root.tag_add(self.sel_tag, self.sel_start, self.sel_end)
         return
 
     def remove(self):

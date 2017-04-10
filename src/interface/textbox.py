@@ -89,8 +89,6 @@ class ThreadSafeText(Text):
                         
                     this_peer.select(sel1, sel2)
 
-                    this_peer.move(*[int(val) for val in sel2.split(".")])
-
                 # Handles keypresses
 
                 elif isinstance(msg, MSG_DELETE):
@@ -126,9 +124,11 @@ class ThreadSafeText(Text):
 
                         self.see(INSERT)
 
-                    # print ",".join([str(s) for s in (this_peer.name.get(), index)])
+                    # move the peer to the mark
+
+                    #stdout("setting mark move")
                     
-                    this_peer.move(int(row), int(col))
+                    #this_peer.move(int(row), int(col))
 
                     # self.refreshPeerLabels()
 
@@ -206,6 +206,8 @@ class ThreadSafeText(Text):
                 # Update any other idle tasks
 
                 self.update_idletasks()
+
+                self.refreshPeerLabels()
 
         # Break when the queue is empty
         except Queue.Empty:
@@ -380,6 +382,9 @@ class ThreadSafeText(Text):
                 self.tag_add(tag, loc[i], loc[i+1])
                 
         return
+
+    def sort_indices(self, list_of_indexes):
+        return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
 
 def match_tag(tag_name, string):
     re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name

@@ -20,6 +20,7 @@ class Interface:
         self.lang = language()
         
         self.root=Tk()
+        self.root.configure(background="black")
         self.root.title(title)
 
         self.root.columnconfigure(0, weight=0) # Line numbers
@@ -48,16 +49,13 @@ class Interface:
         self.scroll.grid(row=0, column=3, sticky='nsew')
 
         # Text box
-        self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15)
+        self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15, bd=0)
         self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
         # Line numbers
         self.line_numbers = LineNumbers(self.text, width=30, bg="black", bd=0, highlightthickness=0)
         self.line_numbers.grid(row=0, column=0, sticky='nsew')
-
-        # Remove standard highlight tag config
-        self.text.tag_config(SEL, background="black")
         
         # Drag is a small line that changes the size of the console
         self.drag = Dragbar( self )
@@ -83,7 +81,7 @@ class Interface:
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
         self.text.bind("<Key>",             self.KeyPress)
-        self.text.bind("<<Selection>>",     self.Selection)
+        # self.text.bind("<<Selection>>",     self.Selection)
         self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
         self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
         self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
@@ -109,8 +107,13 @@ class Interface:
         self.text.bind("<{}-z>".format(CtrlKey), self.Undo)        
 
         # Handling mouse events
+        self.leftMouse_isDown = False
+        self.leftMouseClickIndex = "0.0"
         self.text.bind("<Button-1>", self.leftMousePress)
-        self.text.bind("<Button-2>", self.rightMousePress)
+        self.text.bind("<B1-Motion>", self.leftMouseDrag)
+        self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
+        
+        self.text.bind("<Button-2>", self.rightMousePress) # disabled
 
         # Local execution (only on the local machine)
 
@@ -333,7 +336,8 @@ class Interface:
 
         if event.keysym in self.ignored_keys: return "break"
         
-        row, col = self.text.index(INSERT).split(".")
+        # row, col = self.text.index(INSERT).split(".")
+        row, col = self.text.index(self.text.marker.mark).split(".")
         row = int(row)
         col = int(col)
 
@@ -341,8 +345,6 @@ class Interface:
 
         self.text.tag_remove("tag_open_brackets", "1.0", END)
 
-        # Reply is set to True by default. If there are no other peers
-        # on the same line, set to 0 and perform keypress action locally
         """
         if self.text.alone(self.text.marker):
 
@@ -360,27 +362,16 @@ class Interface:
         ret = "break"
 
         if event.keysym == "Delete":
-
-            # Deletes are tricky - send to server to make sure they work
-
-            reply = 1
             
             self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
 
         elif event.keysym == "BackSpace":
-
-            reply = 1
 
             # Only add a backspace if the last has been updated
 
             if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
             
                 self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
-
-            # OLD            
-            #if not reply:
-            #
-            #    self.text.handle_backspace(self.text.marker, row, col)
 
         # Handle key board movement
 
@@ -407,18 +398,15 @@ class Interface:
             elif event.keysym == "End":
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
 
-            # Move the label locally if not getting a reply from server
+            # Add to queue -- and unselect any characters
+            
+            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
 
-            # if not reply:
+            # if there is some selected text, de-select
 
-                # Update the INSERT marker
+            if self.text.marker.hasSelection():
 
-            #    self.setInsert( "{}.{}".format(row, col) )
-
-            #    self.text.marker.move(row, col)
-
-            # Add to queue
-            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )                       
+                self.push_queue.put( MSG_SELECT(-1, "0.0", "0.0") )
 
         # Inserting a character
 
@@ -481,17 +469,11 @@ class Interface:
 
                 self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
 
-            # if not reply:
-
-            #    self.text.handle_insert(self.text.marker, char, row, col)
-
         # Update markers
-        self.text.refreshPeerLabels()
+        # self.text.refreshPeerLabels()
 
         # Remove selections
-
-        self.text.tag_remove(SEL, "1.0", END)
-        self.Selection()
+        # self.text.tag_remove(SEL, "1.0", END)
 
         # Store the key info
 
@@ -501,41 +483,85 @@ class Interface:
         
         # Make sure the user sees their cursor
 
-        self.text.see(INSERT)
+        self.text.see(self.text.marker.mark)
     
         return ret
 
     """ Handling changes in selected areas """
 
-    def SelectLeft(self, event):      
-        return
+    def UpdateSelect(self, last_row, last_col, new_row, new_col):
+        try:
+            start = self.text.index(self.text.marker.sel_tag + ".first")
+            end   = self.text.index(self.text.marker.sel_tag + ".last")
+            # Whchever (start or end) is equal to last_row/col combo, we update
+            old_index = "{}.{}".format(last_row, last_col)
+            new_index = "{}.{}".format(new_row, new_col)
+            if start == old_index:
+                start = new_index
+            elif end == "{}.{}".format(last_row, last_col):
+                end   = new_index
+        except TclError as e:
+            start = "{}.{}".format(last_row, last_col)
+            end   = "{}.{}".format(new_row, new_col)
+
+        self.push_queue.put( MSG_SELECT(-1, start, end) )
+        self.push_queue.put( MSG_SET_MARK(-1, new_row, new_col, 1) )
+            
+        return "break"
+
+    def SelectLeft(self, event):
+        # self.text.marker.mark # use this instead of INSERT
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Left(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
 
     def SelectRight(self, event):
-        return
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Right(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
     
     def SelectUp(self, event):
-        return
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Up(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
     
     def SelectDown(self, event):
-        return
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Down(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
 
     def SelectEnd(self, event):
-        return
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = (int(i) for i in self.text.index("{}.end".format(row1)).split("."))
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
 
     def SelectHome(self, event):
-        return
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = (int(i) for i in self.text.index("{}.0".format(row1)).split("."))
+        
+        self.UpdateSelect(row1, col1, row2, col2)
+        return "break"
 
     def Selection(self, event=None):
         """ Handles selected areas """
-        try:
-            self.sel_start = self.text.index(SEL_FIRST)
-            self.sel_end   = self.text.index(SEL_LAST)
-        except:
-            self.sel_start = self.text.index(INSERT)
-            self.sel_end   = self.text.index(INSERT)
-        if event is not None:       
-            self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
-        return
+        stdout("hello")
+        return "break"
 
     """ Update colour / formatting """
 
@@ -564,7 +590,7 @@ class Interface:
         self.setInsert( "1.0" )
 
         # Make sure the user sees their cursor
-        self.text.see(INSERT)
+        self.text.see(self.text.marker.mark)
         
         return "break"
 
@@ -581,7 +607,7 @@ class Interface:
 
     def findWordLeft(self):
         # Go back until you find the next " "
-        index = self.text.index(INSERT)
+        index = self.text.index(self.text.marker.mark)
 
         if index == "1.0":
 
@@ -630,7 +656,7 @@ class Interface:
         
 
     def findWordRight(self):
-        index = self.text.index(INSERT)
+        index = self.text.index(self.text.marker.mark)
 
         row, col = self.convert(index)
 
@@ -713,7 +739,8 @@ class Interface:
     def Up(self, row, col):
         """ For up and down presses, find the index based on height """
 
-        if row > 1:
+        #if row > 1:
+        if True:
 
             index = "{}.{}".format(row, col)
 
@@ -748,7 +775,7 @@ class Interface:
         block = [0,0]        
         
         # 1. Get position of cursor
-        cur_x, cur_y = self.text.index(INSERT).split(".")
+        cur_x, cur_y = self.text.index(self.text.marker.mark).split(".")
         cur_x, cur_y = int(cur_x), int(cur_y)
         
         # 2. Go through line by line (back) and see what it's value is
@@ -814,12 +841,32 @@ class Interface:
         self.text.refreshPeerLabels()
         return 'break'
 
+    def leftMouseRelease(self, event):
+        self.leftMouse_isDown = False
+        index = self.text.index("@{},{}".format(event.x, event.y))
+        row, col = index.split(".")
+        self.push_queue.put( MSG_SET_MARK(-1, int(row), int(col), 1) )
+        return "break"
+
+    def leftMouseDrag(self, event):
+        if self.leftMouse_isDown:
+            sel_start = self.leftMouseClickIndex
+            sel_end   = self.text.index("@{},{}".format(event.x, event.y))
+
+            start, end = self.text.sort_indices([sel_start, sel_end])
+
+            self.push_queue.put( MSG_SELECT(-1, start, end) )
+            
+        return "break"
+
     def leftMousePress(self, event):
         ''' Override for left mouse click '''
 
+        self.leftMouse_isDown = True
+
         # Get text index of click location
 
-        index = self.text.index("@{},{}".format( event.x, event.y ))
+        self.leftMouseClickIndex = index = self.text.index("@{},{}".format( event.x, event.y ))
 
         row, col = index.split(".")
 
@@ -827,15 +874,7 @@ class Interface:
 
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
-        self.setInsert( index )
-
-        # De-select text
-
-        self.sel_start = self.text.index(INSERT)
-
-        self.sel_end   = self.text.index(INSERT)
-
-        self.push_queue.put( MSG_SELECT(-1, self.sel_start, self.sel_end) )
+        self.push_queue.put( MSG_SELECT(-1, "0.0", "0.0") )
 
         # Make sure the text box gets focus
 
@@ -853,21 +892,23 @@ class Interface:
 
     def Copy(self, event):
         ''' Override for Ctrl+C '''
-        text = self.text.get(self.sel_start, self.sel_end)
-        self.root.clipboard_clear()
-        self.root.clipboard_append(text)
+        if self.text.marker.hasSelection():
+            text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
         return "break"
 
     def Cut(self, event):
-        text = self.text.get(self.sel_start, self.sel_end)
-        self.root.clipboard_clear()
-        self.root.clipboard_append(text)
-        row, col = self.convert(self.text.index(INSERT))
-        self.push_queue.put( MSG_BACKSPACE(-1, row, col) )
+        if self.text.marker.hasSelection():
+            text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            row, col = self.convert(self.text.index(self.text.marker.mark))
+            self.push_queue.put( MSG_BACKSPACE(-1, row, col) )
         return "break"
     
     def Paste(self, event):
         text = self.root.clipboard_get()
-        row, col = self.convert(self.text.index(INSERT))
+        row, col = self.convert(self.text.index(self.text.marker.mark))
         self.push_queue.put( MSG_INSERT(-1, text, row, col) )
         return "break"
