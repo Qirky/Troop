@@ -30,7 +30,7 @@ if "--lang" in sys.argv:
 else:
 
     lang = FOXDOT
-
+    
 if "-p" in sys.argv or "--public" in sys.argv:
 
     host, port = PUBLIC_SERVER_ADDRESS

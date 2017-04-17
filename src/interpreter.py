@@ -18,6 +18,8 @@ def compile_regex(kw):
         matches each one """
     return re.compile(r"(?<![a-zA-Z.])(" + "|".join(kw) + ")(?![a-zA-Z])")
 
+SEPARATOR = ">"; _ = " %s " % SEPARATOR
+
 class Clock:
     def __init__(self):
         self.time = 0
@@ -37,12 +39,26 @@ class Clock:
         self.mark = now
         return self.time
 
+def colour_format(text, colour):
+    return '<colour="{}">{}</colour>'.format(colour, text)
+    
+
 class Interpreter(Clock):
     lang     = None
     clock    = None
     re       = compile_regex([])
     stdout   = None
-    def evaluate(self, string):
+    def evaluate(self, string, name, colour="White"):
+        """ Handles the printing of the execute code to screen with coloured
+            names and formatting """
+        # Split on newlines
+        string = string.split("\n")[:-1]
+        # First line has name
+        print(colour_format(name, colour) + _ + string[0])
+        # Use ... for the remainder  of the  lines
+        n = len(name)
+        for i in range(1,len(string)):
+            print(colour_format("." * n, colour) + _ + string[i])
         return
     def stop_sound(self):
         return ""
@@ -50,44 +66,18 @@ class Interpreter(Clock):
 class FoxDotInterpreter(Interpreter):
     def __init__(self):
         import FoxDot
+
         self.lang  = FoxDot
         self.clock = FoxDot.Clock
         self.counter = None
-        try: self.keywords = list(FoxDot.get_keywords()) + list(FoxDot.SynthDefs)
+
+        try:
+
+            self.keywords = list(FoxDot.get_keywords()) + list(FoxDot.SynthDefs)
+
         except AttributeError:
-            # Old FoxDot version
-            self.keywords = ['bytearray', 'PShuf', 'elif', 'set', 'help', 'vars',
-                             'PAlt', 'not', 'unicode', 'memoryview', 'rMod',
-                             'isinstance', 'PRange', 'except', 'rGet', 'dict',
-                             'get_expanded_len', 'input', 'Mod', 'bin', 'return',
-                             'format', 'repr', 'PDur', 'P', 'asStream', 'sorted',
-                             'Div', 'False', 'PSine', 'list', 'iter', 'try', 'PZip',
-                             'PStretch', 'modi', 'round', 'dir', 'cmp', 'Scale',
-                             'Sub', 'Clock', 'PWhite', 'reduce', 'issubclass',
-                             'Mul', '\\A\\s*@.+', 'locals', 'slice', 'for', 'reload',
-                             'PZip2', 'sum', 'rDiv', 'P10', 'getattr', 'abs', 'print',
-                             'import', 'True', 'None', 'hash', 'rSub', 'basestring',
-                             'len', 'Server', 'frozenset', 'ord', 'PSq', 'super', 'zip',
-                             'filter', 'range', 'staticmethod', 'LCM', 'or', 'lambda',
-                             'Group', 'eval', 'sliceToRange', 'pow', 'float',
-                             'EuclidsAlgorithm', 'Add', 'globals', 'divmod', 'enumerate',
-                             'open', 'patternclass', 'from', 'linvar', 'Get', 'PNe',
-                             'hex', 'PEq', 'long', 'next', 'chr', 'max_length', 'PTri',
-                             'var', 'type', 'tuple', 'reversed', 'else', 'PPairs', 'with',
-                             'hasattr', 'delattr', 'setattr', 'raw_input', 'PEuclid',
-                             'Pvar', 'compile', 'while', 'str', 'property', 'def', 'and',
-                             'rAdd', 'int', 'xrange', 'is', 'PRand', 'as', 'file', 'in',
-                             'unichr', 'inf', 'any', 'if', 'Nil', 'min', 'self', 'when',
-                             'execfile', 'id', 'complex', 'bool', 'group_modi', 'loop_pattern_func',
-                             '__import__', 'map', 'all', 'rPow', 'max', 'object', 'callable',
-                             'PStutter', 'BufferManager', 'Root', 'class', 'PStep',
-                             'classmethod', 'Pow', 'PSum', 'karp', 'varsaw', 'bell',
-                             'scratch', 'pulse', 'blip', 'pads', 'rave', 'donk', 'saw',
-                             'orient', 'creep', 'growl', 'marimba', 'dub', 'arpy', 'ambi',
-                             'viola', 'quin', 'crunch', 'noise', 'bass', 'dab', 'dirt',
-                             'twang', 'swell', 'pluck', 'glass', 'soprano', 'charm', 'spark',
-                             'bug', 'squish', 'zap', 'snick', 'play', 'ripple',
-                             'fuzz', 'lazer', 'klank', 'nylon', 'soft', 'scatter']
+
+            self.keywords = ['>>']
 
         self.re = compile_regex(self.keywords)
 
@@ -115,8 +105,10 @@ class FoxDotInterpreter(Interpreter):
             self.clock.time = self.counter
         return
             
-    def evaluate(self, string):
-        return self.lang.execute(string)
+    def evaluate(self, *args, **kwargs):
+        Interpreter.evaluate(self, *args, **kwargs)
+        self.lang.execute(args[0], verbose=False)
+        return
 
 
 class SuperColliderInterpreter(Interpreter):
@@ -139,7 +131,8 @@ class SuperColliderInterpreter(Interpreter):
     def stop_sound(self):
         return "s.freeAll"
         
-    def evaluate(self, string):
+    def evaluate(self, *args, **kwargs):
+        Interpreter.evaluate(self, *args, **kwargs)
         msg = self.new_msg()
         msg.setAddress("/troop")
         msg.append([self.__password, string])
@@ -166,17 +159,14 @@ class TidalInterpreter(Interpreter):
         self.keywords += ["\$", "#", "hush"] # add string regex?
         self.re = compile_regex(self.keywords)
 
-    def evaluate(self, string):
-        # prints to console -- maybe have the author or each eval?
-
+    def evaluate(self, *args, **kwargs):
+        Interpreter.evaluate(self, *args, **kwargs)
+        string = args[0]
         self.lang.stdin.write(":{\n"+string+"\n:}\n")
-
-        self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
-        buf_end = self.lang.stdout.tell()
-        self.lang.stdout.seek(0)
-
-        print self.lang.stdout.read(buf_end)
-        
+        #self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
+        #buf_end = self.lang.stdout.tell()
+        #self.lang.stdout.seek(0)
+        #print self.lang.stdout.read(buf_end)
         return
 
     def stop_sound(self):

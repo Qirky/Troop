@@ -813,10 +813,11 @@ class Interface:
         lines = self.currentBlock()
         # 2. Send as string to the server
         a, b = ("%d.0" % n for n in lines)
-        string = self.text.get( a , b )
-        self.push_queue.put( MSG_EVALUATE(-1, string, reply=1) )
-        # 3. Send notification to other peers
-        self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1], reply=1) )
+        string = self.text.get( a , b ).lstrip()
+        if string != "":
+            self.push_queue.put( MSG_EVALUATE(-1, string, reply=1) )
+            # 3. Send notification to other peers
+            self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1], reply=1) )
         return "break"
 
     def ChangeFontSize(self, amount):

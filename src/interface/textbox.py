@@ -177,7 +177,12 @@ class ThreadSafeText(Text):
                 elif isinstance(msg, MSG_EVALUATE):
 
                     # Handles code evaluation
-                    self.lang.evaluate(msg['string'])
+
+                    string = msg['string']
+                    name   = str(this_peer)
+                    colour = this_peer.bg
+                    
+                    self.lang.evaluate(string, name, colour)
 
                 elif isinstance(msg, MSG_TIME):
 
