@@ -183,7 +183,14 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_GET_TIME):
 
-                    self.root.push_queue.put(MSG_SET_TIME(-1, float(self.lang.now()), str(datetime.now())))
+                    # Respond to the server with current beat val
+
+                    beat = float(self.lang.now())
+                    time = str(datetime.now())
+
+                    stdout("Get_Time", beat, time)
+
+                    self.root.push_queue.put(MSG_SET_TIME(-1, beat, time))
 
                 elif isinstance(msg, MSG_SET_TIME):
 

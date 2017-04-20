@@ -149,6 +149,8 @@ class TroopServer:
                 
                 sleep(1 - (t % 1))
 
+                stdout("sleeping", 1 - (t % 1))
+
             except KeyboardInterrupt:
 
                 self.kill()
@@ -272,8 +274,6 @@ class TroopServer:
             self.clients.remove(client_address)
 
         if client_address in self.clientIDs:
-
-            stdout("Removing", client_address, "from", self.clientIDs)
 
             del self.clientIDs[client_address]
 
