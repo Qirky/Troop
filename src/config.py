@@ -1,4 +1,5 @@
 import sys
+import os.path
 
 def stdout(*args):
     """ Forces prints to server-side """
@@ -9,6 +10,10 @@ def readin(prompt=""):
         val = raw_input(prompt)
         if val != "":
             return val
+
+# Absolute path of the root e.g. where run-client.py is found
+
+ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 # Check for OS -> mac, linux, win
 

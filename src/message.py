@@ -8,6 +8,7 @@
     Use -1 as an ID when it doesn't matter
 
 """
+from config import *
 
 import re
 import inspect
@@ -34,7 +35,7 @@ def NetworkMessage(string):
 
         except TypeError as e:
 
-            print cls.__name__, e
+            stdout( cls.__name__, e )
 
         i += j
 
@@ -44,12 +45,17 @@ def NetworkMessage(string):
 
 class MESSAGE(object):
     """ Abstract base class """
+    data = {}
+    keys = []
     def __init__(self, src_id):
         self.data={'src_id' : int(src_id)}
         self.keys = self.data.keys()
 
     def __str__(self):
         return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
+
+    def raw_string(self):
+        return "<{}>".format(self.type) + "".join(["<{}>".format(repr(item)) for item in self])
         
     def __repr__(self):
         return self.__class__.__name__ + str(tuple(self))
@@ -136,14 +142,14 @@ class MSG_SELECT(MESSAGE):
         self['start']=str(start)
         self['end']=str(end)
 
-class MSG_EVALUATE(MESSAGE):
+class MSG_EVALUATE_STRING(MESSAGE):
     type = 6
     def __init__(self, src_id, string, reply=1):
         MESSAGE.__init__(self, src_id)
         self['string']=str(string)
         self['reply']=int(reply)
 
-class MSG_HIGHLIGHT(MESSAGE):
+class MSG_EVALUATE_BLOCK(MESSAGE):
     type = 7
     def __init__(self, src_id, start_line, end_line, reply=1):
         MESSAGE.__init__(self, src_id)
@@ -189,14 +195,20 @@ class MSG_PASSWORD(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['password']=str(password)
 
-class MSG_TIME(MESSAGE):
+class MSG_SET_TIME(MESSAGE):
     type = 14
-    def __init__(self, time):
-        self.data = {'time' : str(time)}
-        self.keys = self.data.keys()
+    def __init__(self, src_id, beat, timestamp):
+        MESSAGE.__init__(self, src_id)
+        self['beat']      = str(beat)
+        self['timestamp'] = str(timestamp)
+
+class MSG_GET_TIME(MESSAGE):
+    type = 15
+    def __init__(self):
+        pass        
 
 class MSG_BRACKET(MESSAGE):
-    type = 15
+    type = 16
     def __init__(self, src_id, row1, col1, row2, col2, reply):
         MESSAGE.__init__(self, src_id)
 
@@ -207,8 +219,13 @@ class MSG_BRACKET(MESSAGE):
         self['col2'] = int(col2)
 
         self['reply'] = int(reply)
-        
 
+class MSG_PING(MESSAGE):
+    type = 17
+    def __init__(self):
+        pass
+        
+ 
 # Create a dictionary of message type to message class 
 
 MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
@@ -216,16 +233,18 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_DELETE,
                                              MSG_BACKSPACE,
                                              MSG_SELECT,
-                                             MSG_EVALUATE,
-                                             MSG_HIGHLIGHT,
+                                             MSG_EVALUATE_STRING,
+                                             MSG_EVALUATE_BLOCK,
                                              MSG_GET_ALL,
                                              MSG_SET_ALL,
                                              MSG_RESPONSE,
                                              MSG_SET_MARK,
                                              MSG_REMOVE,
                                              MSG_PASSWORD,
-                                             MSG_TIME,
-                                             MSG_BRACKET] }
+                                             MSG_SET_TIME,
+                                             MSG_GET_TIME,
+                                             MSG_BRACKET,
+                                             MSG_PING] }
 
 # Exceptions
 

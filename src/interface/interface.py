@@ -1,5 +1,6 @@
 from ..config import *
 from ..message import *
+from ..logfile import Log
 
 from textbox import ThreadSafeText
 from console import Console
@@ -7,12 +8,15 @@ from peer import Peer
 from drag import Dragbar
 from bracket import BracketHandler
 from line_numbers import LineNumbers
+from menu_bar import MenuBar
 
 from Tkinter import *
+import tkFileDialog
 import os.path
 import tkFont
 import Queue
 import sys
+import webbrowser
 
 class Interface:
     def __init__(self, title, language):
@@ -43,6 +47,12 @@ class Interface:
 
             # Use .gif if necessary
             self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
+
+        # Menubar
+        self.menu = MenuBar(self, visible = True)
+
+        # Log-file import
+        self.logfile = None
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
@@ -81,13 +91,14 @@ class Interface:
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
         self.text.bind("<Key>",             self.KeyPress)
-        # self.text.bind("<<Selection>>",     self.Selection)
         self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
         self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
         self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
         self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
         self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
         self.text.bind("<{}-period>".format(CtrlKey), self.stopSound)
+
+        self.text.bind("<{}-m>".format(CtrlKey), self.ToggleMenu)
 
         # Key bindings to handle select
         self.text.bind("<Shift-Left>",  self.SelectLeft)
@@ -96,6 +107,7 @@ class Interface:
         self.text.bind("<Shift-Down>",  self.SelectDown)
         self.text.bind("<Shift-End>",   self.SelectEnd)
         self.text.bind("<Shift-Home>",  self.SelectHome)
+        self.text.bind("<{}-a>".format(CtrlKey), self.SelectAll)
 
         # Copy and paste key bindings
 
@@ -121,7 +133,7 @@ class Interface:
 
         # Disabled Key bindings (for now)
 
-        for key in "qwertyuiopasdfghjklbnm":
+        for key in "qwertyuiopsdfghjklbnm/":
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
@@ -177,6 +189,8 @@ class Interface:
             self.pull.kill()
             self.push.kill()
             self.text.lang.kill()
+            if self.logfile:
+                self.logfile.stop()
         except(Exception) as e:
             stdout(e)
         stdout("Quitting")
@@ -200,7 +214,7 @@ class Interface:
 
     def stopSound(self, event):
         """ Sends a kill all sound message to the server based on the language """
-        self.push_queue.put( MSG_EVALUATE(-1, self.lang.stop_sound(), reply=1) )
+        self.push_queue.put( MSG_EVALUATE_STRING(-1, self.lang.stop_sound(), reply=1) )
         return "break"
 
     def setInsert(self, index):
@@ -558,9 +572,16 @@ class Interface:
         self.UpdateSelect(row1, col1, row2, col2)
         return "break"
 
+    def SelectAll(self, event=None):
+        start = "1.0"
+        end   = self.text.index(END)
+        self.push_queue.put( MSG_SELECT(-1, start, end) )
+        self.push_queue.put( MSG_SET_MARK(-1, 1, 0, 1) )
+        return "break"
+
     def Selection(self, event=None):
         """ Handles selected areas """
-        stdout("hello")
+        # stdout("hello")
         return "break"
 
     """ Update colour / formatting """
@@ -703,8 +724,9 @@ class Interface:
     def Right(self, row, col):
         end_col = int(self.text.index("{}.end".format(row)).split(".")[1])          
         if col == end_col:
-            col = 0
-            row += 1
+            if "{}.{}".format(row + 1, 0) != self.text.index(END):
+                col = 0
+                row += 1
         else:
             col += 1        
         return row, col
@@ -750,15 +772,15 @@ class Interface:
 
             except TypeError:
 
-                y, h = 0, 0
+                x, y, h = 0, 0, 1
 
-            if y >= self.text.pady + h:
+            if y >= h:
 
                 next_index = self.text.index("@{},{}".format(x, y - h))
 
                 row, col = [int(val) for val in next_index.split(".")]
 
-            else:
+            elif row > 1:
 
                 row -= 1
                 prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
@@ -796,7 +818,7 @@ class Interface:
         return block
 
 
-    def LocalEvaluate(self, event):
+    def LocalEvaluate(self, event=None):
         # 1. Get the block of code
         lines = self.currentBlock()
         # 2. Convert to string
@@ -808,16 +830,15 @@ class Interface:
         self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
 
-    def Evaluate(self, event):
+    def Evaluate(self, event=None):
         # 1. Get the block of code
         lines = self.currentBlock()
         # 2. Send as string to the server
         a, b = ("%d.0" % n for n in lines)
         string = self.text.get( a , b ).lstrip()
         if string != "":
-            self.push_queue.put( MSG_EVALUATE(-1, string, reply=1) )
             # 3. Send notification to other peers
-            self.push_queue.put( MSG_HIGHLIGHT(-1, lines[0], lines[1], reply=1) )
+            self.push_queue.put( MSG_EVALUATE_BLOCK(-1, lines[0], lines[1], reply=1) )
         return "break"
 
     def ChangeFontSize(self, amount):
@@ -836,13 +857,13 @@ class Interface:
         self.text.refreshPeerLabels() # -- why this doesn't work?
         return 'break'
 
-    def IncreaseFontSize(self, event):
+    def IncreaseFontSize(self, event=None):
         self.ChangeFontSize(+1)
         self.line_numbers.config(width=self.line_numbers.winfo_width() + 2)
         self.text.refreshPeerLabels()
         return 'break'
 
-    def leftMouseRelease(self, event):
+    def leftMouseRelease(self, event=None):
         self.leftMouse_isDown = False
         index = self.text.index("@{},{}".format(event.x, event.y))
         row, col = index.split(".")
@@ -891,7 +912,7 @@ class Interface:
         # self.text.edit_undo()
         return "break"
 
-    def Copy(self, event):
+    def Copy(self, event=None):
         ''' Override for Ctrl+C '''
         if self.text.marker.hasSelection():
             text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
@@ -899,7 +920,7 @@ class Interface:
             self.root.clipboard_append(text)
         return "break"
 
-    def Cut(self, event):
+    def Cut(self, event=None):
         if self.text.marker.hasSelection():
             text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
             self.root.clipboard_clear()
@@ -908,8 +929,23 @@ class Interface:
             self.push_queue.put( MSG_BACKSPACE(-1, row, col) )
         return "break"
     
-    def Paste(self, event):
+    def Paste(self, event=None):
         text = self.root.clipboard_get()
         row, col = self.convert(self.text.index(self.text.marker.mark))
         self.push_queue.put( MSG_INSERT(-1, text, row, col) )
         return "break"
+
+    def ToggleMenu(self, event=None):
+        self.menu.toggle()
+        return "break"
+
+    def OpenGitHub(self, event=None):
+        webbrowser.open("https://github.com/Qirky/Troop")
+
+    def ImportLog(self):
+        """ Imports a logfile generated by run-server.py --log and 'recreates' the performance """
+        logname = tkFileDialog.askopenfilename()        
+        self.logfile = Log(logname)
+        self.logfile.set_marker(self.text.marker)
+        self.logfile.recreate()
+        return

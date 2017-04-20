@@ -103,9 +103,17 @@ class ThreadSafeText(Text):
 
                     self.root.colour_line(msg['row'])
 
-                elif isinstance(msg, MSG_HIGHLIGHT):
+                elif isinstance(msg, MSG_EVALUATE_BLOCK):
 
-                    this_peer.highlightBlock((int(msg['start_line']), int(msg['end_line'])))
+                    lines = (int(msg['start_line']), int(msg['end_line']))
+
+                    this_peer.highlightBlock(lines)
+
+                    # Experimental -- evaluate code based on highlight
+
+                    string = self.get("{}.0".format(lines[0]), "{}.end".format(lines[1]))
+                    
+                    self.lang.evaluate(string, name=str(this_peer), colour=this_peer.bg)
 
                 elif isinstance(msg, MSG_SET_MARK):
 
@@ -123,14 +131,6 @@ class ThreadSafeText(Text):
                         self.mark_set(INSERT, index)
 
                         self.see(INSERT)
-
-                    # move the peer to the mark
-
-                    #stdout("setting mark move")
-                    
-                    #this_peer.move(int(row), int(col))
-
-                    # self.refreshPeerLabels()
 
                 elif type(msg) == MSG_INSERT:
 
@@ -174,21 +174,22 @@ class ThreadSafeText(Text):
                     
                     print("Peer '{}' has disconnected".format(this_peer))
 
-                elif isinstance(msg, MSG_EVALUATE):
+                elif isinstance(msg, MSG_EVALUATE_STRING):
 
-                    # Handles code evaluation
+                    # Handles single lines of code evaluation, e.g. "Clock.stop()", that
+                    # might be evaluated but not within the text
 
-                    string = msg['string']
-                    name   = str(this_peer)
-                    colour = this_peer.bg
-                    
-                    self.lang.evaluate(string, name, colour)
+                    self.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
 
-                elif isinstance(msg, MSG_TIME):
+                elif isinstance(msg, MSG_GET_TIME):
+
+                    self.root.push_queue.put(MSG_SET_TIME(-1, float(self.lang.now()), str(datetime.now())))
+
+                elif isinstance(msg, MSG_SET_TIME):
 
                     # Update local clock
 
-                    self.lang.settime(msg['time'])
+                    self.lang.settime(msg['beat'], msg['timestamp'])
 
                 elif isinstance(msg, MSG_BRACKET):
 
@@ -313,36 +314,26 @@ class ThreadSafeText(Text):
         index = str(row) + "." + str(col)
 
         # Delete a selection if inputting a character
+
         if len(char) > 0 and peer.hasSelection():
+
             peer.deleteSelection()
 
         # Insert character
-
-        # Check if the locations are the same
-
-        # Need to keep track on the server
-
-##        if index != self.index(peer.mark):
-##
-##            print "src co-ords do not match for", peer
-##
-##            peer.row = row
-##            peer.col = col
-##
-##            self.mark_set(peer.mark, index)
         
         self.insert(peer.mark, char, peer.text_tag)
 
         self.refreshPeerLabels()
 
-        #row, col = (int(i) for i in self.index(peer.mark).split('.'))
-
-        # Update label
-        #peer.move(row, col)
+        self.see(peer.mark)
+        
         return
 
     def handle_getall(self):
         """ String starts with the name of text tags and their ranges in brackets """
+
+        # TODO -- add location of peers
+        
         data = []
 
         for tag in self.peer_tags:

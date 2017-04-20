@@ -22,6 +22,9 @@ import socket
 import SocketServer
 import Queue
 import sys
+import time
+import os.path
+from datetime import datetime
 from time import sleep
 from getpass import getpass
 from hashlib import md5
@@ -37,7 +40,7 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    def __init__(self, hostname=socket.gethostname(), port=57890, local=True):
+    def __init__(self, hostname=socket.gethostname(), port=57890, local=True, log=False):
           
         # Address information
         
@@ -98,6 +101,31 @@ class TroopServer:
 
             self.is_evaluating_local = False
             self.lang = Clock()
+
+        # Set up log for logging a performance
+
+        if log:
+            
+            # Check if there is a logs folder, if not create it
+
+            log_folder = os.path.join(ROOT_DIR, "logs")
+
+            if not os.path.exists(log_folder):
+
+                os.mkdir(log_folder)
+
+            # Create filename based on date and times
+            
+            self.fn = time.strftime("server-log-%d%m%y_%H%M%S.txt", time.localtime())
+            path    = os.path.join(log_folder, self.fn)
+            
+            self.log_file   = open(path, "w")
+            self.is_logging = True
+            
+        else:
+
+            self.is_logging = False
+            self.log_file = None
         
         # self.boot()
 
@@ -115,9 +143,11 @@ class TroopServer:
 
             try:
                 
-                self.ping_clients()
+                t = self.ping_clients()
 
-                sleep(1)
+                # If we are drifting, adjust
+                
+                sleep(1 - (t % 1))
 
             except KeyboardInterrupt:
 
@@ -129,13 +159,18 @@ class TroopServer:
     def ping_clients(self):
         ''' Sends a clock-time message to clients '''
         if self.is_evaluating_local is False:
-            for client in self.clients:
-                try:    
-                    client.send(MSG_TIME(self.lang.now()))
+            t = self.lang.now()
+            for i, client in enumerate(self.clients):
+                try:
+                    # Get the clock time from the master
+                    if i == 0:
+                        client.send(MSG_GET_TIME())
+                    else:
+                        client.send(MSG_PING())
                 except DeadClientError as err:
                     self.remove_client(client.address)
                     stdout(err, "- Client has been removed")
-        return
+        return t
 
     def get_next_id(self):
         self.last_id += 1
@@ -170,6 +205,12 @@ class TroopServer:
                     self.remove_client(client_address)
 
                     stdout(err)
+
+                # If logging is set to true, store the message info
+
+                if self.is_logging:
+
+                    self.log_file.write("%.4f" % time.clock() + " " + repr(str(msg)) + "\n")
 
                 # If the message is a set_mark message, keep track of that client's row/col
 
@@ -241,6 +282,8 @@ class TroopServer:
         return
         
     def kill(self):
+        """ Properly terminates the server """
+        if self.log_file is not None: self.log_file.close()
         self.running = False
         self.server.shutdown()
         self.server.server_close()
@@ -313,6 +356,8 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             for msg in network_msg:
 
+                # -- logging
+
                 if isinstance(msg, MSG_CONNECT) and self.client_address not in self.master.clients:
 
                     # Store information about the new client
@@ -367,27 +412,17 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                 # If we have an execute message, evaluate
 
-                elif isinstance(msg, MSG_EVALUATE):
+                # -- may want to have a designated server for making audio? 
 
-                    if self.master.is_evaluating_local:
-
-                        # Evaluate on server
-
-                        try:
-
-                            response = self.master.lang.evaluate(msg['string'])
-
-                        except Exception as e:
-
-                            stdout(e)
-
-                    else:
-
-                        # send to clients to evaluate
-
-                        for client in self.master.clients:
-
-                            client.send( MSG_EVALUATE(self.client_id(), msg['string']) )
+                #elif isinstance(msg, MSG_EVALUATE_):
+                #    if self.master.is_evaluating_local:
+                #        # Evaluate on server
+                #        try:
+                #            response = self.master.lang.evaluate(msg['string'])
+                #        except Exception as e:
+                #            stdout(e)
+                #    else:
+                #        self.master.char_queue.put((self.client_address, msg))
                             
                 else:
 

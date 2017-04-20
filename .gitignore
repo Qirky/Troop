@@ -3,6 +3,7 @@
 client.cfg
 todo.txt
 debug.py
+logs/*
 
 # Windows image file caches
 Thumbs.db

@@ -88,6 +88,12 @@ class Receiver:
 
                     self.ui.console.write(msg['string'])
 
+                # Ignore "set time" messages from oneself
+
+                elif type(msg) == MSG_SET_TIME and msg['src_id'] == self.ui.text.marker.id:
+
+                    pass
+
                 # Write the data to the IDE
 
                 else:

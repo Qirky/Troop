@@ -2,13 +2,14 @@ from Tkinter import *
 from ..config import *
 
 PeerColours = [
-    ("green",   "black"),
-    ("cyan",    "black"),
-    ("yellow",  "black"),
-    ("magenta", "black"),
-    ("white",   "black"),
-    ("red",     "white"),
-    ("blue",    "white")
+    # Light colours
+    ("green",   "black", "red"),## test
+    ("cyan",    "black", "cyan"),
+    ("yellow",  "black", "yellow"),
+    ("magenta", "black", "magenta"),
+    # Dark colours
+    ("red",     "white", "red"),
+    ("blue",    "white", "blue")
 ]
 
 
@@ -24,6 +25,7 @@ class Peer:
         
         self.bg = PeerColours[self.id % len(PeerColours)][0]
         self.fg = PeerColours[self.id % len(PeerColours)][1]
+        self.hg = PeerColours[self.id % len(PeerColours)][2]
         
         self.label = Label(self.root,
                            textvariable=self.name,
@@ -41,6 +43,7 @@ class Peer:
         self.text_tag = "text_" + str(self.id)
         self.code_tag = "code_" + str(self.id)
         self.sel_tag  = "sel_"  + str(self.id)
+        self.str_tag  = "str_"  + str(self.id) 
         self.mark     = "mark_" + str(self.id)
 
         self.root.mark_set(self.mark, str(row) + "." + str(col))
@@ -57,8 +60,9 @@ class Peer:
         self.sel_end   = "0.0"
 
         self.root.tag_config(self.text_tag, foreground=self.bg)
+        self.root.tag_config(self.str_tag,  foreground=self.hg)
         self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
-        self.root.tag_config(self.sel_tag, background=self.bg, foreground=self.fg)
+        self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
 
         self.name.set("Unnamed Peer")
 
