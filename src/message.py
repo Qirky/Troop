@@ -34,8 +34,9 @@ def NetworkMessage(string):
             pkg.append(cls(*data[i+1:i+j]))
 
         except TypeError as e:
-
+        
             stdout( cls.__name__, e )
+            stdout( string )
 
         i += j
 

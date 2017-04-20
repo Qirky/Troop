@@ -271,7 +271,11 @@ class TroopServer:
 
             self.clients.remove(client_address)
 
-        del self.clientIDs[client_address]
+        if client_address in self.clientIDs:
+
+            stdout("Removing", client_address, "from", self.clientIDs)
+
+            del self.clientIDs[client_address]
 
         # Notify other clients
 
