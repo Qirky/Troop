@@ -147,9 +147,7 @@ class TroopServer:
 
                 # If we are drifting, adjust
                 
-                sleep(1 - (t % 1))
-
-                stdout("sleeping", 1 - (t % 1))
+                sleep(1 - t)
 
             except KeyboardInterrupt:
 

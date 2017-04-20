@@ -188,8 +188,6 @@ class ThreadSafeText(Text):
                     beat = float(self.lang.now())
                     time = str(datetime.now())
 
-                    stdout("Get_Time", beat, time)
-
                     self.root.push_queue.put(MSG_SET_TIME(-1, beat, time))
 
                 elif isinstance(msg, MSG_SET_TIME):
