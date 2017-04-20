@@ -161,7 +161,7 @@ class TroopServer:
     def ping_clients(self):
         ''' Sends a clock-time message to clients '''
         if self.is_evaluating_local is False:
-            t = self.lang.now()
+            t1 = time.time()
             for i, client in enumerate(self.clients):
                 try:
                     # Get the clock time from the master
@@ -172,7 +172,10 @@ class TroopServer:
                 except DeadClientError as err:
                     self.remove_client(client.address)
                     stdout(err, "- Client has been removed")
-        return t
+            t2 = time.time()
+            return t2 - t1
+        else:
+            return 0
 
     def get_next_id(self):
         self.last_id += 1
