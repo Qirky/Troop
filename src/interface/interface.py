@@ -450,7 +450,14 @@ class Interface:
 
                 # "insert" the bracket in the text to simulate actually adding it
 
-                text[row] = text[row][:col] + char + text[row][col:]
+                try:
+
+                    text[row] = text[row][:col] + char + text[row][col:]
+
+                except IndexError as e:
+
+                    stdout("IndexError", e)
+                    stdout(row, col, text)                    
 
                 # If we need to add a closing bracket, just insert
 

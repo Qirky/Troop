@@ -70,6 +70,7 @@ class FoxDotInterpreter(Interpreter):
         self.lang  = FoxDot
         self.clock = FoxDot.Clock
         self.counter = None # Is the number of "beats"
+        self.last_bpm = self.get_bpm()
 
         try:
 
@@ -103,30 +104,14 @@ class FoxDotInterpreter(Interpreter):
         
         bpm = self.get_bpm()
 
-        if self.counter is None:
+        new_beat = float(t) - (latency * (bpm / 60))
 
-            self.counter = (float(t) + latency) * (bpm / 60)
+        # Don't mess with the beat - just have to have the first beat sync'd and you're good
 
-            self.clock.set_time(self.counter)
+        if self.counter is None or bpm != self.last_bpm:
 
-        else:
-
-            self.counter += ((1 + latency) * (bpm / 60))
-
-        stdout(float(self.clock.now()), self.counter, latency)
-        stdout(float(self.clock.now()) - self.counter, self.clock.latency)
-        stdout("-----")
-
-        ### Don't do any other setting until latency is dealt with
-
-        now = float(self.now())
-
-        #if self.counter > now + 0.1 or self.counter < now - 0.1:
-
-         #   stdout("Changing", now, "to", self.counter, "- latency is", latency)
-
-            # self.clock.set_time(self.counter)
-        self.clock.beat = self.counter
+            self.counter  = self.clock.beat = new_beat
+            self.last_bpm = bpm
 
         return
             
