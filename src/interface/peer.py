@@ -46,7 +46,8 @@ class Peer:
         self.str_tag  = "str_"  + str(self.id) 
         self.mark     = "mark_" + str(self.id)
 
-        self.root.mark_set(self.mark, str(row) + "." + str(col))
+        # Don't add the marker until text has been set by SET_ALL
+
         self.root.peer_tags.append(self.text_tag)
 
         # Stat graph

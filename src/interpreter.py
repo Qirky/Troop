@@ -31,7 +31,9 @@ class Clock:
     def reset(self):
         self.time = 0
         self.mark = time.time()
-    def settime(self, t, timestamp):
+    def get_start_time(self):
+        return 0
+    def set_time(self, t, timestamp):
         self.time = t
     def get_bpm(self):
         return 60.0
@@ -94,25 +96,13 @@ class FoxDotInterpreter(Interpreter):
     def get_bpm(self):
         return float(self.clock.bpm)
 
-    def settime(self, t, timestamp):
+    def get_start_time(self):
+        return self.clock.start_time
+
+    def set_time(self, t, timestamp):
         ''' 't' is specified in seconds. Sets current time based on the current bpm '''
-
-        start = datetime.strptime(timestamp, DATE_FORMAT)
-        end   = datetime.now()
-
-        latency = (end-start).total_seconds()
-        
-        bpm = self.get_bpm()
-
-        new_beat = float(t) - (latency * (bpm / 60))
-
-        # Don't mess with the beat - just have to have the first beat sync'd and you're good
-
-        if self.counter is None or bpm != self.last_bpm:
-
-            self.counter  = self.clock.beat = new_beat
-            self.last_bpm = bpm
-
+        if self.clock.start_time != t:
+            self.clock.start_time = t
         return
             
     def evaluate(self, *args, **kwargs):

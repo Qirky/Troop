@@ -147,7 +147,7 @@ class TroopServer:
 
                 # If we are drifting, adjust
                 
-                sleep(1 - t)
+                sleep(1 - (t % 1))
 
             except KeyboardInterrupt:
 
@@ -159,21 +159,18 @@ class TroopServer:
     def ping_clients(self):
         ''' Sends a clock-time message to clients '''
         if self.is_evaluating_local is False:
-            t1 = time.time()
+            t = self.lang.now()
             for i, client in enumerate(self.clients):
                 try:
                     # Get the clock time from the master
                     if i == 0:
                         client.send(MSG_GET_TIME())
-                    else:
-                        client.send(MSG_PING())
+                    #else:
+                    #    client.send(MSG_PING())
                 except DeadClientError as err:
                     self.remove_client(client.address)
                     stdout(err, "- Client has been removed")
-            t2 = time.time()
-            return t2 - t1
-        else:
-            return 0
+        return t
 
     def get_next_id(self):
         self.last_id += 1
@@ -274,9 +271,7 @@ class TroopServer:
 
             self.clients.remove(client_address)
 
-        if client_address in self.clientIDs:
-
-            del self.clientIDs[client_address]
+        del self.clientIDs[client_address]
 
         # Notify other clients
 
@@ -401,7 +396,11 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # If this is the first client to connect, set clock to 0
 
-                        self.master.lang.reset()
+                        self.master.lang.reset() ### TODO is this a good idea?
+
+                        # Set a blank canvas if this is the first to connect
+
+                        self.master.clients[0].send(MSG_SET_ALL(self.master.clients[0].id, "", 0))
 
                 elif isinstance(msg, MSG_SET_ALL):
 

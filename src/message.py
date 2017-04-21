@@ -16,6 +16,7 @@ import inspect
 re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
 def NetworkMessage(string):
+
     
     # Identify message tags
     data = re_msg.findall(string)
@@ -198,9 +199,9 @@ class MSG_PASSWORD(MESSAGE):
 
 class MSG_SET_TIME(MESSAGE):
     type = 14
-    def __init__(self, src_id, beat, timestamp):
+    def __init__(self, src_id, time, timestamp):
         MESSAGE.__init__(self, src_id)
-        self['beat']      = str(beat)
+        self['time']      = float(time)
         self['timestamp'] = str(timestamp)
 
 class MSG_GET_TIME(MESSAGE):

@@ -148,6 +148,12 @@ class ThreadSafeText(Text):
 
                     self.root.push_queue.put( MSG_SET_ALL(-1, text, msg['client_id']) )
 
+##                    # -- also send update_mark for each peer
+##
+##                    for peer_id, peer in self.peers.items():
+##
+##                        self.root.push_queue.put( MSG_SET_MARK(peer_id, peer.row, peer.col, reply = 0) )
+
                 elif type(msg) == MSG_SET_ALL:
 
                     # Set the contents of the text box
@@ -155,15 +161,17 @@ class ThreadSafeText(Text):
                     self.handle_setall(msg['string'])
 
                     for _, peer in self.peers.items():
-
+                        
                         peer.move(peer.row, peer.col)
+
                         self.mark_set(peer.mark, peer.index())
 
                     for line,  _ in enumerate(self.readlines()[:-1]):
 
                         self.root.colour_line(line + 1)
 
-                    self.mark_set(INSERT, "1.0")
+                    # self.mark_set(INSERT, "1.0")
+                    self.marker.move(1,0)                    
 
                 elif isinstance(msg, MSG_REMOVE):
 
@@ -183,18 +191,17 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_GET_TIME):
 
-                    # Respond to the server with current beat val
+                    # Respond to the time the master FoxDot instance started
 
-                    beat = float(self.lang.now())
-                    time = str(datetime.now())
+                    timestamp = str(datetime.now())
 
-                    self.root.push_queue.put(MSG_SET_TIME(-1, beat, time))
+                    self.root.push_queue.put(MSG_SET_TIME(-1, self.lang.get_start_time(), time))
 
                 elif isinstance(msg, MSG_SET_TIME):
 
                     # Update local clock
 
-                    self.lang.settime(msg['beat'], msg['timestamp'])
+                    self.lang.set_time(msg['time'], msg['timestamp'])
 
                 elif isinstance(msg, MSG_BRACKET):
 
@@ -235,28 +242,36 @@ class ThreadSafeText(Text):
         for peer in self.peers.values():
             
             # Get the location of a peer
-            i = self.index(peer.mark)
-            
-            row, col = (int(x) for x in i.split("."))
 
-            # Find out if it is close to another peer
+            try:
 
-            raised = False
+                i = self.index(peer.mark)
+                
+                row, col = (int(x) for x in i.split("."))
 
-            for peer_row, peer_col in loc:
+                # Find out if it is close to another peer
 
-                #if (row == peer_row or row == peer_row + 1) and (col - 2 < peer_col < col + 2):
-                if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
+                raised = False
 
-                    raised = True
+                for peer_row, peer_col in loc:
 
-                    break
+                    if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
 
-            # Move the peer
-            peer.move(row, col, raised)
+                        raised = True
 
-            # Store location
-            loc.append((row, col))
+                        break
+
+                # Move the peer
+                peer.move(row, col, raised)
+
+                # Store location
+                loc.append((row, col))
+
+            except TclError as e:
+
+                # Usually caused when a peer's mark hasn't been added between connection and setting text
+                
+                pass
             
         return
 

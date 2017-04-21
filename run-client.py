@@ -54,6 +54,6 @@ else:
     host = readin("Troop Server Address: ")
     port = readin("Port Number: ")
 
-name = readin("Enter a name: ")
+name = readin("Enter a name: ").replace(" ", "_")
 
 myClient = Client(host, port, name, lang)
