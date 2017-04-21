@@ -73,6 +73,7 @@ class FoxDotInterpreter(Interpreter):
         self.clock = FoxDot.Clock
         self.counter = None # Is the number of "beats"
         self.last_bpm = self.get_bpm()
+        self.last_start_time = 0
 
         try:
 
@@ -97,7 +98,9 @@ class FoxDotInterpreter(Interpreter):
         return float(self.clock.bpm)
 
     def get_start_time(self):
-        return self.clock.start_time
+        if self.clock.start_time != self.last_start_time:
+            self.last_start_time = self.clock.start_time
+            return self.clock.start_time
 
     def set_time(self, t, timestamp):
         ''' 't' is specified in seconds. Sets current time based on the current bpm '''

@@ -193,9 +193,13 @@ class ThreadSafeText(Text):
 
                     # Respond to the time the master FoxDot instance started
 
-                    timestamp = str(datetime.now())
+                    start_time = self.lang.get_start_time()
 
-                    self.root.push_queue.put(MSG_SET_TIME(-1, self.lang.get_start_time(), time))
+                    if start_time:
+
+                        timestamp = str(datetime.now())
+
+                        self.root.push_queue.put(MSG_SET_TIME(-1, start_time, timestamp))
 
                 elif isinstance(msg, MSG_SET_TIME):
 

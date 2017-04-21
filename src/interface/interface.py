@@ -832,7 +832,7 @@ class Interface:
         a, b = ("%d.0" % n for n in lines)
         string = self.text.get( a , b )
         # 3. Evaluate locally
-        self.text.lang.evaluate(string)
+        self.text.lang.evaluate(string, str(self.text.marker), self.text.marker.bg)
         # 4. Highlight the text
         self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
