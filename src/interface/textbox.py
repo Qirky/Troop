@@ -193,13 +193,11 @@ class ThreadSafeText(Text):
 
                     # Respond to the time the master FoxDot instance started
 
-                    start_time = self.lang.get_start_time()
+                    start_time = self.lang.get_time()
 
-                    if start_time:
+                    timestamp = str(datetime.now())
 
-                        timestamp = str(datetime.now())
-
-                        self.root.push_queue.put(MSG_SET_TIME(-1, start_time, timestamp))
+                    self.root.push_queue.put(MSG_SET_TIME(-1, start_time, timestamp))
 
                 elif isinstance(msg, MSG_SET_TIME):
 
@@ -275,7 +273,7 @@ class ThreadSafeText(Text):
 
                 # Usually caused when a peer's mark hasn't been added between connection and setting text
                 
-                pass
+                stdout(e)
             
         return
 

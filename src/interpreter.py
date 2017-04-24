@@ -97,15 +97,13 @@ class FoxDotInterpreter(Interpreter):
     def get_bpm(self):
         return float(self.clock.bpm)
 
-    def get_start_time(self):
-        if self.clock.start_time != self.last_start_time:
-            self.last_start_time = self.clock.start_time
-            return self.clock.start_time
+    def get_time(self):
+        return self.clock.start_time
 
     def set_time(self, t, timestamp):
         ''' 't' is specified in seconds. Sets current time based on the current bpm '''
         if self.clock.start_time != t:
-            self.clock.start_time = t
+            self.clock.set_start_time( t )
         return
             
     def evaluate(self, *args, **kwargs):

@@ -81,10 +81,16 @@ class MESSAGE(object):
         return key in self.data
 
     def __eq__(self, other):
-        return self.type == other
+        if isinstance(other, MESSAGE):
+            return self.type == other.type and self.data == other.data
+        else:
+            return False
 
     def __ne__(self, other):
-        return self.type != other
+        if isinstance(other, MESSAGE):
+            return self.type != other or self.data != other.data
+        else:
+            return True
 
     @staticmethod
     def compile(*args):
@@ -271,5 +277,4 @@ class DeadClientError(Exception):
 
 if __name__ == "__main__":
 
-    a = MSG_GET_ALL(1,2)
-    print 'src_id' in a
+    a = MSG_
