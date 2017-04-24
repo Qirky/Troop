@@ -351,7 +351,10 @@ class Interface:
         if event.keysym in self.ignored_keys: return "break"
         
         # row, col = self.text.index(INSERT).split(".")
-        row, col = self.text.index(self.text.marker.mark).split(".")
+        try:
+            row, col = self.text.index(self.text.marker.mark).split(".")
+        except TclError as e:
+            stdout(e)
         row = int(row)
         col = int(col)
 
