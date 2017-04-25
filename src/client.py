@@ -57,11 +57,11 @@ class Client:
 
         self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang)
 
+        self.ui.createLocalMarker(self.id, self.name)
+
         # Send information about this client to the server
 
         self.send( MSG_CONNECT(self.id, self.name, self.send.hostname, self.send.port) )
-
-        self.ui.setMarker(self.id, self.name)
 
         # Give the IDE access to push/pull -> their __call__ methods
         # make them act like methods of self.ui

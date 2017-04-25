@@ -200,7 +200,8 @@ class Interface:
     def convert(index):
         return tuple(int(value) for value in str(index).split("."))
 
-    def setMarker(self, id_num, name):
+    def createLocalMarker(self, id_num, name):
+        """  """
         self.text.local_peer = id_num
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
@@ -350,11 +351,14 @@ class Interface:
 
         if event.keysym in self.ignored_keys: return "break"
         
-        # row, col = self.text.index(INSERT).split(".")
         try:
+
             row, col = self.text.index(self.text.marker.mark).split(".")
+
         except TclError as e:
-            stdout(e)
+
+            stdout("In KeyPress", e)
+
         row = int(row)
         col = int(col)
 
@@ -374,9 +378,7 @@ class Interface:
 
         reply = 1 # Force all messages to go via the server
 
-        # Set to None if not inserting text
-
-        ret = "break"
+        ret = "break" # Set to None if not inserting text
 
         if event.keysym == "Delete":
             

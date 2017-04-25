@@ -139,21 +139,31 @@ class TroopServer:
 
         while True:
 
-            # Send a message every 1 second with the server time
-
             try:
-                
-                t = self.ping_clients()
 
-                # If we are drifting, adjust
-                
-                sleep(1 - (t % 1))
+                sleep(1)
 
             except KeyboardInterrupt:
 
                 self.kill()
 
                 break
+
+##            # Send a message every 1 second with the server time
+##
+##            try:
+##                
+##                t = self.ping_clients()
+##
+##                # If we are drifting, adjust
+##                
+##                sleep(1 - (t % 1))
+##
+##            except KeyboardInterrupt:
+##
+##                self.kill() # this should disconnect any connected clients
+##
+##                break
         return
 
     def ping_clients(self):
@@ -214,7 +224,7 @@ class TroopServer:
 
                 # If the message is a set_mark message, keep track of that client's row/col
 
-                if type(msg) == MSG_SET_MARK or type(msg) == MSG_INSERT:
+                if type(msg) == MSG_SET_MARK or type(msg) == MSG_INSERT: # How accurate is this??
 
                     for client in self.clients:
 
@@ -271,7 +281,9 @@ class TroopServer:
 
             self.clients.remove(client_address)
 
-        del self.clientIDs[client_address]
+        if client_address in self.clientIDs:
+    
+            del self.clientIDs[client_address]
 
         # Notify other clients
 
@@ -316,7 +328,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # Password test
 
-        network_msg = NetworkMessage(self.request.recv(1024))
+        network_msg = NetworkMessage(self.request.recv(2048))
 
         if network_msg[0]['password'] == self.master.password.hexdigest():
 
@@ -342,7 +354,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             try:
 
-                network_msg = NetworkMessage(self.request.recv(1024))
+                network_msg = NetworkMessage(self.request.recv(2048))
 
             except:
 
@@ -356,15 +368,19 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             for msg in network_msg:
 
-                # -- logging
+                # 1. If we have a new client connecting, add to the address book
 
                 if isinstance(msg, MSG_CONNECT) and self.client_address not in self.master.clients:
 
                     # Store information about the new client
 
-                    new_client = Client(self.client_address, self.client_id(), self.request)                
+                    new_client = Client(self.client_address, self.client_id(), self.request)
+                    
                     new_client.name = msg['name']
+
                     self.master.clients.append(new_client)
+
+                    # Print useful info
 
                     stdout("New Connection from {}".format(self.client_address))
 
@@ -392,6 +408,10 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
 
+                        # Only get clock time (if necessary) from the first connected client
+
+                        self.master.clients[0].send(MSG_GET_TIME(self.client_id(), new_client.id))
+
                     else:
 
                         # If this is the first client to connect, set clock to 0
@@ -413,6 +433,16 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                         if client.id == new_client_id:
 
                             client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
+
+                elif isinstance(msg, MSG_SET_TIME):
+
+                    new_client_id = msg['client_id']
+
+                    for client in self.master.clients:
+
+                        if client.id == new_client_id:
+
+                            client.send( MSG_SET_TIME(self.client_id(), msg['time'], msg['timestamp'], new_client_id) )
 
                 # If we have an execute message, evaluate
 

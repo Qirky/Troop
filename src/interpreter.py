@@ -91,19 +91,12 @@ class FoxDotInterpreter(Interpreter):
     def stop_sound(self):
         return "Clock.clear()"
 
-    def now(self):
-        return self.clock.now()
-
-    def get_bpm(self):
-        return float(self.clock.bpm)
-
     def get_time(self):
         return self.clock.start_time
 
-    def set_time(self, t, timestamp):
+    def set_time(self, clock_time, time_stamp):
         ''' 't' is specified in seconds. Sets current time based on the current bpm '''
-        if self.clock.start_time != t:
-            self.clock.set_start_time( t )
+        self.clock.set_start_time(clock_time)
         return
             
     def evaluate(self, *args, **kwargs):
@@ -142,7 +135,7 @@ class SuperColliderInterpreter(Interpreter):
 
 class TidalInterpreter(Interpreter):
     def __init__(self):
-        self.lang = Popen(['ghci'], shell=False, universal_newlines=True,
+        self.lang = Popen(['ghci'], shell=True, universal_newlines=True,
                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
         self.lang.stdin.write("import Sound.Tidal.Context\n")

@@ -205,15 +205,17 @@ class MSG_PASSWORD(MESSAGE):
 
 class MSG_SET_TIME(MESSAGE):
     type = 14
-    def __init__(self, src_id, time, timestamp):
+    def __init__(self, src_id, time, timestamp, client_id):
         MESSAGE.__init__(self, src_id)
         self['time']      = float(time)
         self['timestamp'] = str(timestamp)
+        self['client_id'] = int(client_id)
 
 class MSG_GET_TIME(MESSAGE):
     type = 15
-    def __init__(self):
-        pass        
+    def __init__(self, src_id, client_id):
+        MESSAGE.__init__(self, src_id)
+        self['client_id'] = client_id
 
 class MSG_BRACKET(MESSAGE):
     type = 16

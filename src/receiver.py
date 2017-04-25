@@ -60,9 +60,15 @@ class Receiver:
 
             try:
 
-                network_msg = NetworkMessage(self.sock.recv(1024))
+                network_msg = NetworkMessage(self.sock.recv(2048))
 
             except EmptyMessageError:               
+
+                break
+
+            except Exception as e:
+
+                self.ui.console.write(str(e))
 
                 break
 
