@@ -126,6 +126,7 @@ class Interface:
         self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
         
         self.text.bind("<Button-2>", self.rightMousePress) # disabled
+        self.text.tag_configure(SEL, background="black") # Temporary fix - set normal highlighting to background colour
 
         # Local execution (only on the local machine)
 
@@ -358,6 +359,8 @@ class Interface:
         except TclError as e:
 
             stdout("In KeyPress", e)
+
+            return
 
         row = int(row)
         col = int(col)
@@ -629,12 +632,17 @@ class Interface:
 
     def CtrlEnd(self, event):
         row, col = self.text.index(END).split(".")
+        row, col = self.text.index("{}.end".format(int(row)-1)).split(".")
 
         # Add to queue
         self.push_queue.put( MSG_SET_MARK(-1, row, col) )
 
+        self.last_keypress  = "End"
+        self.last_row       = row
+        self.last_col       = col
+
         # Update the actual insert mark
-        self.setInsert( END )
+        # self.setInsert( END )
         
         return "break"
 

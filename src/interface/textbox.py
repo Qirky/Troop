@@ -117,18 +117,22 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_SET_MARK):
 
-                    row = str(msg['row'])
-                    col = str(msg['col'])
+                    row = msg['row']
+                    col = msg['col']
 
-                    index = row + "." + col
+                    index = "{}.{}".format(row, col)
 
                     self.mark_set(this_peer.mark, index)
+
+                    this_peer.move(row, col) ## this wasn't here before
 
                     # If this is a local peer, set the insert too
 
                     if this_peer == self.marker:
 
-                        self.mark_set(INSERT, index)
+                        # self.mark_set(INSERT, index) # is this necessary?
+
+                        self.see(self.marker.mark)
 
                 elif type(msg) == MSG_INSERT:
 
@@ -138,7 +142,7 @@ class ThreadSafeText(Text):
 
                     self.root.colour_line(msg['row'])
 
-                    # If the msg is from the local peer, make sure they see their text
+                    # If the msg is from the local peer, make sure they see their text AND marker
 
                     if this_peer == self.marker:
 

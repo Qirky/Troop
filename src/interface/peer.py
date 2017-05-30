@@ -114,6 +114,13 @@ class Peer:
             
             self.label.place(x=x_val, y=y_val[0], anchor="nw")
             self.insert.place(x=x_val, y=y_val[1], anchor="nw")
+
+        else:
+
+            # If we're not meant to see the peer, hide it
+            
+            self.label.place(x=-100, y=-100)
+            self.insert.place(x=-100, y=-100)
             
         return
 
