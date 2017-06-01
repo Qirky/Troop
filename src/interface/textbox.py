@@ -57,7 +57,8 @@ class ThreadSafeText(Text):
             Row can be specified. """
         row = peer.row if row is None else row
         for other in self.peers.values():
-            if peer != other and (other.row + 1) >= row >= (other.row - 1):
+            #if peer != other and (other.row + 1) >= row >= (other.row - 1):
+            if peer != other and other.row == row:
                 return False
         return True
 

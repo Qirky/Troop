@@ -148,22 +148,6 @@ class TroopServer:
                 self.kill()
 
                 break
-
-##            # Send a message every 1 second with the server time
-##
-##            try:
-##                
-##                t = self.ping_clients()
-##
-##                # If we are drifting, adjust
-##                
-##                sleep(1 - (t % 1))
-##
-##            except KeyboardInterrupt:
-##
-##                self.kill() # this should disconnect any connected clients
-##
-##                break
         return
 
     def ping_clients(self):

@@ -3,13 +3,13 @@ from ..config import *
 
 PeerColours = [
     # Light colours
-    ("green",   "black", "red"),## test
-    ("cyan",    "black", "cyan"),
-    ("yellow",  "black", "yellow"),
-    ("magenta", "black", "magenta"),
+    ("green",   "black",    "red"),## test
+    ("cyan",    "black",    "cyan"),
+    ("yellow",  "black",    "yellow"),
+    ("magenta", "black",    "magenta"),
     # Dark colours
-    ("red",     "white", "red"),
-    ("blue",    "white", "blue")
+    ("red",     "white",    "red"),
+    ("blue",    "white",    "blue")
 ]
 
 

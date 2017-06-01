@@ -8,11 +8,12 @@
 """
 from subprocess import Popen
 from subprocess import PIPE, STDOUT
+from datetime import datetime
 from config import *
 import sys
 import re
-from datetime import datetime
 import time
+import threading
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -31,7 +32,7 @@ class Clock:
     def reset(self):
         self.time = 0
         self.mark = time.time()
-    def get_start_time(self):
+    def get_time(self):
         return 0
     def set_time(self, t, timestamp):
         self.time = t
@@ -136,7 +137,9 @@ class SuperColliderInterpreter(Interpreter):
 class TidalInterpreter(Interpreter):
     def __init__(self):
         self.lang = Popen(['ghci'], shell=True, universal_newlines=True,
-                       stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+                          stdin=PIPE,
+                          stdout=PIPE,
+                          stderr=STDOUT)
 
         self.lang.stdin.write("import Sound.Tidal.Context\n")
         self.lang.stdin.write(":set -XOverloadedStrings\n")
@@ -153,15 +156,25 @@ class TidalInterpreter(Interpreter):
         self.keywords += ["\$", "#", "hush"] # add string regex?
         self.re = compile_regex(self.keywords)
 
+        while self.stdout() > 0:
+
+            pass
+
     def evaluate(self, *args, **kwargs):
         Interpreter.evaluate(self, *args, **kwargs)
         string = args[0]
         self.lang.stdin.write(":{\n"+string+"\n:}\n")
-        #self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
-        #buf_end = self.lang.stdout.tell()
-        #self.lang.stdout.seek(0)
-        #print self.lang.stdout.read(buf_end)
+        threading.Thread(target=self.stdout).start()
         return
+
+    def stdout(self):
+        time.sleep(0.1)
+        self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
+        buf_end = self.lang.stdout.tell()
+        self.lang.stdout.seek(0)
+        text = self.lang.stdout.read(buf_end)
+        print(text)
+        return len(text)
 
     def stop_sound(self):
         return "hush"

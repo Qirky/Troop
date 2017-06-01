@@ -346,11 +346,17 @@ class Interface:
         """
 
         # TODO -> Creative Constraints
-        # if not constraint_satisfied(event, self.text): return
+        # if not constraint_satisfied(event, self.text): return "break"
 
         # Ignore the CtrlKey and non-ascii chars
 
         if event.keysym in self.ignored_keys: return "break"
+
+        # Keep a list of messages
+
+        messages = []
+
+        # Get index
         
         try:
 
@@ -360,7 +366,7 @@ class Interface:
 
             stdout("In KeyPress", e)
 
-            return
+            return "break"
 
         row = int(row)
         col = int(col)
@@ -369,7 +375,8 @@ class Interface:
 
         self.text.tag_remove("tag_open_brackets", "1.0", END)
 
-        """
+        # If the contributor is on their own line, evaluate message locally immediately and don't bother having the server send it back
+
         if self.text.alone(self.text.marker):
 
             reply = 0
@@ -377,15 +384,14 @@ class Interface:
         else:
 
             reply = 1
-        """
 
-        reply = 1 # Force all messages to go via the server
-
-        ret = "break" # Set to None if not inserting text
+        # reply = 1 # Force all messages to go via the server
 
         if event.keysym == "Delete":
             
-            self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
+            # self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
+
+            messages.append( MSG_DELETE(self.text.marker.id, row, col, reply) )
 
         elif event.keysym == "BackSpace":
 
@@ -393,7 +399,9 @@ class Interface:
 
             if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
             
-                self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
+                # self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
+
+                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col, reply) )
 
         # Handle key board movement
 
@@ -422,13 +430,17 @@ class Interface:
 
             # Add to queue -- and unselect any characters
             
-            self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
+            # self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
+
+            messages.append( MSG_SET_MARK(self.text.marker.id, row, col, reply) )
 
             # if there is some selected text, de-select
 
             if self.text.marker.hasSelection():
 
-                self.push_queue.put( MSG_SELECT(-1, "0.0", "0.0") )
+                # self.push_queue.put( MSG_SELECT(-1, "0.0", "0.0") )
+
+                messages.append( MSG_SELECT(self.text.marker.id, "0.0", "0.0") )
 
         # Inserting a character
 
@@ -471,7 +483,9 @@ class Interface:
 
                 if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
 
-                    self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+                    # self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+
+                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col, reply) )
 
                 # else, move to the right one space
 
@@ -479,7 +493,9 @@ class Interface:
 
                     new_row, new_col = self.Right(row, col)
 
-                    self.push_queue.put( MSG_SET_MARK(-1, new_row, new_col, reply) )
+                    # self.push_queue.put( MSG_SET_MARK(-1, new_row, new_col, reply) )
+
+                    messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col, reply) )
 
                 # Work out where the appropriate enclosing bracket is and send a message to highlight
 
@@ -490,20 +506,28 @@ class Interface:
                     row1, col1 = loc
                     row2, col2 = row, col
 
-                    self.push_queue.put( MSG_BRACKET(-1, row1, col1, row2, col2, reply))
+                    # self.push_queue.put( MSG_BRACKET(-1, row1, col1, row2, col2, reply) )
+
+                    messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2, reply) )
 
             # Add any other character
 
             else:
 
-                self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
+                # self.push_queue.put( MSG_INSERT(-1, char, row, col, reply) )
 
-        # Update markers
-        # self.text.refreshPeerLabels()
+                messages.append( MSG_INSERT(self.text.marker.id, char, row, col, reply) )
 
-        # Remove selections
-        # self.text.tag_remove(SEL, "1.0", END)
+        # Evaluate message
 
+        for msg in messages:
+
+            self.push_queue.put(msg)
+
+            if reply == 0:
+
+                self.write(msg)
+            
         # Store the key info
 
         self.last_keypress  = event.keysym
@@ -514,7 +538,7 @@ class Interface:
 
         self.text.see(self.text.marker.mark)
     
-        return ret
+        return "break"
 
     """ Handling changes in selected areas """
 
