@@ -875,14 +875,33 @@ class Interface:
         return "break"
 
     def Evaluate(self, event=None):
-        # 1. Get the block of code
+
+        if self.text.alone(self.text.marker):
+
+            reply = 0
+
+        else:
+
+            reply = 1
+        
         lines = self.currentBlock()
-        # 2. Send as string to the server
+        
         a, b = ("%d.0" % n for n in lines)
+
         string = self.text.get( a , b ).lstrip()
+
         if string != "":
-            # 3. Send notification to other peers
-            self.push_queue.put( MSG_EVALUATE_BLOCK(-1, lines[0], lines[1], reply=1) )
+
+            #  Send notification to other peers
+
+            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1], reply=reply)
+            
+            self.push_queue.put( msg )
+
+            if reply == 0:
+
+                self.write( msg )
+                
         return "break"
 
     def ChangeFontSize(self, amount):
