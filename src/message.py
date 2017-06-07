@@ -145,10 +145,11 @@ class MSG_BACKSPACE(MESSAGE):
 
 class MSG_SELECT(MESSAGE):
     type = 5
-    def __init__(self, src_id, start, end):
+    def __init__(self, src_id, start, end, reply=1):
         MESSAGE.__init__(self, src_id)
         self['start']=str(start)
         self['end']=str(end)
+        self['reply']=int(reply)
 
 class MSG_EVALUATE_STRING(MESSAGE):
     type = 6
