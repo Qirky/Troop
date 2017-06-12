@@ -96,13 +96,19 @@ class FoxDotInterpreter(Interpreter):
         return self.clock.start_time
 
     def set_time(self, clock_time, time_stamp):
-        ''' 't' is specified in seconds. Sets current time based on the current bpm '''
-        self.clock.set_start_time(clock_time)
+        self.clock.start_time = clock_time
         return
             
     def evaluate(self, *args, **kwargs):
+        """ Sends code to FoxDot instance and prints any error text """
         Interpreter.evaluate(self, *args, **kwargs)
-        self.lang.execute(args[0], verbose=False)
+
+        response = self.lang.execute(args[0], verbose=False)
+
+        if response.startswith("Traceback"):
+
+            print(response)
+        
         return
 
 

@@ -220,7 +220,7 @@ class MSG_GET_TIME(MESSAGE):
 
 class MSG_BRACKET(MESSAGE):
     type = 16
-    def __init__(self, src_id, row1, col1, row2, col2, reply):
+    def __init__(self, src_id, row1, col1, row2, col2, reply=1):
         MESSAGE.__init__(self, src_id)
 
         self['row1'] = int(row1)
@@ -280,4 +280,4 @@ class DeadClientError(Exception):
 
 if __name__ == "__main__":
 
-    a = MSG_
+    pass

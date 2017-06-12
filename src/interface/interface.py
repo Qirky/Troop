@@ -159,6 +159,8 @@ class Interface:
         self.last_keypress  = ""
         self.last_row       = 0
         self.last_col       = 0
+        self.waiting        = False
+        self.wait_msg       = None
 
         # Selection indices
         self.sel_start = "0.0"
@@ -216,7 +218,7 @@ class Interface:
 
     def stopSound(self, event):
         """ Sends a kill all sound message to the server based on the language """
-        self.push_queue.put( MSG_EVALUATE_STRING(-1, self.lang.stop_sound(), reply=1) )
+        self.push_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound(), reply=1) )
         return "break"
 
     def setInsert(self, index):
@@ -340,6 +342,49 @@ class Interface:
         # Recursive call
         self.root.after(30, self.update_send)
         return
+
+    def push_queue_put(self, messages, wait=False):
+        """ Sends message to server and evaluates them locally if not other markers
+            are using the same line. Use the wait flag when you want to force the
+            message to go to the server and wait for the response before continuing """
+
+        # If we are waiting for a certain message, don't send any more
+
+        if self.waiting: return
+
+        # Put message in into a list
+
+        if isinstance(messages, MESSAGE):
+
+            messages = [messages]
+
+        # Messages such as mouse clicks need to wait to make sure they don't conflict with other messages
+
+        if wait is True:
+
+            reply = 1
+            self.waiting  = True
+            self.wait_msg = messages[-1]
+
+        # If a marker is on its own line, set reply to 0
+
+        else:
+
+            reply = int(not self.text.alone(self.text.marker))
+
+        # Set reply flag and send
+
+        for msg in messages:
+
+            msg['reply'] = reply
+
+            if not reply:
+
+                self.write(msg)
+
+            self.push_queue.put(msg)
+        
+        return
     
     def KeyPress(self, event):
         """ 'Pushes' the key-press to the server.
@@ -375,18 +420,15 @@ class Interface:
 
         self.text.tag_remove("tag_open_brackets", "1.0", END)
 
-        # If the contributor is on their own line, evaluate message locally
-        # immediately and don't bother having the server send it back
+        # If there is a change in the row number, then wait for a reply
 
-        reply = int(not self.text.alone(self.text.marker))
-
-        # reply = 1 # Force all messages to go via the server
+        wait_for_reply = False
 
         if event.keysym == "Delete":
             
             # self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
 
-            messages.append( MSG_DELETE(self.text.marker.id, row, col, reply) )
+            messages.append( MSG_DELETE(self.text.marker.id, row, col) )
 
         elif event.keysym == "BackSpace":
 
@@ -396,7 +438,7 @@ class Interface:
             
                 # self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
 
-                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col, reply) )
+                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
 
         # Handle key board movement
 
@@ -423,11 +465,11 @@ class Interface:
             elif event.keysym == "End":
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
 
-            # Add to queue -- and unselect any characters
-            
-            # self.push_queue.put( MSG_SET_MARK(-1, row, col, reply) )
+            if old_row != row:
 
-            messages.append( MSG_SET_MARK(self.text.marker.id, row, col, reply) )
+                wait_for_reply = True
+
+            messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
 
             # if there is some selected text, de-select
 
@@ -440,9 +482,12 @@ class Interface:
         else:
 
             if event.keysym == "Return":
+
                 char = "\n"
-                row_offset = 1
-                col_offset = -1-col
+                #row_offset = 1
+                #col_offset = -1-col
+
+                wait_for_reply = True
 
                 
             elif event.keysym == "Tab":
@@ -476,7 +521,7 @@ class Interface:
 
                 if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
 
-                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col, reply) )
+                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
                 # else, move to the right one space
 
@@ -484,7 +529,7 @@ class Interface:
 
                     new_row, new_col = self.Right(row, col)
 
-                    messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col, reply) )
+                    messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col) )
 
                 # Work out where the appropriate enclosing bracket is and send a message to highlight
 
@@ -495,23 +540,17 @@ class Interface:
                     row1, col1 = loc
                     row2, col2 = row, col
 
-                    messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2, reply) )
+                    messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2) )
 
             # Add any other character
 
             else:
 
-                messages.append( MSG_INSERT(self.text.marker.id, char, row, col, reply) )
+                messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
-        # Evaluate message
+        # Push messages
 
-        for msg in messages:
-
-            self.push_queue.put(msg)
-
-            if reply == 0:
-
-                self.write(msg)
+        self.push_queue_put(messages, wait_for_reply)
             
         # Store the key info
 
@@ -542,18 +581,12 @@ class Interface:
             start = "{}.{}".format(last_row, last_col)
             end   = "{}.{}".format(new_row, new_col)
 
-        reply = int(not self.text.alone(self.text.marker))
+        wait_for_reply = (new_row != last_row)
 
-        messages = [ MSG_SELECT(self.text.marker.id, start, end, reply),
-                     MSG_SET_MARK(self.text.marker.id, new_row, new_col, reply) ]
+        messages = [ MSG_SELECT(self.text.marker.id, start, end),
+                     MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
 
-        for msg in messages:
-
-            self.push_queue.put( msg )
-
-            if not reply:
-
-                self.write(msg)
+        self.push_queue_put( messages, wait_for_reply)
                 
         return "break"
 
@@ -610,15 +643,10 @@ class Interface:
         start = "1.0"
         end   = self.text.index(END)
 
-        reply = int(not self.text.alone(self.text.marker))
+        messages = [ MSG_SELECT(self.text.marker.id, start, end),
+                     MSG_SET_MARK(self.text.marker.id, 1, 0) ]
 
-        messages = [ MSG_SELECT(self.text.marker.id, start, end, reply),
-                     MSG_SET_MARK(self.text.marker.id, 1, 0, reply) ]
-
-        for msg in messages:
-            self.push_queue.put( msg )
-            if not reply:
-                self.write( msg )
+        self.push_queue_put( messages, wait=True )
                 
         return "break"
 
@@ -648,56 +676,33 @@ class Interface:
 
     def CtrlHome(self, event):
 
-        reply = int(not self.text.alone(self.text.marker))
+        msg = MSG_SET_MARK(self.text.marker.id, 1, 0)
 
-        msg = MSG_SET_MARK(self.text.marker.id, 1, 0, reply)
-
-        self.push_queue.put( msg )
-
-        if not reply:
-
-            self.write(msg)
-        
-        # Update the actual insert mark
-        #self.setInsert( "1.0" )
-
-        # Make sure the user sees their cursor
-        #self.text.see(self.text.marker.mark)
-        
+        self.push_queue_put( msg, wait=True)
+                
         return "break"
 
     def CtrlEnd(self, event):
         row, col = self.text.index(END).split(".")
         row, col = self.text.index("{}.end".format(int(row)-1)).split(".")
 
-        reply = int(not self.text.alone(self.text.marker))
+        msg = MSG_SET_MARK(self.text.marker.id, row, col)
 
-        msg = MSG_SET_MARK(self.text.marker.id, row, col, reply)
-
-        self.push_queue.put( msg )
-
-        if not reply:
-
-            self.write(msg)
+        self.push_queue_put( msg, wait=True )
 
         self.last_keypress  = "End"
         self.last_row       = row
         self.last_col       = col
-
-        # Update the actual insert mark
-        # self.setInsert( END )
         
         return "break"
 
-    def findWordLeft(self):
+    def findWordLeft(self, row, col):
         # Go back until you find the next " "
-        index = self.text.index(self.text.marker.mark)
+        #index = self.text.index(self.text.marker.mark)
 
-        if index == "1.0":
+        if row == 1 and col == 0:
 
-            return 1, 0
-
-        row, col = self.convert(index)
+            return row, col
 
         while col == 0:
 
@@ -720,44 +725,35 @@ class Interface:
 
     def CtrlLeft(self, event):
 
-        row, col = self.findWordLeft()
+        last_row, last_col = self.text.index(self.text.marker.mark).split(".")
+        last_row, last_col = int(last_row), int(last_col)
 
-        # self.setInsert( "{}.{}".format(row,col) )
+        row, col = self.findWordLeft(last_row, last_col)
 
-        reply = int(not self.text.alone(self.text.marker))
+        wait_for_reply = (row != last_row)
 
-        msg = MSG_SET_MARK(self.text.marker.id, row, col, reply)
+        msg = MSG_SET_MARK(self.text.marker.id, row, col)
 
-        self.push_queue.put( msg )
-
-        if not reply:
-
-            self.write(msg)
+        self.push_queue_put( msg, wait_for_reply )
                     
         return "break"
 
     def CtrlRight(self, event):
 
-        row, col = self.findWordRight()
+        last_row, last_col = self.text.index(self.text.marker.mark).split(".")
+        last_row, last_col = int(last_row), int(last_col)
 
-        # self.setInsert( "{}.{}".format(row,col) )
+        row, col = self.findWordRight(last_row, last_col)
 
-        reply = int(not self.text.alone(self.text.marker))
+        wait_for_reply = (row != last_row)
 
-        msg = MSG_SET_MARK(self.text.marker.id, row, col, reply)
+        msg = MSG_SET_MARK(self.text.marker.id, row, col)
 
-        self.push_queue.put( msg )
-
-        if not reply:
-
-            self.write(msg)
+        self.push_queue_put( msg, wait_for_reply )
                     
         return "break"
 
-    def findWordRight(self):
-        index = self.text.index(self.text.marker.mark)
-
-        row, col = self.convert(index)
+    def findWordRight(self, row, col):
 
         _, end_col = self.convert(self.text.index("{}.end".format(row)))
 
@@ -839,7 +835,6 @@ class Interface:
     def Up(self, row, col):
         """ For up and down presses, find the index based on height """
 
-        #if row > 1:
         if True:
 
             index = "{}.{}".format(row, col)
@@ -909,14 +904,6 @@ class Interface:
         return "break"
 
     def Evaluate(self, event=None):
-
-        if self.text.alone(self.text.marker):
-
-            reply = 0
-
-        else:
-
-            reply = 1
         
         lines = self.currentBlock()
         
@@ -928,13 +915,9 @@ class Interface:
 
             #  Send notification to other peers
 
-            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1], reply=reply)
+            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1])
             
-            self.push_queue.put( msg )
-
-            if reply == 0:
-
-                self.write( msg )
+            self.push_queue_put( msg )
                 
         return "break"
 
@@ -961,10 +944,15 @@ class Interface:
         return 'break'
 
     def leftMouseRelease(self, event=None):
+        """ Handles mouse release event """
+        
         self.leftMouse_isDown = False
+
         index = self.text.index("@{},{}".format(event.x, event.y))
         row, col = index.split(".")
-        self.push_queue.put( MSG_SET_MARK(-1, int(row), int(col), 1) )
+        
+        self.push_queue_put( MSG_SET_MARK(self.text.marker.id, int(row), int(col)), wait=True )
+
         return "break"
 
     def leftMouseDrag(self, event):
@@ -974,7 +962,7 @@ class Interface:
 
             start, end = self.text.sort_indices([sel_start, sel_end])
 
-            self.push_queue.put( MSG_SELECT(-1, start, end) )
+            self.push_queue_put( MSG_SELECT(self.text.marker.id, start, end), wait=True )
             
         return "break"
 
@@ -991,9 +979,10 @@ class Interface:
 
         # Set the mark
 
-        self.push_queue.put( MSG_SET_MARK(-1, row, col) )
+        messages = [ MSG_SET_MARK(self.text.marker.id, row, col),
+                     MSG_SELECT(self.text.marker.id, "0.0", "0.0") ]
 
-        self.push_queue.put( MSG_SELECT(-1, "0.0", "0.0") )
+        self.push_queue_put( messages, wait=True )
 
         # Make sure the text box gets focus
 
@@ -1023,13 +1012,13 @@ class Interface:
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
             row, col = self.convert(self.text.index(self.text.marker.mark))
-            self.push_queue.put( MSG_BACKSPACE(-1, row, col) )
+            self.push_queue_put( MSG_BACKSPACE(self.text.marker.id, row, col), wait=True )
         return "break"
     
     def Paste(self, event=None):
         text = self.root.clipboard_get()
         row, col = self.convert(self.text.index(self.text.marker.mark))
-        self.push_queue.put( MSG_INSERT(-1, text, row, col) )
+        self.push_queue_put( MSG_INSERT(self.text.marker.id, text, row, col), wait=True )
         return "break"
 
     def ToggleMenu(self, event=None):

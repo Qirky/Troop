@@ -246,6 +246,10 @@ class ThreadSafeText(Text):
 
                 self.refreshPeerLabels()
 
+                if msg == self.root.wait_msg:
+                    self.root.waiting = False
+                    self.root.wait_msg = None
+
         # Break when the queue is empty
         except Queue.Empty:
             pass
