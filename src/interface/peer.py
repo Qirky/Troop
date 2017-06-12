@@ -1,9 +1,59 @@
 from Tkinter import *
 from ..config import *
+import colorsys
+
+def rgb2hex(*rgb): 
+    r = max(0, min(rgb[0], 255))
+    g = max(0, min(rgb[1], 255))
+    b = max(0, min(rgb[2], 255))
+    return "#{0:02x}{1:02x}{2:02x}".format(r, g, b)
+
+def int2rgb(i):
+    h = (((i + 2) * 70) % 255) / 255.0
+    return [int(n * 255) for n in colorsys.hsv_to_rgb(h, 1, 1)]
+
+class PeerColourTest:
+    def __init__(self):
+        self.root=Tk()
+        num = 20
+        h = 30
+        w = 100
+        self.canvas = Canvas(self.root, width=300, height=num*h)
+        self.canvas.pack()
+        m = 0
+        for n in range(num):
+            rgb = int2rgb(n)
+            m = 0
+            self.canvas.create_rectangle(m * w, n * h, (m + 1) * w,  (n + 1) * h, fill=rgb2hex(*rgb))
+            m = 1
+            rgb = tuple(n - 30 for n in rgb)
+            self.canvas.create_rectangle(m * w, n * h, (m + 1) * w,  (n + 1) * h, fill=rgb2hex(*rgb))
+            m = 2
+            self.canvas.create_rectangle(m * w, n * h, (m + 1) * w,  (n + 1) * h, fill="Black")
+        self.root.mainloop()
+
+
+def PeerFormatting(index):
+    """
+        Based on a number between 0 and 99, returns a tuple with
+        three colours:
+
+        colour[0] = Text colour
+        colour[1] = Highlight text colour
+        colour[2] = Colour for strings
+        
+    """
+    rgb = int2rgb(index)
+    
+    a = rgb2hex(*rgb)
+    b = "Black"
+    c = rgb2hex(*tuple(n - 30 for n in rgb))
+    
+    return a, b, c
 
 PeerColours = [
     # Light colours
-    ("green",   "black",    "red"),## test
+    ("green",   "black",    "green"),## test
     ("cyan",    "black",    "cyan"),
     ("yellow",  "black",    "yellow"),
     ("magenta", "black",    "magenta"),
@@ -22,10 +72,12 @@ class Peer:
         self.root_parent = widget.root
 
         self.name = StringVar()
-        
-        self.bg = PeerColours[self.id % len(PeerColours)][0]
-        self.fg = PeerColours[self.id % len(PeerColours)][1]
-        self.hg = PeerColours[self.id % len(PeerColours)][2]
+
+        colours = PeerFormatting(self.id)
+    
+        self.bg = colours[0]
+        self.fg = colours[1]
+        self.hg = colours[2]
         
         self.label = Label(self.root,
                            textvariable=self.name,

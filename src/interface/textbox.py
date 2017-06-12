@@ -131,8 +131,6 @@ class ThreadSafeText(Text):
 
                     if this_peer == self.marker:
 
-                        # self.mark_set(INSERT, index) # is this necessary?
-
                         self.see(self.marker.mark)
 
                 elif type(msg) == MSG_INSERT:
