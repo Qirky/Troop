@@ -50,7 +50,47 @@ class Interpreter(Clock):
     clock    = None
     re       = compile_regex([])
     stdout   = None
-    def evaluate(self, string, name, colour="White"):
+    def __init__(self, path):
+        self.lang = Popen([path], shell=True, universal_newlines=True,
+                          stdin=PIPE,
+                          stdout=PIPE,
+                          stderr=STDOUT)
+
+    def evaluate(self, string, *args, **kwargs):
+        """ Sends a string to the stdin and prints the text to the console """
+        # Print to console
+        self.print_stdin(string, *args, **kwargs)
+        # Write to stdin
+        try:
+            self.lang.stdin.write(self.format(string))
+        except Exception as e:
+            stdout(e, string)
+        # Read stdout (wait 0.1 seconds)
+        threading.Thread(target=self.stdout).start()
+        return
+
+    def stdout(self):
+        """ Waits 0.1 seconds then reads the stdout from the self.lang process """
+        if self.lang.stdout is not None:
+            try:
+                # Wait 0.1 sec
+                time.sleep(0.1)
+                # Go to the end of the stdout buffer
+                self.lang.stdout.seek(0,2)
+                # Get the end of the buffer
+                buf_end = self.lang.stdout.tell()
+                # Go back
+                self.lang.stdout.seek(0)
+                # Read to end of buffer
+                text = self.lang.stdout.read(buf_end)
+                # Print to console
+                print(text)
+                # Return length of text (useful for nonzero tests)
+                return len(text)
+            except IOError:
+                return 0
+            
+    def print_stdin(self, string, name, colour="White"):
         """ Handles the printing of the execute code to screen with coloured
             names and formatting """
         # Split on newlines
@@ -63,8 +103,25 @@ class Interpreter(Clock):
             for i in range(1,len(string)):
                 print(colour_format("." * n, colour) + _ + string[i])
         return
+    
     def stop_sound(self):
         return ""
+
+    def kill(self):
+        """ Stops communicating with the subprocess """
+        self.lang.communicate()
+        self.lang.kill() 
+
+    @staticmethod
+    def format(string):
+        return string
+
+class CustomInterpreter:
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+    def __call__(self):
+        return Interpreter(*self.args, **self.kwargs)
 
 class FoxDotInterpreter(Interpreter):
     def __init__(self):
@@ -101,13 +158,15 @@ class FoxDotInterpreter(Interpreter):
             
     def evaluate(self, *args, **kwargs):
         """ Sends code to FoxDot instance and prints any error text """
-        Interpreter.evaluate(self, *args, **kwargs)
+        Interpreter.print_stdin(self, *args, **kwargs)
 
         response = self.lang.execute(args[0], verbose=False)
 
-        if response.startswith("Traceback"):
+        if response is not None:
 
-            print(response)
+            if response.startswith("Traceback"):
+
+                print(response)
         
         return
 
@@ -142,52 +201,44 @@ class SuperColliderInterpreter(Interpreter):
 
 class TidalInterpreter(Interpreter):
     def __init__(self):
-        self.lang = Popen(['ghci'], shell=True, universal_newlines=True,
-                          stdin=PIPE,
-                          stdout=PIPE,
-                          stderr=STDOUT)
+        # Start haskell interpreter
+        Interpreter.__init__(self, 'ghci')
 
+        # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")
         self.lang.stdin.write(":set -XOverloadedStrings\n")
         self.lang.stdin.write("(cps, getNow) <- bpsUtils\n")
 
+        # Not always necessary but some versions of windows need setting d1-9
         d_vals = range(1,10)
         
         for n in d_vals:
             self.lang.stdin.write("(d{}, t{}) <- superDirtSetters getNow\n".format(n, n))
 
+        # Define hush
+
         self.lang.stdin.write("let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]\n")
+
+        # Set any keywords e.g. d1 and $
 
         self.keywords  = ["d{}".format(n) for n in d_vals]
         self.keywords += ["\$", "#", "hush"] # add string regex?
         self.re = compile_regex(self.keywords)
 
+        # Wait until ghci finishes printing to terminal
+
         while self.stdout() > 0:
 
             pass
-
-    def evaluate(self, *args, **kwargs):
-        Interpreter.evaluate(self, *args, **kwargs)
-        string = args[0]
-        self.lang.stdin.write(":{\n"+string+"\n:}\n")
-        threading.Thread(target=self.stdout).start()
-        return
-
-    def stdout(self):
-        time.sleep(0.1)
-        self.lang.stdout.seek(0,2)      # Doesn't give us the real end -- threading the issue?
-        buf_end = self.lang.stdout.tell()
-        self.lang.stdout.seek(0)
-        text = self.lang.stdout.read(buf_end)
-        print(text)
-        return len(text)
+    
+    @staticmethod
+    def format(string):
+        """ Used to formant multiple lines in haskell """
+        return ":{\n"+string+"\n:}\n"
 
     def stop_sound(self):
-        return "hush"
-
-    def kill(self):
-        self.lang.communicate()
-        self.lang.kill()        
+        """ Triggers the 'hush' command using Ctrl+. """
+        return "hush"       
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,

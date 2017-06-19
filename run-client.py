@@ -23,9 +23,9 @@ import sys
 
 if "--lang" in sys.argv:
 
-    name = sys.argv[ sys.argv.index("--lang") + 1 ]
+    name = sys.argv[ sys.argv.index("--lang") + 1 ] 
 
-    lang = langnames[name]
+    lang = getInterpreter(name)
 
 else:
 

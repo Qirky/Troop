@@ -51,7 +51,13 @@ class Client:
 
         # Choose the language to use
 
-        self.lang = langtypes[lang]
+        if lang in langtypes:
+
+            self.lang = langtypes[lang]
+
+        else:
+
+            self.lang = CustomInterpreter(lang)
 
         # Set up a user interface
 

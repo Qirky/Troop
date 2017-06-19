@@ -1,4 +1,5 @@
 from Tkinter import Menu
+from functools import partial
 
 class MenuBar(Menu):
     def __init__(self, master, visible=True):
@@ -7,10 +8,6 @@ class MenuBar(Menu):
 
         Menu.__init__(self, master.root)
 
-        # Set font
-        
-        # self.config(font="Font")
-
         # File menu
 
         filemenu = Menu(self, tearoff=0)
@@ -18,6 +15,7 @@ class MenuBar(Menu):
         filemenu.add_command(label="Save",          command=lambda: "break",   accelerator="Ctrl+S")
         filemenu.add_command(label="Save As...",    command=lambda: "break" )
         filemenu.add_separator()
+        filemenu.add_command(label="Start logging performance", command=lambda: "break")
         filemenu.add_command(label="Import logged performance", command=self.root.ImportLog)
         self.add_cascade(label="File", menu=filemenu)
 
@@ -38,10 +36,29 @@ class MenuBar(Menu):
         # Code menu
 
         codemenu = Menu(self, tearoff=0)
-        codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,  accelerator="Ctrl+Return")
+        codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Code Locally", command=self.root.LocalEvaluate,   accelerator="Alt+Return")
-        codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,     accelerator="Ctrl+.")
+        codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
         self.add_cascade(label="Code", menu=codemenu)
+
+        # Creative constraint menu
+
+        constraintmenu = Menu(self, tearoff=0)
+
+        # Get the names of constraints
+
+        import constraints
+        constraints = vars(constraints)
+
+        for name in constraints:
+
+            if not name.startswith("_"):
+
+                constraintmenu.add_checkbutton(label=name.title(),
+                                           command  = partial(self.root.set_constraint, name),
+                                           variable = self.root.creative_constraints[name])
+
+        self.add_cascade(label="Constraints", menu=constraintmenu)        
 
         # Help
 

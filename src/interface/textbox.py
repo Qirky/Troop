@@ -6,6 +6,9 @@ import tkFont
 import Queue
 import re
 
+import constraints
+constraints = vars(constraints)
+
 class ThreadSafeText(Text):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
@@ -237,6 +240,23 @@ class ThreadSafeText(Text):
 
                         self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
                         self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
+
+                elif type(msg) == MSG_CONSTRAINT:
+
+                    new_name = msg['name']
+
+                    print("Changing to constraint to '{}'".format(new_name))
+
+                    for name in self.root.creative_constraints:
+
+                        if name == new_name:
+
+                            self.root.creative_constraints[name].set(True)
+                            self.root.__constraint__ = constraints[name](msg['src_id'])
+
+                        else:
+
+                            self.root.creative_constraints[name].set(False)
 
                 # Update any other idle tasks
 

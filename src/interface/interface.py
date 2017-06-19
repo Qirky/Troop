@@ -48,9 +48,6 @@ class Interface:
             # Use .gif if necessary
             self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
 
-        # Menubar
-        self.menu = MenuBar(self, visible = True)
-
         # Log-file import
         self.logfile = None
 
@@ -85,6 +82,20 @@ class Interface:
         self.c_scroll = Scrollbar(self.root)
         self.c_scroll.grid(row=2, column=3, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
+
+        # Creative constraints
+
+        import constraints
+        constraints = vars(constraints)
+
+        self.default_constraint  = "anarchy"
+        self.creative_constraints = {name: BooleanVar() for name in constraints if not name.startswith("_")}
+        self.creative_constraints[self.default_constraint].set(True)
+        self.__constraint__ = constraints[self.default_constraint]()
+
+        # Menubar
+
+        self.menu = MenuBar(self, visible = True)
 
         # Key bindings
         
@@ -134,7 +145,7 @@ class Interface:
 
         # Disabled Key bindings (for now)
 
-        for key in "qwertyuiopsdfghjklbnm/":
+        for key in list("qwertyuiopsdfghjklbnm") + ["slash"]:
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
 
@@ -390,9 +401,6 @@ class Interface:
         """ 'Pushes' the key-press to the server.
         """
 
-        # TODO -> Creative Constraints
-        # if not constraint_satisfied(event, self.text): return "break"
-
         # Ignore the CtrlKey and non-ascii chars
 
         if event.keysym in self.ignored_keys: return "break"
@@ -426,8 +434,6 @@ class Interface:
 
         if event.keysym == "Delete":
             
-            # self.push_queue.put( MSG_DELETE(-1, row, col, reply) )
-
             messages.append( MSG_DELETE(self.text.marker.id, row, col) )
 
         elif event.keysym == "BackSpace":
@@ -435,8 +441,6 @@ class Interface:
             # Only add a backspace if the last has been updated
 
             if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
-            
-                # self.push_queue.put( MSG_BACKSPACE(-1, row, col, reply) )
 
                 messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
 
@@ -481,72 +485,72 @@ class Interface:
 
         else:
 
-            if event.keysym == "Return":
+            # Only insert a character if the current "creative constraint" is satisfied
+        
+            if self.__constraint__(self.text, self.text.marker):
 
-                char = "\n"
-                #row_offset = 1
-                #col_offset = -1-col
+                if event.keysym == "Return":
 
-                wait_for_reply = True
+                    char = "\n"
+                    wait_for_reply = True
 
-                
-            elif event.keysym == "Tab":
-                char = "    "
-                col += len(char)
-                
-            else:
-                
-                char = event.char
+                    
+                elif event.keysym == "Tab":
+                    
+                    char = "    "
+                    col += len(char)
+                    
+                else:
+                    
+                    char = event.char
 
-                if char == "": ret = None
+                if char in self.closing_bracket_types:
 
-            if char in self.closing_bracket_types:
+                    # Work out if we need to add this bracket
 
-                # Work out if we need to add this bracket
+                    text = self.text.readlines()
 
-                text = self.text.readlines()
+                    # "insert" the bracket in the text to simulate actually adding it
 
-                # "insert" the bracket in the text to simulate actually adding it
+                    try:
 
-                try:
+                        text[row] = text[row][:col] + char + text[row][col:]
 
-                    text[row] = text[row][:col] + char + text[row][col:]
+                    except IndexError as e:
 
-                except IndexError as e:
+                        stdout("IndexError", e)
+                        stdout(row, col, text)                    
 
-                    stdout("IndexError", e)
-                    stdout(row, col, text)                    
+                    # If we need to add a closing bracket, just insert
 
-                # If we need to add a closing bracket, just insert
+                    if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
 
-                if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
+                        messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
-                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
+                    # else, move to the right one space
 
-                # else, move to the right one space
+                    else:
+
+                        new_row, new_col = self.Right(row, col)
+
+                        messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col) )
+
+                    # Work out where the appropriate enclosing bracket is and send a message to highlight
+
+                    loc = self.handle_bracket.find_starting_bracket(text, row, col - 1, event.char)
+
+                    if loc is not None:
+
+                        row1, col1 = loc
+                        row2, col2 = row, col
+
+                        messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2) )
+
+                # Add any other character
 
                 else:
 
-                    new_row, new_col = self.Right(row, col)
-
-                    messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col) )
-
-                # Work out where the appropriate enclosing bracket is and send a message to highlight
-
-                loc = self.handle_bracket.find_starting_bracket(text, row, col - 1, event.char)
-
-                if loc is not None:
-
-                    row1, col1 = loc
-                    row2, col2 = row, col
-
-                    messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2) )
-
-            # Add any other character
-
-            else:
-
-                messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
+                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
         # Push messages
 
@@ -1034,4 +1038,8 @@ class Interface:
         self.logfile = Log(logname)
         self.logfile.set_marker(self.text.marker)
         self.logfile.recreate()
+        return
+
+    def set_constraint(self, name):
+        self.push_queue_put(MSG_CONSTRAINT(self.text.marker.id, name))
         return

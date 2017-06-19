@@ -48,3 +48,11 @@ langnames = { "FoxDot" : FOXDOT,
               "TidalCycles" : TIDAL,
               "SuperCollider" : SUPERCOLLIDER }
 
+def getInterpreter(name):
+    """ Returns the integer representing the specified interpreter unless
+        a custom path is used, which is returned """
+    if name in langnames:
+        return langnames[name]
+    else:
+        return name
+

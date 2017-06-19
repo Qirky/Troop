@@ -235,6 +235,13 @@ class MSG_PING(MESSAGE):
     type = 17
     def __init__(self):
         pass
+
+class MSG_CONSTRAINT(MESSAGE):
+    type = 18
+    def __init__(self, src_id, name, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['name'] = str(name)
+        self['reply'] = int(reply)
         
  
 # Create a dictionary of message type to message class 
@@ -255,7 +262,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_SET_TIME,
                                              MSG_GET_TIME,
                                              MSG_BRACKET,
-                                             MSG_PING] }
+                                             MSG_PING,
+                                             MSG_CONSTRAINT] }
 
 # Exceptions
 
