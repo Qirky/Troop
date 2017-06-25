@@ -44,15 +44,16 @@ FOXDOT        = 0
 TIDAL         = 1
 SUPERCOLLIDER = 2
 
-langnames = { "FoxDot" : FOXDOT,
-              "TidalCycles" : TIDAL,
-              "SuperCollider" : SUPERCOLLIDER }
+langnames = { "foxdot" : FOXDOT,
+              "tidalcycles" : TIDAL,
+              "supercollider" : SUPERCOLLIDER }
 
-def getInterpreter(name):
+def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless
         a custom path is used, which is returned """
+    name = path.lower()
     if name in langnames:
         return langnames[name]
     else:
-        return name
+        return path
 

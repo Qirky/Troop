@@ -91,16 +91,16 @@ class TroopServer:
         self.char_queue_thread.daemon = True
 
         # This executes code
-        if local is True:
-
-            self.is_evaluating_local = True
-            self.lang = Interpreter()
-            sys.stdout = self
-
-        else:
-
-            self.is_evaluating_local = False
-            self.lang = Clock()
+##        if local is True:
+##
+##            self.is_evaluating_local = True
+##            self.lang = Interpreter()
+##            sys.stdout = self
+##
+##        else:
+##
+##            self.is_evaluating_local = False
+##            self.lang = Clock()
 
         # Set up log for logging a performance
 
@@ -150,21 +150,21 @@ class TroopServer:
                 break
         return
 
-    def ping_clients(self):
-        ''' Sends a clock-time message to clients '''
-        if self.is_evaluating_local is False:
-            t = self.lang.now()
-            for i, client in enumerate(self.clients):
-                try:
-                    # Get the clock time from the master
-                    if i == 0:
-                        client.send(MSG_GET_TIME())
-                    #else:
-                    #    client.send(MSG_PING())
-                except DeadClientError as err:
-                    self.remove_client(client.address)
-                    stdout(err, "- Client has been removed")
-        return t
+##    def ping_clients(self):
+##        ''' Sends a clock-time message to clients '''
+##        if self.is_evaluating_local is False:
+##            t = self.lang.now()
+##            for i, client in enumerate(self.clients):
+##                try:
+##                    # Get the clock time from the master
+##                    if i == 0:
+##                        client.send(MSG_GET_TIME())
+##                    #else:
+##                    #    client.send(MSG_PING())
+##                except DeadClientError as err:
+##                    self.remove_client(client.address)
+##                    stdout(err, "- Client has been removed")
+##        return t
 
     def get_next_id(self):
         self.last_id += 1
@@ -283,7 +283,7 @@ class TroopServer:
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-        self.lang.kill()
+        # self.lang.kill()
         return
 
     def write(self, string):
@@ -302,6 +302,7 @@ class TroopServer:
 
 class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
+    bytes  = 4096
     def client_id(self):
         return self.master.clientIDs[self.client_address]
     def handle(self):
@@ -312,7 +313,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # Password test
 
-        network_msg = NetworkMessage(self.request.recv(2048))
+        network_msg = NetworkMessage(self.request.recv(self.bytes))
 
         if network_msg[0]['password'] == self.master.password.hexdigest():
 
@@ -394,13 +395,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # Only get clock time (if necessary) from the first connected client
 
-                        self.master.clients[0].send(MSG_GET_TIME(self.client_id(), new_client.id))
+                        # self.master.clients[0].send(MSG_GET_TIME(self.client_id(), new_client.id))
 
                     else:
 
                         # If this is the first client to connect, set clock to 0
 
-                        self.master.lang.reset() ### TODO is this a good idea?
+                        # self.master.lang.reset() ### TODO is this a good idea?
 
                         # Set a blank canvas if this is the first to connect
 
@@ -418,15 +419,15 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                             client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
 
-                elif isinstance(msg, MSG_SET_TIME):
-
-                    new_client_id = msg['client_id']
-
-                    for client in self.master.clients:
-
-                        if client.id == new_client_id:
-
-                            client.send( MSG_SET_TIME(self.client_id(), msg['time'], msg['timestamp'], new_client_id) )
+##                elif isinstance(msg, MSG_SET_TIME):
+##
+##                    new_client_id = msg['client_id']
+##
+##                    for client in self.master.clients:
+##
+##                        if client.id == new_client_id:
+##
+##                            client.send( MSG_SET_TIME(self.client_id(), msg['time'], msg['timestamp'], new_client_id) )
 
                 # If we have an execute message, evaluate
 

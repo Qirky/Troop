@@ -13,8 +13,7 @@ from hashlib import md5
 
 class Sender:
     """
-        Listens for messages from a remote FoxDot Server instance
-        and send keystroke data
+        Sends messages to the Server
 
     """
     def __init__(self):

@@ -24,28 +24,10 @@ def compile_regex(kw):
 
 SEPARATOR = ":"; _ = " %s " % SEPARATOR
 
-class Clock:
-    def __init__(self):
-        self.time = time.clock()
-    def kill(self):
-        return
-    def reset(self):
-        self.time = 0
-        self.mark = time.time()
-    def get_time(self):
-        return 0
-    def set_time(self, t, timestamp):
-        self.time = t
-    def get_bpm(self):
-        return 60.0
-    def now(self):
-        return time.clock()
-
 def colour_format(text, colour):
     return '<colour="{}">{}</colour>'.format(colour, text)
-    
 
-class Interpreter(Clock):
+class Interpreter:
     lang     = None
     clock    = None
     re       = compile_regex([])
@@ -128,10 +110,6 @@ class FoxDotInterpreter(Interpreter):
         import FoxDot
 
         self.lang  = FoxDot
-        self.clock = FoxDot.Clock
-        self.counter = None # Is the number of "beats"
-        self.last_bpm = self.get_bpm()
-        self.last_start_time = 0
 
         try:
 
@@ -148,13 +126,6 @@ class FoxDotInterpreter(Interpreter):
 
     def stop_sound(self):
         return "Clock.clear()"
-
-    def get_time(self):
-        return self.clock.start_time
-
-    def set_time(self, clock_time, time_stamp):
-        self.clock.start_time = clock_time
-        return
             
     def evaluate(self, *args, **kwargs):
         """ Sends code to FoxDot instance and prints any error text """

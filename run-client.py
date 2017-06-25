@@ -21,9 +21,9 @@ from src.config import *
 import os.path
 import sys
 
-if "--lang" in sys.argv:
+if "--mode" in sys.argv:
 
-    name = sys.argv[ sys.argv.index("--lang") + 1 ] 
+    name = sys.argv[ sys.argv.index("--mode") + 1 ] 
 
     lang = getInterpreter(name)
 

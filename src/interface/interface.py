@@ -101,7 +101,7 @@ class Interface:
         
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
-        self.text.bind("<Key>",             self.KeyPress)
+        self.text.bind("<Key>", self.KeyPress)
         self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
         self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
         self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
@@ -137,7 +137,7 @@ class Interface:
         self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
         
         self.text.bind("<Button-2>", self.rightMousePress) # disabled
-        self.text.tag_configure(SEL, background="black") # Temporary fix - set normal highlighting to background colour
+        self.text.tag_configure(SEL, background="black")   # Temporary fix - set normal highlighting to background colour
 
         # Local execution (only on the local machine)
 
@@ -145,9 +145,11 @@ class Interface:
 
         # Disabled Key bindings (for now)
 
+        disable = lambda e: "break"
+
         for key in list("qwertyuiopsdfghjklbnm") + ["slash"]:
 
-            self.text.bind("<{}-{}>".format(CtrlKey, key), lambda e: "break")
+            self.text.bind("<{}-{}>".format(CtrlKey, key), disable)
 
         # Allowed key-bindings
 
@@ -403,7 +405,15 @@ class Interface:
 
         # Ignore the CtrlKey and non-ascii chars
 
-        if event.keysym in self.ignored_keys: return "break"
+        if event.keysym in self.ignored_keys:
+
+            return "break"
+
+        elif event.keysym == "F4" and self.last_keypress == "Alt_L":
+
+            self.kill()
+
+            return "break"
 
         # Keep a list of messages
 

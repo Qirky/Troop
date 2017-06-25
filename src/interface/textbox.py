@@ -1,6 +1,7 @@
 from ..config import *
 from ..message import *
 from ..interpreter import *
+from peer import PeerFormatting
 from Tkinter import *
 import tkFont
 import Queue
@@ -204,25 +205,6 @@ class ThreadSafeText(Text):
 
                     self.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
 
-                elif isinstance(msg, MSG_GET_TIME):
-
-                    # A client is requesting the current clock time
-
-                    clock_time = self.lang.get_time()
-
-                    # Send if it is not 'None'
-
-                    if clock_time:
-
-                        time_stamp = str(time.time()) # str(datetime.now())
-                        self.root.push_queue.put(MSG_SET_TIME(-1, clock_time, time_stamp, msg['client_id']))
-
-                elif isinstance(msg, MSG_SET_TIME):
-
-                    # Update local clock
-
-                    self.lang.set_time(msg['time'], msg['timestamp'])
-
                 elif isinstance(msg, MSG_BRACKET):
 
                     # Highlight brackets on local client only
@@ -371,7 +353,6 @@ class ThreadSafeText(Text):
     def handle_insert(self, peer, char, row, col):
         ''' Manual character insert for connected peer '''
 
-        # print "mark: " + str(self.index(peer.mark)) + ", adding @ " + str(row) + "." + str(col)
         index = str(row) + "." + str(col)
 
         # Delete a selection if inputting a character
@@ -385,15 +366,11 @@ class ThreadSafeText(Text):
         self.insert(peer.mark, char, peer.text_tag)
 
         self.refreshPeerLabels()
-
-        # self.see(peer.mark)
         
         return
 
     def handle_getall(self):
         """ String starts with the name of text tags and their ranges in brackets """
-
-        # TODO -- add location of peers
         
         data = []
 
@@ -420,11 +397,14 @@ class ThreadSafeText(Text):
         return contents
 
     def handle_setall(self, data):
+
+        # We get an error here alot -- why?
+
         # Find tags
         i = 0
         tag_ranges = {}
-        for n in range(99): # max_clients - TODO: be more elegant about it
-            tag = "text_%d" % n
+        for n in range(100): # max_clients - TODO: be more elegant about it
+            tag = "text_{}".format(n)
             tag_data = match_tag(tag, data)
             tag_ranges[tag] = match_indices(tag_data)
             i += len(tag_data)
@@ -433,15 +413,34 @@ class ThreadSafeText(Text):
         self.delete("1.0", END)
         self.insert("1.0", data[i:])
 
+        # If a text tag is not used by a connected peer, format the colours anyway
+
+        for tag in tag_ranges:
+
+            if tag not in self.peer_tags:
+
+                index = int(tag.split("_")[-1])
+
+                # configure the tag
+
+                colour, _, _ = PeerFormatting(index)
+
+                self.tag_config(tag, foreground=colour)
+
         # Add tags
         for tag, loc in tag_ranges.items():
-            for i in range(0, len(loc), 2):
+            for i in range(0, len(loc), 2):                    
                 self.tag_add(tag, loc[i], loc[i+1])
                 
         return
 
     def sort_indices(self, list_of_indexes):
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
+
+def match_list(string):
+    re_list = r"\[.*?\]"
+    match = re.search(re_list, string)
+    return eval( match.group(0) ) if match else []
 
 def match_tag(tag_name, string):
     re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name

@@ -28,6 +28,7 @@ class Receiver:
         self.thread = Thread(target=self.handle)
         self.thread.daemon = True
         self.running = False
+        self.bytes = 4096
 
         # Information about other clients
 
@@ -55,12 +56,12 @@ class Receiver:
         self.running = False
 
     def handle(self):
-        i = 0
+        
         while self.running:
 
             try:
 
-                network_msg = NetworkMessage(self.sock.recv(2048))
+                network_msg = NetworkMessage(self.sock.recv(self.bytes))
 
             except EmptyMessageError:               
 
