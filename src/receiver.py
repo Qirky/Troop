@@ -28,7 +28,8 @@ class Receiver:
         self.thread = Thread(target=self.handle)
         self.thread.daemon = True
         self.running = False
-        self.bytes = 4096
+        self.bytes = 1024
+        self.logged_in = False
 
         # Information about other clients
 
@@ -61,7 +62,15 @@ class Receiver:
 
             try:
 
-                network_msg = NetworkMessage(self.sock.recv(self.bytes))
+                if not self.logged_in:
+
+                    num_bytes = 4096
+
+                else:
+
+                    num_bytes = self.bytes
+
+                network_msg = NetworkMessage(self.sock.recv(num_bytes))
 
             except EmptyMessageError:               
 
@@ -69,7 +78,8 @@ class Receiver:
 
             except Exception as e:
 
-                self.ui.console.write(str(e))
+                # self.ui.console.write(str(e))
+                print e
 
                 break
 
@@ -77,35 +87,15 @@ class Receiver:
 
                 # Store information about a newly connected client
 
-                if type(msg) == MSG_CONNECT:
+                if isinstance(msg, MSG_CONNECT):
 
                     self.nodes[msg['src_id']] = Node(*msg)
 
-                    self.update_text(msg)
+                elif isinstance(msg, MSG_SET_ALL):
 
-                    # Notify user of newly connected users
-
-                    if self.ui.text.marker.id != msg['src_id']:
-
-                        print("Peer '{}' has joined the session".format(msg['name']))
-
-                # Code feedback from the server
-
-                elif type(msg) == MSG_RESPONSE:
-
-                    self.ui.console.write(msg['string'])
-
-                # Ignore "set time" messages from oneself
-
-                elif type(msg) == MSG_SET_TIME and msg['src_id'] == self.ui.text.marker.id:
-
-                    pass
-
-                # Write the data to the IDE
-
-                else:
-
-                    self.update_text(msg)
+                    self.logged_in = True
+                    
+                self.update_text(msg)
                     
         return
 

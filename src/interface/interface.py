@@ -205,8 +205,7 @@ class Interface:
             self.pull.kill()
             self.push.kill()
             self.text.lang.kill()
-            if self.logfile:
-                self.logfile.stop()
+            if self.logfile is not None: self.logfile.stop()
         except(Exception) as e:
             stdout(e)
         stdout("Quitting")
@@ -241,7 +240,7 @@ class Interface:
         return
         
     def write(self, msg):
-        """ Writes a network message to the queue
+        """ Writes a received network message to the processing queue
         """
         # msg must be a Troop message
         assert isinstance(msg, MESSAGE)
@@ -252,7 +251,7 @@ class Interface:
 
             sender_id = msg['src_id']
 
-            if sender_id not in self.text.peers:
+            if sender_id not in self.text.peers and sender_id != -1:
 
                 # Get peer's current location & name
 

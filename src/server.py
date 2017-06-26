@@ -68,7 +68,7 @@ class TroopServer:
 
         # Reference to the thread that is listening for new connections
         self.server_thread = Thread(target=self.server.serve_forever)
-        self.server_thread.daemon = True
+        # self.server_thread.daemon = True
         
         # Clients (hostname, ip)
         self.clients = []
@@ -88,19 +88,7 @@ class TroopServer:
         # Set up a char queue
         self.char_queue = Queue.Queue()
         self.char_queue_thread = Thread(target=self.update_send)
-        self.char_queue_thread.daemon = True
-
-        # This executes code
-##        if local is True:
-##
-##            self.is_evaluating_local = True
-##            self.lang = Interpreter()
-##            sys.stdout = self
-##
-##        else:
-##
-##            self.is_evaluating_local = False
-##            self.lang = Clock()
+        # self.char_queue_thread.daemon = True
 
         # Set up log for logging a performance
 
@@ -145,26 +133,12 @@ class TroopServer:
 
             except KeyboardInterrupt:
 
+                stdout("Stopping...")
+
                 self.kill()
 
                 break
         return
-
-##    def ping_clients(self):
-##        ''' Sends a clock-time message to clients '''
-##        if self.is_evaluating_local is False:
-##            t = self.lang.now()
-##            for i, client in enumerate(self.clients):
-##                try:
-##                    # Get the clock time from the master
-##                    if i == 0:
-##                        client.send(MSG_GET_TIME())
-##                    #else:
-##                    #    client.send(MSG_PING())
-##                except DeadClientError as err:
-##                    self.remove_client(client.address)
-##                    stdout(err, "- Client has been removed")
-##        return t
 
     def get_next_id(self):
         self.last_id += 1
@@ -280,10 +254,18 @@ class TroopServer:
     def kill(self):
         """ Properly terminates the server """
         if self.log_file is not None: self.log_file.close()
+
+        outgoing = MSG_RESPONSE(-1, "Warning: Server manually killed by keyboard interrupt. Please close the application" )
+
+        for client in self.clients:
+            
+            client.send(outgoing)
+
+        sleep(1)
+
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-        # self.lang.kill()
         return
 
     def write(self, string):
@@ -302,7 +284,11 @@ class TroopServer:
 
 class TroopRequestHandler(SocketServer.BaseRequestHandler):
     master = None
-    bytes  = 4096
+    bytes  = 1024
+    def __init__(self, *args, **kwargs):
+        SocketServer.BaseRequestHandler.__init__(self, *args, **kwargs)
+        self.logged_in = False
+        self.connected = False
     def client_id(self):
         return self.master.clientIDs[self.client_address]
     def handle(self):
@@ -321,7 +307,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             self.master.clientIDs[self.client_address] = self.master.get_next_id()
 
-            self.request.send(str(self.client_id()))
+            self.request.send(str(self.client_id())) 
 
         else:
 
@@ -335,11 +321,13 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         # If success, enter loop
         
-        while True:
+        while self.master.running:
+
+            # We need a "got all flag" to be set to True and receive larger amount of data?
 
             try:
 
-                network_msg = NetworkMessage(self.request.recv(2048))
+                network_msg = NetworkMessage(self.request.recv(self.bytes))
 
             except:
 
@@ -393,15 +381,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         self.master.clients[0].send(MSG_GET_ALL(self.client_id(), new_client.id))
 
-                        # Only get clock time (if necessary) from the first connected client
-
-                        # self.master.clients[0].send(MSG_GET_TIME(self.client_id(), new_client.id))
-
                     else:
-
-                        # If this is the first client to connect, set clock to 0
-
-                        # self.master.lang.reset() ### TODO is this a good idea?
 
                         # Set a blank canvas if this is the first to connect
 
@@ -417,32 +397,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         if client.id == new_client_id:
 
-                            client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )
-
-##                elif isinstance(msg, MSG_SET_TIME):
-##
-##                    new_client_id = msg['client_id']
-##
-##                    for client in self.master.clients:
-##
-##                        if client.id == new_client_id:
-##
-##                            client.send( MSG_SET_TIME(self.client_id(), msg['time'], msg['timestamp'], new_client_id) )
-
-                # If we have an execute message, evaluate
-
-                # -- may want to have a designated server for making audio? 
-
-                #elif isinstance(msg, MSG_EVALUATE_):
-                #    if self.master.is_evaluating_local:
-                #        # Evaluate on server
-                #        try:
-                #            response = self.master.lang.evaluate(msg['string'])
-                #        except Exception as e:
-                #            stdout(e)
-                #    else:
-                #        self.master.char_queue.put((self.client_address, msg))
-                            
+                            client.send( MSG_SET_ALL(self.client_id(), msg['string'], new_client_id) )                          
                 else:
 
                     # Add any other messages to the send queue
@@ -462,6 +417,10 @@ class Client:
         
         self.source = request_handle
 
+        # For type of connection request
+
+        self.logged_in = False
+
         # For identification purposes
 
         self.id = id_num
@@ -475,7 +434,8 @@ class Client:
 
     def send(self, string):
         try:
-            self.source.send(str(string))
+            #self.source.send(str(string)) # is this a bit risky?
+            self.source.sendall(str(string))
         except:
             raise DeadClientError(self.hostname)
         return

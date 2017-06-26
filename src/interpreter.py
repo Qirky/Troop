@@ -122,7 +122,8 @@ class FoxDotInterpreter(Interpreter):
         self.re = compile_regex(self.keywords)
 
     def kill(self):
-        self.clock.stop()
+        """ Exit FoxDot cleanly """
+        self.lang.execute("Clock.stop()")
 
     def stop_sound(self):
         return "Clock.clear()"

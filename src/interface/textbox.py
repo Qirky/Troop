@@ -61,7 +61,6 @@ class ThreadSafeText(Text):
             Row can be specified. """
         row = peer.row if row is None else row
         for other in self.peers.values():
-            #if peer != other and (other.row + 1) >= row >= (other.row - 1):
             if peer != other and other.row == row:
                 return False
         return True
@@ -83,11 +82,31 @@ class ThreadSafeText(Text):
 
                 if 'src_id' in msg:
 
-                    this_peer = self.peers[msg['src_id']]
+                    if msg['src_id'] == -1:
+
+                        this_peer = None # Server message
+
+                    else:
+
+                        this_peer = self.peers[msg['src_id']]
+                    
+                # When a user connects
+
+                if isinstance(msg, MSG_CONNECT):
+
+                    if self.marker.id != msg['src_id']:
+
+                        print("Peer '{}' has joined the session".format(msg['name']))
+
+                # If the server responds with a console message
+
+                if isinstance(msg, MSG_RESPONSE):
+
+                    self.root.console.write(msg['string'])
 
                 # Handles selection changes
 
-                if isinstance(msg, MSG_SELECT):
+                elif isinstance(msg, MSG_SELECT):
 
                     sel1 = str(msg['start'])
                     sel2 = str(msg['end'])
