@@ -51,18 +51,6 @@ def PeerFormatting(index):
     
     return a, b, c
 
-PeerColours = [
-    # Light colours
-    ("green",   "black",    "green"),## test
-    ("cyan",    "black",    "cyan"),
-    ("yellow",  "black",    "yellow"),
-    ("magenta", "black",    "magenta"),
-    # Dark colours
-    ("red",     "white",    "red"),
-    ("blue",    "white",    "blue")
-]
-
-
 class Peer:
     """ Class representing the connected performers within the Tk Widget
     """

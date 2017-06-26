@@ -38,9 +38,9 @@ To run the client file in its default FoxDot mode you can either double click th
 
 	python run-client.py
 
-To run Troop in TidalCycles mode you need to specify this using the "lang" flag like so:
+To run Troop in TidalCycles mode you need to specify this using the "mode" flag like so:
 
-	python run-client.py --lang TidalCycles
+	python run-client.py --mode TidalCycles
 
 On running this you will be asked for four things:
 

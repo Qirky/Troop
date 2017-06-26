@@ -34,13 +34,18 @@ class Client:
 
             else:
 
-                self.id = self.send.conn_id
+                self.id = self.send.conn_id # we get our id from the server
 
                 print("Password accepted")
             
         except ConnectionError as e:
 
             sys.exit(e)
+
+
+        if self.id is None:
+
+            print("No ID number assigned by server")
 
         # Set up a receiver on the connected socket
           
@@ -62,6 +67,8 @@ class Client:
         # Set up a user interface
 
         self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang)
+
+        # If there's an error connecting, the method below runs but does not create a valid marker...
 
         self.ui.createLocalMarker(self.id, self.name)
 

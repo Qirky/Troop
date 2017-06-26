@@ -216,7 +216,7 @@ class Interface:
         return tuple(int(value) for value in str(index).split("."))
 
     def createLocalMarker(self, id_num, name):
-        """  """
+        """ Creates the "peer" for the client on the local machine """
         self.text.local_peer = id_num
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
@@ -427,6 +427,9 @@ class Interface:
         except TclError as e:
 
             stdout("In KeyPress", e)
+
+            stdout("My id is", self.text.marker.id)
+            stdout(self.peers)
 
             return "break"
 
