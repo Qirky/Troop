@@ -146,6 +146,14 @@ class ThreadSafeText(Text):
 
                     index = "{}.{}".format(row, col)
 
+                    # If the mark has been put onto the last line, add a buffer line to the end
+
+                    last_row = self.root.convert(self.index(END))[0] - 1
+
+##                    if row == last_row:
+##
+##                        self.insert(END, "\n")
+
                     self.mark_set(this_peer.mark, index)
 
                     this_peer.move(row, col) ## this wasn't here before

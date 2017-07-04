@@ -445,7 +445,13 @@ class Interface:
         wait_for_reply = False
 
         if event.keysym == "Delete":
-            
+
+            end_row, _ = self.convert(self.text.index(END))
+
+            # Leave a buffer line
+
+            # if row + 2 < end_row:
+                
             messages.append( MSG_DELETE(self.text.marker.id, row, col) )
 
         elif event.keysym == "BackSpace":
@@ -657,7 +663,11 @@ class Interface:
 
     def SelectAll(self, event=None):
         start = "1.0"
-        end   = self.text.index(END)
+        
+        end_row, _  = self.convert(self.text.index(END))
+        end_row     = end_row - 2
+        
+        end = self.text.index("{}.end".format(end_row))
 
         messages = [ MSG_SELECT(self.text.marker.id, start, end),
                      MSG_SET_MARK(self.text.marker.id, 1, 0) ]
@@ -668,7 +678,6 @@ class Interface:
 
     def Selection(self, event=None):
         """ Handles selected areas """
-        # stdout("hello")
         return "break"
 
     """ Update colour / formatting """

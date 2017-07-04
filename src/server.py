@@ -385,7 +385,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                         # Set a blank canvas if this is the first to connect
 
-                        self.master.clients[0].send(MSG_SET_ALL(self.master.clients[0].id, "", 0))
+                        self.master.clients[0].send(MSG_SET_ALL(self.master.clients[0].id, "\n\n\n", 0))
 
                 elif isinstance(msg, MSG_SET_ALL):
 
