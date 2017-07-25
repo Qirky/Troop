@@ -69,7 +69,7 @@ class Receiver:
 
             except Exception as e:
 
-                self.ui.console.write(str(e))
+                print(e)
 
                 break
 
@@ -77,35 +77,35 @@ class Receiver:
 
                 # Store information about a newly connected client
 
-                if type(msg) == MSG_CONNECT:
+                if isinstance(msg, MSG_CONNECT):
 
                     self.nodes[msg['src_id']] = Node(*msg)
 
-                    self.update_text(msg)
+####                    self.update_text(msg)
+####
+####                    # Notify user of newly connected users
+####
+####                    if self.ui.text.marker.id != msg['src_id']:
+####
+####                        print("Peer '{}' has joined the session".format(msg['name']))
+##
+##                # Code feedback from the server
+##
+##                elif type(msg) == MSG_RESPONSE:
+##
+##                    self.ui.console.write(msg['string'])
+##
+##                # Ignore "set time" messages from oneself
+##
+##                elif type(msg) == MSG_SET_TIME and msg['src_id'] == self.ui.text.marker.id:
+##
+##                    pass
+##
+##                # Write the data to the IDE
+##
+##                else:
 
-                    # Notify user of newly connected users
-
-                    if self.ui.text.marker.id != msg['src_id']:
-
-                        print("Peer '{}' has joined the session".format(msg['name']))
-
-                # Code feedback from the server
-
-                elif type(msg) == MSG_RESPONSE:
-
-                    self.ui.console.write(msg['string'])
-
-                # Ignore "set time" messages from oneself
-
-                elif type(msg) == MSG_SET_TIME and msg['src_id'] == self.ui.text.marker.id:
-
-                    pass
-
-                # Write the data to the IDE
-
-                else:
-
-                    self.update_text(msg)
+                self.update_text(msg)
                     
         return
 

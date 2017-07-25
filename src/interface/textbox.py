@@ -83,11 +83,32 @@ class ThreadSafeText(Text):
 
                 if 'src_id' in msg:
 
-                    this_peer = self.peers[msg['src_id']]
+                    # this_peer = self.peers[msg['src_id']]
+                    if msg['src_id'] == -1:
+
+                        this_peer = None # Server message
+
+                    else:
+
+                        this_peer = self.peers[msg['src_id']]
+
+                # When a user connects
+
+                if isinstance(msg, MSG_CONNECT):
+
+                    if self.marker.id != msg['src_id']:
+
+                        print("Peer '{}' has joined the session".format(msg['name']))
+
+                # If the server responds with a console message
+
+                elif isinstance(msg, MSG_RESPONSE):
+
+                    self.root.console.write(msg['string'])                    
 
                 # Handles selection changes
 
-                if isinstance(msg, MSG_SELECT):
+                elif isinstance(msg, MSG_SELECT):
 
                     sel1 = str(msg['start'])
                     sel2 = str(msg['end'])
@@ -126,14 +147,6 @@ class ThreadSafeText(Text):
                     col = msg['col']
 
                     index = "{}.{}".format(row, col)
-
-                    # If the mark has been put onto the last line, add a buffer line to the end
-
-                    last_row = self.root.convert(self.index(END))[0] - 1
-
-##                    if row == last_row:
-##
-##                        self.insert(END, "\n")
 
                     self.mark_set(this_peer.mark, index)
 

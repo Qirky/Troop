@@ -13,7 +13,7 @@ import sys
 
 class Client:
 
-    version = '0.2'
+    version = '0.3'
     
     def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT):
         
@@ -34,14 +34,13 @@ class Client:
 
             else:
 
-                self.id = self.send.conn_id # we get our id from the server
+                self.id = self.send.conn_id
 
                 print("Password accepted")
             
         except ConnectionError as e:
 
             sys.exit(e)
-
 
         if self.id is None:
 
@@ -68,7 +67,7 @@ class Client:
 
         self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang)
 
-        # If there's an error connecting, the method below runs but does not create a valid marker...
+        # If there was an error connecting then this method  does not create a local marker
 
         self.ui.createLocalMarker(self.id, self.name)
 
