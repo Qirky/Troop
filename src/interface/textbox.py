@@ -38,18 +38,26 @@ class ThreadSafeText(Text):
         # Font
         self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
+        self.root.font_names.append("Font")
 
         self.font_bold = tkFont.Font(family=fontfamily, size=12, weight="bold", name="BoldFont")
         self.font_bold.configure(**tkFont.nametofont("BoldFont").configure())
+        self.root.font_names.append("BoldFont")
+
+        self.font_italic = tkFont.Font(family=fontfamily, size=12, slant="italic", name="ItalicFont")
+        self.font_italic.configure(**tkFont.nametofont("ItalicFont").configure())
+        self.root.font_names.append("ItalicFont")
         
         self.configure(font="Font")
         
         self.char_w = self.font.measure(" ")
         self.char_h = self.font.metrics("linespace")
 
-        # Tags
-        self.tag_config("code", background="Red", foreground="White")
-        self.tag_config("tag_bold", font="BoldFont")
+        # Set formatting tags
+        
+        for tag_name, kwargs in tag_descriptions.items():
+
+            self.tag_config(tag_name, **kwargs)
 
         # Code interpreter
         self.lang = self.root.lang

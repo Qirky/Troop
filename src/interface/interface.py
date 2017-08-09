@@ -38,6 +38,8 @@ class Interface:
 
         icon = os.path.join(os.path.dirname(__file__), "img", "icon")
 
+        self.font_names = []
+
         try:
 
             # Use .ico file by default
@@ -677,16 +679,25 @@ class Interface:
     def colour_line(self, line):
         """ Embold keywords defined in Interpreter.py """
 
+        # Get contents of the line
+
         start, end = "{}.0".format(line), "{}.end".format(line)
+        
         string = self.text.get(start, end)
 
-        self.text.tag_remove("tag_bold", start, end)
-        
-        for match in self.lang.re.finditer(string):
-            start = "{}.{}".format(line, match.start())
-            end   = "{}.{}".format(line, match.end())
-            self.text.tag_add("tag_bold", start, end)
+        # Go through the possible tags
+
+        for tag_name, re_tag in self.lang.re.items():
+
+            self.text.tag_remove(tag_name, start, end)
             
+            for match in re_tag.finditer(string):
+                
+                start = "{}.{}".format(line, match.start())
+                end   = "{}.{}".format(line, match.end())
+
+                self.text.tag_add(tag_name, start, end)
+                
         return
 
     """ Ctrl-Home and Ctrl-End Handling """
@@ -940,7 +951,7 @@ class Interface:
 
     def ChangeFontSize(self, amount):
         self.root.grid_propagate(False)
-        for font in ("Font", "BoldFont"):
+        for font in self.font_names:
             font = tkFont.nametofont(font)
             size = max(8, font.actual()["size"] + amount)
             font.configure(size=size)

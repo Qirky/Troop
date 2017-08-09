@@ -30,7 +30,7 @@ def colour_format(text, colour):
 class Interpreter:
     lang     = None
     clock    = None
-    re       = compile_regex([])
+    re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
     stdout   = None
     def __init__(self, path):
         self.lang = Popen([path], shell=True, universal_newlines=True,
@@ -72,13 +72,13 @@ class Interpreter:
             except IOError:
                 return 0
             
-    def print_stdin(self, string, name, colour="White"):
+    def print_stdin(self, string, name=None, colour="White"):
         """ Handles the printing of the execute code to screen with coloured
             names and formatting """
         # Split on newlines
         string = [line.strip() for line in string.split("\n") if len(line.strip()) > 0]
-
-        if len(string) > 0:        
+        if len(string) > 0:
+            name = str(name)
             print(colour_format(name, colour) + _ + string[0])
             # Use ... for the remainder  of the  lines
             n = len(name)
@@ -119,7 +119,7 @@ class FoxDotInterpreter(Interpreter):
 
             self.keywords = ['>>']
 
-        self.re = compile_regex(self.keywords)
+        self.re["tag_bold"] = compile_regex(self.keywords)
 
     def kill(self):
         self.evaluate("Clock.stop()")
@@ -194,7 +194,8 @@ class TidalInterpreter(Interpreter):
 
         self.keywords  = ["d{}".format(n) for n in d_vals]
         self.keywords += ["\$", "#", "hush"] # add string regex?
-        self.re = compile_regex(self.keywords)
+
+        self.re["tag_bold"] = compile_regex(self.keywords)
 
         # Wait until ghci finishes printing to terminal
 

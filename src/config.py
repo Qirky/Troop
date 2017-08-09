@@ -34,11 +34,24 @@ elif sys.platform.startswith('linux'):
 
     SYSTEM = LINUX
 
+# RegEx and tags
+
+import re
+
+string_regex = re.compile(r"\".*?\"|'.*?'|\".*?$|'.*?$")
+
+tag_descriptions = {
+    "code"          : {"background": "Red", "foreground": "White"},
+    "tag_bold"      : {"font": "BoldFont"},
+    "tag_string"    : {"font": "ItalicFont"}
+    }
+
+
 # Public server
 
 PUBLIC_SERVER_ADDRESS = ("188.166.144.124", 57890)
 
-# Choose a language:
+# Choose a language
 
 FOXDOT        = 0
 TIDAL         = 1
