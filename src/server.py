@@ -40,7 +40,7 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    def __init__(self, port=57890, local=True, log=False):
+    def __init__(self, port=57890, log=False):
           
         # Address information
         
