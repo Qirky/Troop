@@ -58,7 +58,7 @@ class Interface:
         self.scroll.grid(row=0, column=3, sticky='nsew')
 
         # Text box
-        self.text=ThreadSafeText(self, bg="black", fg="white", insertbackground="black", height=15, bd=0)
+        self.text=ThreadSafeText(self, bg=TEXT_BACKGROUND, fg="white", insertbackground=TEXT_BACKGROUND, height=15, bd=0)
         self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
@@ -71,12 +71,12 @@ class Interface:
         self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
-        self.console = Console(self.root, bg="black", fg="white", height=5, width=10, font="Font")
+        self.console = Console(self.root, bg=CONSOLE_BACKGROUND, fg="white", height=5, width=10, font="Font")
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
         sys.stdout = self.console # routes stdout to print to console
 
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg="black", width=250, bd=0, relief="sunken")
+        self.graphs = Canvas(self.root, bg=STATS_BACKGROUND, width=250, bd=0, relief="sunken")
         self.graphs.grid(row=2, column=2, sticky="nsew")
         self.graph_queue = Queue.Queue()
 

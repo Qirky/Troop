@@ -40,12 +40,12 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    def __init__(self, hostname=socket.gethostname(), port=57890, local=True, log=False):
+    def __init__(self, port=57890, local=True, log=False):
           
         # Address information
         
-        self.hostname = str(hostname)
-        self.ip_addr  = str(socket.gethostbyname_ex(self.hostname)[-1][0])            
+        self.hostname = str(socket.gethostname())
+        self.ip_addr  = "0.0.0.0"
         self.port     = int(port)
 
         # ID numbers
@@ -59,7 +59,7 @@ class TroopServer:
 
             try:
 
-                self.server = ThreadedServer((self.hostname, self.port), TroopRequestHandler)
+                self.server = ThreadedServer((self.ip_addr, self.port), TroopRequestHandler)
                 port_found  = True
 
             except socket.error:
@@ -121,7 +121,7 @@ class TroopServer:
         self.server_thread.start()
         self.char_queue_thread.start()
 
-        stdout("Server running @ {} on port {}\n".format(self.ip_addr, self.port))
+        stdout("Server running @ {} on port {}\n".format(self.hostname, self.port))
 
         while True:
 

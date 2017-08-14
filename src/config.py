@@ -64,9 +64,15 @@ langnames = { "foxdot" : FOXDOT,
 def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless
         a custom path is used, which is returned """
-    name = path.lower()
-    if name in langnames:
-        return langnames[name]
-    else:
-        return path
+    return langnames.get(path.lower(), path)
+
+# Colours
+
+#f = open("conf/data.txt")
+
+    
+
+TEXT_BACKGROUND     = "Black"
+CONSOLE_BACKGROUND  = "Black"
+STATS_BACKGROUND    = "Black"
 
