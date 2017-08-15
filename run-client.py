@@ -54,6 +54,15 @@ else:
     host = readin("Troop Server Address: ")
     port = readin("Port Number: ")
 
+if "--log" in sys.argv or "-l" in sys.argv:
+
+    logging = True
+
+else:
+
+    logging = False
+    
+
 name = readin("Enter a name: ").replace(" ", "_")
 
-myClient = Client(host, port, name, lang)
+myClient = Client(host, port, name, lang, logging)

@@ -15,7 +15,7 @@ class Client:
 
     version = '0.3'
     
-    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT):
+    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False):
         
         self.hostname = str(hostname)
         self.port     = int(port)
@@ -65,7 +65,7 @@ class Client:
 
         # Set up a user interface
 
-        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang)
+        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang, logging)
 
         # If there was an error connecting then this method  does not create a local marker
 

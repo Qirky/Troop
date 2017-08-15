@@ -6,6 +6,7 @@ from Tkinter import *
 import tkFont
 import Queue
 import re
+import time
 
 import constraints
 constraints = vars(constraints)
@@ -87,11 +88,20 @@ class ThreadSafeText(Text):
 
                 msg = self.queue.get_nowait()
 
+                # Log anything if necesary
+
+                if self.root.is_logging:
+
+                    if len(repr(str(msg))) < 1:
+
+                        stdout(msg)
+
+                    self.root.log_file.write("%.4f" % time.time() + " " + repr(str(msg)) + "\n")
+
                 # Identify the src peer
 
                 if 'src_id' in msg:
 
-                    # this_peer = self.peers[msg['src_id']]
                     if msg['src_id'] == -1:
 
                         this_peer = None # Server message

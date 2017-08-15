@@ -1,6 +1,7 @@
 # Compiled Python file
 *.pyc
 client.cfg
+read-log.py
 todo.txt
 debug.py
 logs/*

@@ -12,16 +12,44 @@ from menu_bar import MenuBar
 
 from Tkinter import *
 import tkFileDialog
-import os.path
+import os, os.path
 import tkFont
 import Queue
+import time
 import sys
 import webbrowser
 
 class Interface:
-    def __init__(self, title, language):
+    def __init__(self, title, language, logging=False):
+
+        # Set language
 
         self.lang = language()
+
+        # Set logging
+
+        if logging:
+            
+            # Check if there is a logs folder, if not create it
+
+            log_folder = os.path.join(ROOT_DIR, "logs")
+
+            if not os.path.exists(log_folder):
+
+                os.mkdir(log_folder)
+
+            # Create filename based on date and times
+            
+            self.fn = time.strftime("client-log-%d%m%y_%H%M%S.txt", time.localtime())
+            path    = os.path.join(log_folder, self.fn)
+            
+            self.log_file   = open(path, "w")
+            self.is_logging = True
+            
+        else:
+
+            self.is_logging = False
+            self.log_file = None
         
         self.root=Tk()
         self.root.configure(background="black")
@@ -209,6 +237,8 @@ class Interface:
             self.text.lang.kill()
             if self.logfile:
                 self.logfile.stop()
+            if self.is_logging:
+                self.log_file.close()
         except(Exception) as e:
             stdout(e)
         stdout("Quitting")
