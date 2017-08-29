@@ -1,9 +1,7 @@
 # Compiled Python file
 *.pyc
-client.cfg
-read-log.py
-todo.txt
-debug.py
+
+# Create logs
 logs/*
 
 # Windows image file caches

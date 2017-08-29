@@ -5,11 +5,14 @@ def stdout(*args):
     """ Forces prints to server-side """
     sys.__stdout__.write(" ".join([str(s) for s in args]) + "\n")
 
-def readin(prompt=""):
+def readin(prompt="", default=None):
+    other = " ({})".format(default) if default is not None else ""
     while True:
-        val = raw_input(prompt)
+        val = raw_input("{}{}: ".format(prompt, other))
         if val != "":
             return val
+        elif val == "" and default is not None:
+            return default
 
 # Absolute path of the root e.g. where run-client.py is found
 

@@ -51,8 +51,8 @@ elif os.path.isfile('client.cfg'):
 
 else:
 
-    host = readin("Troop Server Address: ")
-    port = readin("Port Number: ")
+    host = readin("Troop Server Address", default="localhost")
+    port = readin("Port Number", default="57890")
 
 if "--log" in sys.argv or "-l" in sys.argv:
 
@@ -63,6 +63,6 @@ else:
     logging = False
     
 
-name = readin("Enter a name: ").replace(" ", "_")
+name = readin("Enter a name").replace(" ", "_")
 
 myClient = Client(host, port, name, lang, logging)

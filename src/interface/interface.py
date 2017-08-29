@@ -723,10 +723,10 @@ class Interface:
             
             for match in re_tag.finditer(string):
                 
-                start = "{}.{}".format(line, match.start())
-                end   = "{}.{}".format(line, match.end())
+                tag_start = "{}.{}".format(line, match.start())
+                tag_end   = "{}.{}".format(line, match.end())
 
-                self.text.tag_add(tag_name, start, end)
+                self.text.tag_add(tag_name, tag_start, tag_end)
                 
         return
 
