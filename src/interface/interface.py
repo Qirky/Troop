@@ -462,7 +462,7 @@ class Interface:
             stdout("In KeyPress", e)
 
             stdout("My id is", self.text.marker.id)
-            stdout(self.peers)
+            stdout(self.text.peers)
 
             return "break"
 

@@ -43,10 +43,19 @@ class TroopServer:
     def __init__(self, port=57890, log=False):
           
         # Address information
-        
         self.hostname = str(socket.gethostname())
+
+        # Listen on any IP
         self.ip_addr  = "0.0.0.0"
         self.port     = int(port)
+
+        # Public ip for server is the first IPv4 address we find, else just show the hostname
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            if info[0] == 2:
+                self.ip_pub = info[4][0]
+                break
+        else:
+            self.ip_pub = self.hostname
 
         # ID numbers
         self.clientIDs = {}
@@ -121,7 +130,7 @@ class TroopServer:
         self.server_thread.start()
         self.char_queue_thread.start()
 
-        stdout("Server running @ {} on port {}\n".format(self.hostname, self.port))
+        stdout("Server running @ {} on port {}\n".format(self.ip_pub, self.port))
 
         while True:
 
