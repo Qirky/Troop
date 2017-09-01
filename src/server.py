@@ -50,11 +50,14 @@ class TroopServer:
         self.port     = int(port)
 
         # Public ip for server is the first IPv4 address we find, else just show the hostname
-        for info in socket.getaddrinfo(socket.gethostname(), None):
-            if info[0] == 2:
-                self.ip_pub = info[4][0]
-                break
-        else:
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None):
+                if info[0] == 2:
+                    self.ip_pub = info[4][0]
+                    break
+            else:
+                self.ip_pub = self.hostname
+        except socket.gaierror:
             self.ip_pub = self.hostname
 
         # ID numbers
