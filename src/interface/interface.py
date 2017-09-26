@@ -1,6 +1,7 @@
 from ..config import *
 from ..message import *
 from ..logfile import Log
+from ..interpreter import DummyInterpreter
 
 from textbox import ThreadSafeText
 from console import Console
@@ -19,8 +20,76 @@ import time
 import sys
 import webbrowser
 
-class Interface:
+class BasicInterface:
+    """ Class for displaying basic text input data
+    """
+    def __init__(self):
+        self.root=Tk()
+        self.root.configure(background="black")
+        
+        self.is_logging = False
+        self.log_file = None
+        self.wait_msg = None
+        self.waiting  = None
+
+        # Store information about the last key pressed
+        self.last_keypress  = ""
+        self.last_row       = 0
+        self.last_col       = 0
+        
+    def run(self):
+        try:
+            self.root.mainloop()
+        except (KeyboardInterrupt, SystemExit):
+            self.kill()
+        return
+    
+    def kill(self):
+        stdout("Quitting")
+        self.root.destroy()
+        return
+
+    def reset_title(self):
+        return
+
+    def colour_line(self, line):
+        """ Embold keywords defined in Interpreter.py """
+
+        # Get contents of the line
+
+        start, end = "{}.0".format(line), "{}.end".format(line)
+        
+        string = self.text.get(start, end)
+
+        # Go through the possible tags
+
+        for tag_name, re_tag in self.lang.re.items():
+
+            self.text.tag_remove(tag_name, start, end)
+            
+            for match in re_tag.finditer(string):
+                
+                tag_start = "{}.{}".format(line, match.start())
+                tag_end   = "{}.{}".format(line, match.end())
+
+                self.text.tag_add(tag_name, tag_start, tag_end)
+                
+        return
+
+class DummyInterface(BasicInterface):
+    def __init__(self):
+        BasicInterface.__init__(self)
+        self.lang = DummyInterpreter()
+        self.text=ThreadSafeText(self, bg=TEXT_BACKGROUND, fg="white", insertbackground=TEXT_BACKGROUND, height=15, bd=0)
+        self.text.grid(row=0, column=0, sticky="nsew")
+        self.text.marker = Peer(-1, self.text)
+
+class Interface(BasicInterface):
     def __init__(self, title, language, logging=False):
+
+        # Inherit
+
+        BasicInterface.__init__(self)
 
         # Set language
 
@@ -45,15 +114,10 @@ class Interface:
             
             self.log_file   = open(path, "w")
             self.is_logging = True
-            
-        else:
 
-            self.is_logging = False
-            self.log_file = None
+        self.title = title
         
-        self.root=Tk()
-        self.root.configure(background="black")
-        self.root.title(title)
+        self.root.title(self.title)
 
         self.root.columnconfigure(0, weight=0) # Line numbers
         self.root.columnconfigure(1, weight=1) # Text and console
@@ -65,8 +129,6 @@ class Interface:
         self.root.protocol("WM_DELETE_WINDOW", self.kill )
 
         icon = os.path.join(os.path.dirname(__file__), "img", "icon")
-
-        self.font_names = []
 
         try:
 
@@ -198,13 +260,6 @@ class Interface:
 
         self.closing_bracket_types = [")", "]", "}"]
 
-        # Store information about the last key pressed
-        self.last_keypress  = ""
-        self.last_row       = 0
-        self.last_col       = 0
-        self.waiting        = False
-        self.wait_msg       = None
-
         # Selection indices
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
@@ -223,14 +278,8 @@ class Interface:
         self.update_send()
         self.update_graphs()
         
-    def run(self):
-        try:
-            self.root.mainloop()
-        except (KeyboardInterrupt, SystemExit):
-            self.kill()
-        return
-        
     def kill(self):
+        """ Close socket connections and terminate the application """
         try:
             self.pull.kill()
             self.push.kill()
@@ -241,8 +290,8 @@ class Interface:
                 self.log_file.close()
         except(Exception) as e:
             stdout(e)
-        stdout("Quitting")
-        self.root.destroy()
+        BasicInterface.kill(self)
+        return
 
     @staticmethod
     def convert(index):
@@ -254,6 +303,7 @@ class Interface:
         self.text.marker=Peer(id_num, self.text)
         self.text.marker.name.set(name)
         self.text.marker.move(1,0)
+        self.text.marker.graph  = self.graphs.create_rectangle(0,0,0,0, fill=self.text.marker.bg)
         self.text.peers[id_num] = self.text.marker
 
         # Tell any other peers about this location
@@ -270,6 +320,10 @@ class Interface:
         ''' sets the INSERT and peer mark '''
         self.text.mark_set(INSERT, index)
         self.text.mark_set(self.text.marker.mark, index)
+        return
+
+    def reset_title(self):
+        self.root.title(self.title)
         return
         
     def write(self, msg):
@@ -288,12 +342,15 @@ class Interface:
 
                 # Get peer's current location & name
 
-                row  = self.pull(sender_id, "row")
-                col  = self.pull(sender_id, "col")
                 name = self.pull(sender_id, "name")
 
-                self.text.peers[sender_id] = Peer(sender_id, self.text, row, col)
-                self.text.peers[sender_id].name.set(name)
+                peer = self.text.peers[sender_id] = Peer(sender_id, self.text) 
+
+                peer.name.set(name)
+
+                # Create a bar on the graph
+                
+                peer.graph = self.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
 
         # Add message to queue
         self.text.queue.put(msg)
@@ -359,13 +416,16 @@ class Interface:
 
         for n, peer in enumerate(self.text.peers.values()):
 
-            height = ((peer.count / total) * max_height) if total > 0 else 0
+            if peer.graph is not None:
 
-            x1 = (n * graph_w) + offset_x
-            y1 = max_height + offset_y
-            x2 = x1 + graph_w
-            y2 = y1 - (int(height))
-            self.graphs.coords(peer.graph, (x1, y1, x2, y2))
+                height = ((peer.count / total) * max_height) if total > 0 else 0
+
+                x1 = (n * graph_w) + offset_x
+                y1 = max_height + offset_y
+                x2 = x1 + graph_w
+                y2 = y1 - (int(height))
+                
+                self.graphs.coords(peer.graph, (x1, y1, x2, y2))
 
             # Write number / name?
                     
@@ -409,6 +469,7 @@ class Interface:
 
             reply = 1
             self.waiting  = True
+            self.root.title(self.title + " (waiting)") ## TEMPORARY
             self.wait_msg = messages[-1]
 
         # If a marker is on its own line, set reply to 0
@@ -426,6 +487,8 @@ class Interface:
             if not reply:
 
                 self.write(msg)
+
+            # Add the list of messages to the send queue
 
             self.push_queue.put(msg)
         
@@ -481,13 +544,17 @@ class Interface:
             
             messages.append( MSG_DELETE(self.text.marker.id, row, col) )
 
+            wait_for_reply = True
+
         elif event.keysym == "BackSpace":
 
             # Only add a backspace if the last has been updated
 
-            if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
+            # if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
 
-                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
+            messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
+
+            wait_for_reply = True
 
         # Handle key board movement
 
@@ -981,7 +1048,7 @@ class Interface:
 
     def ChangeFontSize(self, amount):
         self.root.grid_propagate(False)
-        for font in self.font_names:
+        for font in self.text.font_names:
             font = tkFont.nametofont(font)
             size = max(8, font.actual()["size"] + amount)
             font.configure(size=size)

@@ -28,7 +28,9 @@ class Receiver:
         self.thread = Thread(target=self.handle)
         self.thread.daemon = True
         self.running = False
-        self.bytes = 4096
+        self.bytes = 2048
+
+        self.reader = NetworkMessageReader()
 
         # Information about other clients
 
@@ -61,49 +63,31 @@ class Receiver:
 
             try:
 
-                network_msg = NetworkMessage(self.sock.recv(self.bytes))
+                network_msg = self.reader.feed(self.sock.recv(self.bytes))
 
-            except EmptyMessageError:               
+                if network_msg is None:
 
-                break
+                    stdout("Client reading in", self.reader.string)
+
+                    continue
 
             except Exception as e:
 
-                print(e)
+                raise(e)
 
-                break
+                print("In receiver.handle()", str(e), e.__class__.__name__)
+
+                return
 
             for msg in network_msg:
 
-                # Store information about a newly connected client
+                # Store address information about a newly connected client
+
+                stdout(msg.info())
 
                 if isinstance(msg, MSG_CONNECT):
 
-                    self.nodes[msg['src_id']] = Node(*msg)
-
-####                    self.update_text(msg)
-####
-####                    # Notify user of newly connected users
-####
-####                    if self.ui.text.marker.id != msg['src_id']:
-####
-####                        print("Peer '{}' has joined the session".format(msg['name']))
-##
-##                # Code feedback from the server
-##
-##                elif type(msg) == MSG_RESPONSE:
-##
-##                    self.ui.console.write(msg['string'])
-##
-##                # Ignore "set time" messages from oneself
-##
-##                elif type(msg) == MSG_SET_TIME and msg['src_id'] == self.ui.text.marker.id:
-##
-##                    pass
-##
-##                # Write the data to the IDE
-##
-##                else:
+                    self.nodes[msg['src_id']] = Node(**msg.dict())
 
                 self.update_text(msg)
                     
@@ -119,15 +103,8 @@ class Receiver:
 class Node:
     """ Class for basic information on other nodes within the network.
     """
-    attributes = ('id_num', 'name', 'hostname', 'port', 'row', 'col')
-    def __init__(self, id_num, name, hostname, port, row, col):
-        self.id       = int(id_num)
-        self.name     = name
-        self.hostname = hostname
-        self.port     = int(port)
-        self.address  = (self.hostname, self.port)
-        self.row = row
-        self.col = col
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
     def __repr__(self):
         return "{}: {}".format(self.hostname, self.port)        
     def __eq__(self, other):

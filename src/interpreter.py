@@ -27,7 +27,37 @@ SEPARATOR = ":"; _ = " %s " % SEPARATOR
 def colour_format(text, colour):
     return '<colour="{}">{}</colour>'.format(colour, text)
 
-class Interpreter:
+## dummy interpreter
+
+class DummyInterpreter:
+    def __init__(self, *args, **kwargs):
+        self.re={}
+    def evaluate(self, *args, **kwargs):
+        pass
+    def stdout(self, *args, **kwargs):
+        pass
+    def kill(self, *args, **kwargs):
+        pass
+    def print_stdin(self, string, name=None, colour="White"):
+        """ Handles the printing of the execute code to screen with coloured
+            names and formatting """
+        # Split on newlines
+        string = [line.strip() for line in string.split("\n") if len(line.strip()) > 0]
+        if len(string) > 0:
+            name = str(name)
+            print(colour_format(name, colour) + _ + string[0])
+            # Use ... for the remainder  of the  lines
+            n = len(name)
+            for i in range(1,len(string)):
+                print(colour_format("." * n, colour) + _ + string[i])
+        return
+    def stop_sound(self):
+        return ""
+    @staticmethod
+    def format(string):
+        return string
+    
+class Interpreter(DummyInterpreter):
     lang     = None
     clock    = None
     re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
@@ -71,32 +101,13 @@ class Interpreter:
                 return len(text)
             except IOError:
                 return 0
-            
-    def print_stdin(self, string, name=None, colour="White"):
-        """ Handles the printing of the execute code to screen with coloured
-            names and formatting """
-        # Split on newlines
-        string = [line.strip() for line in string.split("\n") if len(line.strip()) > 0]
-        if len(string) > 0:
-            name = str(name)
-            print(colour_format(name, colour) + _ + string[0])
-            # Use ... for the remainder  of the  lines
-            n = len(name)
-            for i in range(1,len(string)):
-                print(colour_format("." * n, colour) + _ + string[i])
-        return
-    
-    def stop_sound(self):
-        return ""
 
     def kill(self):
         """ Stops communicating with the subprocess """
         self.lang.communicate()
         self.lang.kill() 
 
-    @staticmethod
-    def format(string):
-        return string
+    
 
 class CustomInterpreter:
     def __init__(self, *args, **kwargs):

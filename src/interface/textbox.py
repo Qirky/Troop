@@ -7,6 +7,8 @@ import tkFont
 import Queue
 import re
 import time
+import sys
+import json
 
 import constraints
 constraints = vars(constraints)
@@ -21,8 +23,10 @@ class ThreadSafeText(Text):
         self.pady = 2
         
         # Information about other connected users
-        self.peers = {}
-        self.peer_tags = []
+        self.peers      = {}
+        self.peer_tags  = []
+        self.marker     = None
+        self.local_peer = None
 
         if SYSTEM == MAC_OS:
 
@@ -37,17 +41,20 @@ class ThreadSafeText(Text):
             fontfamily = "Courier New"
 
         # Font
+
+        self.font_names = []
+        
         self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
-        self.root.font_names.append("Font")
+        self.font_names.append("Font")
 
         self.font_bold = tkFont.Font(family=fontfamily, size=12, weight="bold", name="BoldFont")
         self.font_bold.configure(**tkFont.nametofont("BoldFont").configure())
-        self.root.font_names.append("BoldFont")
+        self.font_names.append("BoldFont")
 
         self.font_italic = tkFont.Font(family=fontfamily, size=12, slant="italic", name="ItalicFont")
         self.font_italic.configure(**tkFont.nametofont("ItalicFont").configure())
-        self.root.font_names.append("ItalicFont")
+        self.font_names.append("ItalicFont")
         
         self.configure(font="Font")
         
@@ -79,6 +86,13 @@ class ThreadSafeText(Text):
         """ Returns the text in a list of lines. The first row is empty
             to accommodate TKinter's 1-indexing of rows and columns """
         return [""] + self.get("1.0", END).split("\n")[:-1]
+
+    def log_message(self, message):
+        if self.root.is_logging:
+            if len(repr(str(msg))) < 1:
+                stdout(msg)
+            self.root.log_file.write("%.4f" % time.time() + " " + repr(str(msg)) + "\n")
+        return
     
     def update_me(self):
         try:
@@ -90,13 +104,7 @@ class ThreadSafeText(Text):
 
                 # Log anything if necesary
 
-                if self.root.is_logging:
-
-                    if len(repr(str(msg))) < 1:
-
-                        stdout(msg)
-
-                    self.root.log_file.write("%.4f" % time.time() + " " + repr(str(msg)) + "\n")
+                self.log_message(msg)
 
                 # Identify the src peer
 
@@ -110,7 +118,7 @@ class ThreadSafeText(Text):
 
                         this_peer = self.peers[msg['src_id']]
 
-                # When a user connects
+                # When a user connects -- TODO: this should add the peer...
 
                 if isinstance(msg, MSG_CONNECT):
 
@@ -122,7 +130,9 @@ class ThreadSafeText(Text):
 
                 elif isinstance(msg, MSG_RESPONSE):
 
-                    self.root.console.write(msg['string'])                    
+                    if hasattr(self.root, "console"):
+
+                        self.root.console.write(msg['string'])                    
 
                 # Handles selection changes
 
@@ -164,13 +174,9 @@ class ThreadSafeText(Text):
                     row = msg['row']
                     col = msg['col']
 
-                    index = "{}.{}".format(row, col)
+                    this_peer.move(row, col)
 
-                    self.mark_set(this_peer.mark, index)
-
-                    this_peer.move(row, col) ## this wasn't here before
-
-                    # If this is a local peer, set the insert too
+                    # If this is a local peer, make sure we can see the marker
 
                     if this_peer == self.marker:
 
@@ -194,21 +200,17 @@ class ThreadSafeText(Text):
 
                     # Return the contents of the text box
 
-                    text = self.handle_getall()
+                    data = self.handle_getall()
 
-                    self.root.push_queue.put( MSG_SET_ALL(-1, text, msg['client_id']) )
+                    reply = MSG_SET_ALL(-1, data, msg['client_id'])
 
-##                    # -- also send update_mark for each peer
-##
-##                    for peer_id, peer in self.peers.items():
-##
-##                        self.root.push_queue.put( MSG_SET_MARK(peer_id, peer.row, peer.col, reply = 0) )
+                    self.root.push_queue.put( reply )
 
                 elif type(msg) == MSG_SET_ALL:
 
                     # Set the contents of the text box
 
-                    self.handle_setall(msg['string'])
+                    self.handle_setall(msg['data'])
 
                     # Move the peers to their position
 
@@ -216,7 +218,7 @@ class ThreadSafeText(Text):
                         
                         peer.move(peer.row, peer.col)
 
-                        self.mark_set(peer.mark, peer.index())
+                        # self.mark_set(peer.mark, peer.index())
 
                     # Format the lines
 
@@ -248,7 +250,7 @@ class ThreadSafeText(Text):
 
                     # Highlight brackets on local client only
 
-                    if this_peer.id == self.local_peer:
+                    if this_peer.id == self.marker.id:
 
                         row1, col1 = msg['row1'], msg['col1']
                         row2, col2 = msg['row2'], msg['col2']
@@ -288,6 +290,7 @@ class ThreadSafeText(Text):
                 if msg == self.root.wait_msg:
                     self.root.waiting = False
                     self.root.wait_msg = None
+                    self.root.reset_title()
 
         # Break when the queue is empty
         except Queue.Empty:
@@ -400,91 +403,126 @@ class ThreadSafeText(Text):
 
             peer.deleteSelection()
 
-        # Insert character
-        
+        # Move peer.mark to index if necessary
+
+        # if index != peer.index():
+
+            # stdout(index, peer.index())
+
+            # self.mark_set(peer.mark, index)
+
         self.insert(peer.mark, char, peer.text_tag)
+
+        # Insert character
 
         self.refreshPeerLabels()
         
         return
 
     def handle_getall(self):
-        """ String starts with the name of text tags and their ranges in brackets """
-        
-        data = []
+
+        message = {"ranges": {}}
 
         for tag in self.peer_tags:
 
-            # if tag.startswith("text"):
+            message["ranges"][tag] = []
 
-            tag_range = [str(tag)]
+            ranges = self.tag_ranges(tag)
 
-            loc = self.tag_ranges(tag)
+            for i in range(0, len(ranges), 2):
 
-            if len(loc) > 0:
+                message["ranges"][tag].append( (str(ranges[i]), str(ranges[i+1])) )
 
-                for index in loc:
+        message["contents"] = self.get("1.0", END)[:-1]
 
-                    tag_range.append(str(index))
+        message["marks"] = [(peer_id, peer.row, peer.col) for peer_id, peer in self.peers.items()]
 
-                data.append(tag_range)
-                
-        contents = "".join([str(item) for item in data])
+        return message
 
-        contents += self.get("1.0", END)[:-1]
-
-        return contents
+##    def handle_getall_old(self):
+##        """ String starts with the name of text tags and their ranges in brackets """
+##        
+##        data = []
+##
+##        for tag in self.peer_tags:
+##
+##            # if tag.startswith("text"):
+##
+##            tag_range = [str(tag)]
+##
+##            loc = self.tag_ranges(tag)
+##
+##            if len(loc) > 0:
+##
+##                for index in loc:
+##
+##                    tag_range.append(str(index))
+##
+##                    stdout("Index:", str(index))
+##
+##                data.append(tag_range)
+##                
+##        contents = "".join([str(item) for item in data])
+##
+##        contents += self.get("1.0", END)[:-1]
+##
+##        return contents
 
     def handle_setall(self, data):
+        """ Sets the contents of the text box """
+        # unpack the json data
 
-        # We get an error here alot -- why?
-
-        # Find tags
-        i = 0
-        tag_ranges = {}
-        for n in range(100): # max_clients - TODO: be more elegant about it
-            tag = "text_{}".format(n)
-            tag_data = match_tag(tag, data)
-            tag_ranges[tag] = match_indices(tag_data)
-            i += len(tag_data)
+        data = json.loads(data)
 
         # Insert the text
+        
         self.delete("1.0", END)
-        self.insert("1.0", data[i:])
+        self.insert("1.0", data["contents"])
 
         # If a text tag is not used by a connected peer, format the colours anyway
 
-        for tag in tag_ranges:
+        for tag in data["ranges"]:
 
             if tag not in self.peer_tags:
 
-                index = int(tag.split("_")[-1])
+                src_id = int(tag.split("_")[-1])
 
                 # configure the tag
 
-                colour, _, _ = PeerFormatting(index)
+                colour, _, _ = PeerFormatting(src_id)
 
                 self.tag_config(tag, foreground=colour)
 
         # Add tags
-        for tag, loc in tag_ranges.items():
-            for i in range(0, len(loc), 2):                    
-                self.tag_add(tag, loc[i], loc[i+1])
+        
+        for tag, loc in data["ranges"].items():
+            
+            for start, stop in loc:
+
+                self.tag_add(tag, start, stop)
+
+        # Move the peer markers
+
+        for peer_id, row, col in data["marks"]:
+
+            self.peers[peer_id].row = int(row)
+            self.peers[peer_id].col = int(col)
+            
                 
         return
 
     def sort_indices(self, list_of_indexes):
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
 
-def match_list(string):
-    re_list = r"\[.*?\]"
-    match = re.search(re_list, string)
-    return eval( match.group(0) ) if match else []
-
-def match_tag(tag_name, string):
-    re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name
-    match = re.search(re_tag_range, string)
-    return match.group(0) if match else str()
-
-def match_indices(string):
-    return re.findall(r"'(\d+\.+\d+)'", string)
+##def match_list(string):
+##    re_list = r"\[.*?\]"
+##    match = re.search(re_list, string)
+##    return eval( match.group(0) ) if match else []
+##
+##def match_tag(tag_name, string):
+##    re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name
+##    match = re.search(re_tag_range, string)
+##    return match.group(0) if match else str()
+##
+##def match_indices(string):
+##    return re.findall(r"'(\d+\.+\d+)'", string)

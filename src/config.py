@@ -52,7 +52,8 @@ tag_descriptions = {
 
 # Public server
 
-PUBLIC_SERVER_ADDRESS = ("188.166.144.124", 57890)
+PUBLIC_SERVER_ADDRESS_IPV4 = ("188.166.144.124", 57890)
+PUBLIC_SERVER_ADDRESS_IPV6 = ("fe80::50f3:caff:fece:f499", 57890)
 
 # Choose a language
 

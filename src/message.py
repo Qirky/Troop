@@ -12,62 +12,101 @@ from config import *
 
 import re
 import inspect
+import json
+import ast
 
-re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
+class NetworkMessageReader:
+    def __init__(self):
+        self.string = ""
+        self.re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
-def NetworkMessage(string):
+    def feed(self, string):
+        """ Text """
 
-    
-    # Identify message tags
-    data = re_msg.findall(string)
+        # If the last character is not closing then return
+        if string[-1] != ">":
+            self.string += string
+            return None
 
-    i, pkg = 0, []
+        # Collate with any existing text
+        full_message = self.string + string
 
-    while i < len(data):
+        # Identify message tags
+        data = self.re_msg.findall(full_message)
 
-        # Find out which message it is, send back a list of messages
-
-        cls = MESSAGE_TYPE[int(data[i])]
-        j = len(cls.header())
+        i, pkg = 0, []
         
-        try:
+        while i < len(data):
 
-            pkg.append(cls(*data[i+1:i+j]))
+            # Find out which message it is, send back a list of messages
+            cls = MESSAGE_TYPE[int(data[i])]
 
-        except TypeError as e:
-        
-            stdout( cls.__name__, e )
-            stdout( string )
+            j = len(cls.header())
 
-        i += j
+            try:
 
-    return pkg
+                args = [data[n] for n in range(i+1, i+j)]
 
-# Message Types
+                pkg.append(cls(*args))
 
-class MESSAGE(object):
+            except IndexError:
+
+                # If there aren't enough arguments, store the string for next time and return None
+
+                self.string = full_message
+
+                return None
+
+            except TypeError as e:
+
+                stdout( cls.__name__, e )
+                stdout( string )
+
+            i += j
+
+        self.string = ""
+
+        return pkg
+
+
+class MESSAGE(  object):
     """ Abstract base class """
     data = {}
     keys = []
+    type = None
     def __init__(self, src_id):
-        self.data={'src_id' : int(src_id)}
-        self.keys = self.data.keys()
+        self.data = {'src_id' : int(src_id), "type" : self.type}
+        self.keys = ['type', 'src_id']
 
     def __str__(self):
-        return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
+        # return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
+        return "".join(["<{}>".format(item) for item in self])
 
     def raw_string(self):
         return "<{}>".format(self.type) + "".join(["<{}>".format(repr(item)) for item in self])
+
+##    def json(self):
+##        try:
+##            return json.dumps(self.data, separators=(',',':'))
+##        except:
+##            stdout("this is an error in msg.json", self.data)
+##            return 
         
     def __repr__(self):
-        return self.__class__.__name__ + str(tuple(self))
+        return str(self)
 
     def __len__(self):
         return len(self.data)
 
+    def info(self):
+        return self.__class__.__name__ + str(tuple(self))
+
     def __iter__(self):
         for key in self.keys:
             yield self.data[key]
+
+    def dict(self):
+        return self.data
 
     def __getitem__(self, key):
         return self.data[key]
@@ -98,7 +137,7 @@ class MESSAGE(object):
 
     @staticmethod
     def password(password):
-        return NetworkMessage.compile(-1, -1, password)
+        return MESSAGE.compile(-1, -1, password)
 
     @classmethod
     def header(cls):
@@ -174,9 +213,9 @@ class MSG_GET_ALL(MESSAGE):
 
 class MSG_SET_ALL(MESSAGE):
     type = 9
-    def __init__(self, src_id, string, client_id):
+    def __init__(self, src_id, data, client_id):
         MESSAGE.__init__(self, src_id)
-        self['string']=str(string)
+        self['data']=json.dumps(data) if type(data) != str else data
         self['client_id']=int(client_id)
 
 class MSG_RESPONSE(MESSAGE):
@@ -284,8 +323,35 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "Could not connect to {}".format(self.name)
-    
 
 if __name__ == "__main__":
 
-    pass
+    if True:
+
+        d = {"ranges":{}, "contents":"", "marks": []}
+
+        s = json.dumps(d)
+
+        msg = MSG_SET_ALL(0,d,1)
+
+        print msg
+
+    else:
+
+        test = NetworkMessageReader()
+
+        msg1 = MSG_SET_MARK(0, 1, 1, 1)
+        msg2 = MSG_INSERT(0, ">", 1, 1)
+        msg3 = MSG_SET_MARK(1, 2, 4, 1)
+
+        a = str(msg1) + str(msg2)
+        b = str(msg3)
+
+        b = a[24:] + b
+        a = a[:24]
+
+        print(a, b)
+
+        print test.feed(a)
+        print test.feed(b)
+        

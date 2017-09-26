@@ -25,7 +25,7 @@ class Sender:
         self.conn_id   = None
         self.connected = False
 
-    def connect(self, hostname, port=57890, password=""):
+    def connect(self, hostname, port=57890, using_ipv6=False, password=""):
         """ Connects to the master Troop server and
             start a listening instance on this machine """
         if not self.connected:
@@ -39,21 +39,38 @@ class Sender:
 
             try:
 
-                self.conn = socket.socket()
+                if using_ipv6:
+
+                    socket_type = socket.AF_INET6
+
+                    self.address = (self.hostname, self.port, 0, 0)
+                    
+                else:
+
+                    socket_type = socket.AF_INET
+
+                self.conn = socket.socket(socket_type, socket.SOCK_STREAM)
+
                 self.conn.connect(self.address)
 
-            except:
+            except Exception as e:
+
+                raise(e)
 
                 raise(ConnectionError("Could not connect to host '{}'".format( self.hostname ) ) )
 
             # Send the password
-            self.conn.send(str(MSG_PASSWORD(-1, md5(password).hexdigest())))
+            
+            self.send(MSG_PASSWORD(-1, md5(password).hexdigest()))
             self.conn_id   = int(self.conn.recv(1024))
             self.connected = bool(self.conn_id >= 0)
             
         return self
 
-    def __call__(self, message):
+    def send(self, message):
+        return self(message)
+
+    def __call__(self, message):        
         self.conn.sendall(str(message))
         return
 

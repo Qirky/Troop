@@ -92,8 +92,8 @@ class Peer:
 
         # Stat graph
         self.count = 0
-        self.graph = self.root_parent.graphs.create_rectangle(0,0,0,0, fill=self.bg)
-
+        self.graph = None
+        
         # Tracks a peer's selection amount and location
         self.row = row
         self.col = col
@@ -106,6 +106,8 @@ class Peer:
         self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
 
         self.name.set("Unnamed Peer")
+
+        # self.move(1,0) # create the peer
 
     def __str__(self):
         return str(self.name.get())
@@ -132,9 +134,13 @@ class Peer:
 
         index = "{}.{}".format(self.row, self.col)
 
-        bbox = self.root.bbox(index)
+        # Update the Tk text tag
+
+        self.root.mark_set(self.mark, index)
 
         # Only move the cursor if we have a valid index
+
+        bbox = self.root.bbox(index)
 
         if bbox is not None:
 
@@ -221,7 +227,11 @@ class Peer:
         return
 
     def index(self):
-        return "{}.{}".format(self.row, self.col)
+        a = "{}.{}".format(self.row, self.col)
+        b = self.root.index(self.mark)
+        if a != b:
+            stdout(a, b)
+        return b
     
     def __eq__(self, other):
         return self.id == other

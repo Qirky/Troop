@@ -15,7 +15,7 @@ class Client:
 
     version = '0.3'
     
-    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False):
+    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False, ipv6=False):
         
         self.hostname = str(hostname)
         self.port     = int(port)
@@ -26,7 +26,7 @@ class Client:
 
         try:
             
-            self.send = Sender().connect(self.hostname, self.port, getpass())
+            self.send = Sender().connect(self.hostname, self.port, ipv6, getpass())
 
             if not self.send.connected:
                 
