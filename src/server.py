@@ -28,9 +28,6 @@ from message import *
 from interpreter import *
 from config import *
 
-from interface import DummyInterface
-from interface.peer import Peer
-
 class TroopServer:
     """
         This the master Server instance. Other peers on the
@@ -128,6 +125,12 @@ class TroopServer:
 
         self.debugging = debug
 
+        if self.debugging:
+
+            from interface.peer import Peer
+
+            self.new_peer = lambda *args, **kwargs: Peer(*args, **kwargs)
+
     def get_client(self, client_address):
         """ Returns the server-side representation of a client
             using the client address tuple """
@@ -183,6 +186,8 @@ class TroopServer:
         # if debugging, we can run a version on the server
 
         if self.debugging:
+
+            from interface import DummyInterface
 
             self.gui = DummyInterface()
         
@@ -523,7 +528,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
         if self.master.debugging:       
 
-            self.master.gui.text.peers[self.client_id()] = Peer(self.client_id(), self.master.gui.text, 0, 0)
+            self.master.gui.text.peers[self.client_id()] = self.new_peer(self.client_id(), self.master.gui.text, 0, 0)
             self.master.gui.text.peers[self.client_id()].name.set(new_client.name)
 
         # Connect each client
