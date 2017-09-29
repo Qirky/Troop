@@ -45,6 +45,7 @@ class BasicInterface:
         return
     
     def kill(self):
+        """ Terminates cleanly """
         stdout("Quitting")
         self.root.destroy()
         return
@@ -281,6 +282,12 @@ class Interface(BasicInterface):
     def kill(self):
         """ Close socket connections and terminate the application """
         try:
+
+            if len(self.text.peers) == 1:
+                from time import sleep
+                self.push(MSG_SET_ALL(self.text.marker.id, self.text.handle_getall(), -1))
+                sleep(0.25)
+                
             self.pull.kill()
             self.push.kill()
             self.text.lang.kill()

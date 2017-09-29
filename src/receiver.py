@@ -67,8 +67,6 @@ class Receiver:
 
                 if network_msg is None:
 
-                    stdout("Client reading in", self.reader.string)
-
                     continue
 
             except Exception as e:
@@ -82,8 +80,6 @@ class Receiver:
             for msg in network_msg:
 
                 # Store address information about a newly connected client
-
-                stdout(msg.info())
 
                 if isinstance(msg, MSG_CONNECT):
 

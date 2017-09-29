@@ -207,9 +207,8 @@ class MSG_EVALUATE_BLOCK(MESSAGE):
 
 class MSG_GET_ALL(MESSAGE):
     type = 8
-    def __init__(self, src_id, client_id):
+    def __init__(self, src_id):
         MESSAGE.__init__(self, src_id)
-        self['client_id']=int(client_id)
 
 class MSG_SET_ALL(MESSAGE):
     type = 9
@@ -281,7 +280,12 @@ class MSG_CONSTRAINT(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['name'] = str(name)
         self['reply'] = int(reply)
-        
+
+class MSG_COMPARE(MESSAGE):
+    type = 19
+    def __init__(self, src_id, data):
+        MESSAGE.__init__(self, src_id)
+        self['data']=json.dumps(data) if type(data) != str else data        
  
 # Create a dictionary of message type to message class 
 
@@ -302,7 +306,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_GET_TIME,
                                              MSG_BRACKET,
                                              MSG_PING,
-                                             MSG_CONSTRAINT] }
+                                             MSG_CONSTRAINT,
+                                             MSG_COMPARE ] }
 
 # Exceptions
 

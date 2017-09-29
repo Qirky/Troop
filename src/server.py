@@ -122,10 +122,6 @@ class TroopServer:
             self.is_logging = False
             self.log_file = None
 
-        ## Store text in a 2D array to compare to the gui
-
-        ## self.text = [[]] # raw text
-
         self.contents = {"ranges":{}, "contents":"", "marks": []}
 
         # Debugging flag
@@ -145,152 +141,9 @@ class TroopServer:
     def get_contents(self):
         return self.contents
 
-##    def get_contents(self):
-##        """ Returns the text data stored on the server as a string """
-##        lines = []
-##        for line in self.text:
-##            lines.append("".join([char[0] for char in line]))
-##        return "\n".join(lines)
-##
-##    def get_ranges(self):
-##        if self.text == [[]]:
-##            return {}
-##        # Define tags
-##        ranges = {"text_{}".format(n):[] for n in [client.id for client in self.clients]}
-##        # Get first tag
-##        tag = None
-##        for row in self.text:
-##            for char, client in row:
-##                stdout(char, client)
-##                tag = "text_{}".format(client.id)
-##                break
-##            if tag != None:
-##                break
-##        else:
-##            return {}
-##        # Begin collecting ranges
-##        endpoint = (len(self.text)-1, len(self.text[-1])-1)
-##        start = "1.0"
-##        for row, line in enumerate(self.text):
-##            col = 0
-##            for char, client in line:
-##                next_tag = "text_{}".format(client.id)
-##                if next_tag != tag or (row, col) == endpoint:
-##                    end = "{}.{}".format(row + 1, col)
-##                    ranges[tag].append([start, end])
-##                    start = "{}.{}".format(row + 1, col + 1)                
-##                col += 1
-##        return ranges
-##
-##    def get_set_all_data(self):
-##        return {"ranges": self.get_ranges(), "contents": self.get_contents()}
-
-####    def handle_message(self, msg, client_address):
-####        """ Update self.clients row/col and text information """
-##
-####        client = self.get_client(client_address)
-##
-####        if type(msg) == MSG_INSERT:
-####
-####            # Add a character(s) to self.text
-####
-####            row = msg['row'] - 1 
-####            col = msg['col']
-####
-####            if msg["char"] == "\n":
-####
-####                # Create newline
-####
-####                self.text.insert(row + 1, self.text[row][col:])
-####
-####            else:
-####
-####                for i, char in enumerate(msg["char"]):
-####
-####                    col += i
-####
-####                    # Store the char and the appropriate client id
-####
-####                    self.text[row].insert(col, (char, client))
-####
-####            # Update client position
-####
-####            client.row = row
-####            client.col = col
-####
-####        elif type(msg) == MSG_DELETE:
-####
-####            # Remove a character from self.text
-####
-####            row = msg['row'] - 1 
-####            col = msg['col']
-####
-####            if col == len(self.text[row]):
-####
-####                # pull up the next line (if possible)
-####
-####                if row < (len(self.text)-1):
-####
-####                    new_row = self.text.pop(row + 1)
-####
-####                    self.text[row].extend(new_row)
-####
-####            else:
-####
-####                self.text[row].pop(col)
-####
-####        elif type(msg) == MSG_BACKSPACE:
-####
-####            # Remove a character from self.text
-####
-####            row = msg['row'] - 1 
-####            col = msg['col']
-####
-####            if col == 0:
-####
-####                if row > 0:
-####
-####                    new_row = self.text.pop(row)
-####
-####                    self.text[row-1].extend(new_row)
-####
-####            else:
-####
-####                self.text[row].pop(col - 1) # delete the character before
-####
-####            # Update client position
-####
-####            client.row = row
-####            client.col = col - 1       
-####
-####        elif type(msg) == MSG_SELECT:
-####
-####            pass
-####
-####        elif type(msg) == MSG_GET_ALL:
-####
-####            # TODO -- Send back to the client that requested
-####
-####            # MSG_SET_ALL(self.client_id(), self.get_set_all_data(), msg['client_id'])
-####
-####            pass
-####
-####        elif type(msg) == MSG_SET_MARK:
-####
-####            for client in self.clients:
-####
-####                if client == client_address:
-####
-####                    client.row = msg['row']
-####                    client.col = msg['col']
-####
-####                    break
-##
-##        # Send any information to clients
-##
-####        self.respond(msg)
-##        
-##        return
+    def set_contents(self, data):
+        self.contents = data
+        return
 
     def respond(self, msg):
         """ Update all clients with a message. Only sends back messages to
@@ -345,7 +198,13 @@ class TroopServer:
 
                 try:
 
-                    sleep(1)
+                    # Send a request to the lead client for the contents of their text
+
+                    sleep(0.5)
+
+                    if len(self.clients) > 0:
+
+                        self.leader().send(MSG_GET_ALL(-1))
 
                 except KeyboardInterrupt:
     
@@ -489,6 +348,15 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
     def client_id(self):
         return self.master.clientIDs[self.client_address]
 
+    def client(self):        
+        return self.get_client(self.client_id())
+
+    def get_client(self, client_id):
+        for client in self.master.clients:
+            if client.id == client_id:
+                return client
+        return
+
     def authenticate(self, password):
         
         if password == self.master.password.hexdigest():
@@ -520,6 +388,7 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
         return self.reader.feed(self.request.recv(self.bytes))
 
     def handle_client_lost(self):
+        """ Terminates cleanly """
         stdout("Client @ {} has disconnected".format(self.client_address))
         self.master.remove_client(self.client_address)
         return
@@ -533,14 +402,36 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
         return new_client
 
     def handle_set_all(self, msg):
-        """ Forwards the SET_ALL message to requesting client """
+        """ Forwards the SET_ALL message to requesting client and stores
+            the data in self.master.contents """
         assert isinstance(msg, MSG_SET_ALL)
+
+        # Always store the last SET_ALL on the server
+
+        self.master.set_contents( msg["data"] )
+
         new_client_id = msg['client_id']
-        for client in self.master.clients:
-            if client.id == new_client_id:
-                data = msg["data"]
-                client.send( MSG_SET_ALL(self.client_id(), data, new_client_id) )
-                break
+
+        if new_client_id != -1:
+            
+            for client in self.master.clients:
+                
+                if client.id == new_client_id:
+
+                    client.send( MSG_SET_ALL(self.client_id(), self.master.get_contents(), new_client_id) )
+
+                    break
+
+        # Ask other clients to compare the information
+
+        else:
+
+            for client in self.master.clients:
+                
+                if client.id != self.leader().id: # dont make the leader change
+
+                    client.send( MSG_COMPARE(new_client_id, msg["data"]) )
+            
         return
 
     def leader(self):
@@ -593,17 +484,19 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
                     new_client = self.handle_connect(msg)
 
-                    # Request the contents of Client 1 and update the new client
+                    # Request the contents of Client lead and update the new client
 
                     if len(self.master.clients) > 1:
 
-                        ## TODO - Retrieve latest version from leader and update
+                        # Get the contents of the leader
 
-                        self.leader().send(MSG_GET_ALL(self.client_id(), new_client.id))
+                        self.leader().send(MSG_GET_ALL(self.client_id()))
 
                     else:
 
-                        self.leader().send(MSG_SET_ALL(self.leader().id, self.master.get_contents(), 0))
+                        # If this is now the leader, set the last contents
+
+                        self.leader().send(MSG_SET_ALL(-1, self.master.get_contents(), 0))
 
                 elif isinstance(msg, MSG_SET_ALL):
 

@@ -202,7 +202,7 @@ class ThreadSafeText(Text):
 
                     data = self.handle_getall()
 
-                    reply = MSG_SET_ALL(-1, data, msg['client_id'])
+                    reply = MSG_SET_ALL(-1, data, msg['src_id'])
 
                     self.root.push_queue.put( reply )
 
@@ -280,6 +280,10 @@ class ThreadSafeText(Text):
                         else:
 
                             self.root.creative_constraints[name].set(False)
+
+                elif type(msg) == MSG_COMPARE:
+
+                    self.handle_compare(msg["data"])
 
                 # Update any other idle tasks
 
@@ -403,7 +407,7 @@ class ThreadSafeText(Text):
 
             peer.deleteSelection()
 
-        # Move peer.mark to index if necessary
+        # Move peer.mark to index if necessary - if different row?
 
         # if index != peer.index():
 
@@ -420,6 +424,13 @@ class ThreadSafeText(Text):
         return
 
     def handle_getall(self):
+        """ Returns a dictionary containing with three pieces of information:
+
+        `ranges` - The TK text tags and the spans the cover withinthe text
+        `contents` - The text as a string
+        `marks` - The locations of the other client markers
+
+        """
 
         message = {"ranges": {}}
 
@@ -439,37 +450,9 @@ class ThreadSafeText(Text):
 
         return message
 
-##    def handle_getall_old(self):
-##        """ String starts with the name of text tags and their ranges in brackets """
-##        
-##        data = []
-##
-##        for tag in self.peer_tags:
-##
-##            # if tag.startswith("text"):
-##
-##            tag_range = [str(tag)]
-##
-##            loc = self.tag_ranges(tag)
-##
-##            if len(loc) > 0:
-##
-##                for index in loc:
-##
-##                    tag_range.append(str(index))
-##
-##                    stdout("Index:", str(index))
-##
-##                data.append(tag_range)
-##                
-##        contents = "".join([str(item) for item in data])
-##
-##        contents += self.get("1.0", END)[:-1]
-##
-##        return contents
-
     def handle_setall(self, data):
         """ Sets the contents of the text box """
+
         # unpack the json data
 
         data = json.loads(data)
@@ -481,7 +464,24 @@ class ThreadSafeText(Text):
 
         # If a text tag is not used by a connected peer, format the colours anyway
 
-        for tag in data["ranges"]:
+        self.set_ranges(data["ranges"])
+
+        # Set the marks
+
+        for peer_id, row, col in data["marks"]:
+            
+            if peer_id in self.peers:
+
+                self.peers[peer_id].row = int(row)
+                self.peers[peer_id].col = int(col)
+
+                
+        return
+
+    def set_ranges(self, data):
+        """ `data` should be a dict """
+
+        for tag, loc in data.items():
 
             if tag not in self.peer_tags:
 
@@ -492,37 +492,71 @@ class ThreadSafeText(Text):
                 colour, _, _ = PeerFormatting(src_id)
 
                 self.tag_config(tag, foreground=colour)
-
-        # Add tags
-        
-        for tag, loc in data["ranges"].items():
             
             for start, stop in loc:
 
                 self.tag_add(tag, start, stop)
 
-        # Move the peer markers
+        return
 
-        for peer_id, row, col in data["marks"]:
+    def change_ranges(self, data):
+        for tag, loc in data.items():
+            self.tag_remove(tag, "1.0", END)
+            for start, stop in loc:
+                self.tag_add(tag, start, stop)
+        return
 
-            self.peers[peer_id].row = int(row)
-            self.peers[peer_id].col = int(col)
-            
+    def move_peers(self, data):
+        """ `data` is a dict """
+        for peer_id, row, col in data:
+            if peer_id in self.peers:
+                self.peers[peer_id].move(row, col)
+        return
+
+    def handle_compare(self, s):
+        # unpack the json data
+        new_data = json.loads(s)
+        cur_data = self.handle_getall()
+
+        index = self.marker.index()
+        row, col = index.split(".")
+        cur_row = int(row)
+
+        new_text = new_data["contents"].split("\n")
+        cur_text = cur_data["contents"].split("\n")
+
+        # If there are conflicts, go through and update every row *except* the current row being edited
+
+        if new_data["contents"] != cur_data["contents"]:
+
+            for row in range(len(new_text)):
+
+                if row + 1 != cur_row:
+
+                    line_start, line_end = "{}.0".format(row+1), "{}.end".format(row+1)
+
+                    self.delete(line_start, line_end)
+                    self.insert(line_start, new_text[row])
+
+            # If a text tag is not used by a connected peer, format the colours anyway
+
+            self.change_ranges(new_data["ranges"])
+
+            # Set the marks
+
+            for peer_id, x, y in new_data["marks"]:
+                
+                if peer_id in self.peers and peer_id != self.local_peer:
+
+                    self.peers[peer_id].move(x, y)
+
+            # Format the lines
+
+            for line,  _ in enumerate(self.readlines()[:-1]):
+
+                self.root.colour_line(line + 1)
                 
         return
 
     def sort_indices(self, list_of_indexes):
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
-
-##def match_list(string):
-##    re_list = r"\[.*?\]"
-##    match = re.search(re_list, string)
-##    return eval( match.group(0) ) if match else []
-##
-##def match_tag(tag_name, string):
-##    re_tag_range = r"(\[('%s')(, ?'\d+\.\d+')+\])" % tag_name
-##    match = re.search(re_tag_range, string)
-##    return match.group(0) if match else str()
-##
-##def match_indices(string):
-##    return re.findall(r"'(\d+\.+\d+)'", string)
