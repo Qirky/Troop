@@ -33,7 +33,7 @@ class PeerColourTest:
         self.root.mainloop()
 
 
-def PeerFormatting(index):
+def PeerFormattingOld(index):
     """
         Based on a number between 0 and 99, returns a tuple with
         three colours:
@@ -46,10 +46,15 @@ def PeerFormatting(index):
     rgb = int2rgb(index)
     
     a = rgb2hex(*rgb)
-    b = "Black"
+    b = COLOURS["Background"]
     c = rgb2hex(*tuple(n - 30 for n in rgb))
     
     return a, b, c
+
+def PeerFormatting(index):
+    i = index % len(COLOURS["Peers"])
+    c = COLOURS["Peers"][i]
+    return c, "Black"
 
 class Peer:
     """ Class representing the connected performers within the Tk Widget
@@ -61,11 +66,7 @@ class Peer:
 
         self.name = StringVar()
 
-        colours = PeerFormatting(self.id)
-    
-        self.bg = colours[0]
-        self.fg = colours[1]
-        self.hg = colours[2]
+        self.update_colours()
         
         self.label = Label(self.root,
                            textvariable=self.name,
@@ -86,13 +87,13 @@ class Peer:
         self.str_tag  = "str_"  + str(self.id) 
         self.mark     = "mark_" + str(self.id)
 
-        # Don't add the marker until text has been set by SET_ALL
-
         self.root.peer_tags.append(self.text_tag)
 
         # Stat graph
         self.count = 0
         self.graph = None
+
+        self.configure_tags()
         
         # Tracks a peer's selection amount and location
         self.row = row
@@ -100,17 +101,27 @@ class Peer:
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
-        self.root.tag_config(self.text_tag, foreground=self.bg)
-        self.root.tag_config(self.str_tag,  foreground=self.hg)
-        self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
-        self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
-
         self.name.set("Unnamed Peer")
 
         # self.move(1,0) # create the peer
 
     def __str__(self):
         return str(self.name.get())
+
+    def update_colours(self):
+        self.bg, self.fg = PeerFormatting(self.id)
+        return self.bg, self.fg
+
+    def configure_tags(self):
+        # Text tags
+        self.root.tag_config(self.text_tag, foreground=self.bg)
+        self.root.tag_config(self.str_tag,  foreground=self.fg)
+        self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
+        self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
+        # Label
+        self.label.config(bg=self.bg, fg=self.fg)
+        self.insert.config(bg=self.bg, fg=self.fg)
+        return
         
     def move(self, row, col, raised = False):
         """ Updates the location of the Peer's label """

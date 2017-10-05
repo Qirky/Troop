@@ -4,6 +4,9 @@
 # Create logs
 logs/*
 
+# Custom config
+src/conf/*
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db

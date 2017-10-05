@@ -207,10 +207,6 @@ class TroopServer:
 
                     sleep(0.5)
 
-                    if len(self.clients) > 0:
-
-                        self.leader().send(MSG_GET_ALL(-1))
-
                 except KeyboardInterrupt:
     
                     stdout("\nStopping...\n")
@@ -426,16 +422,6 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
                     client.send( MSG_SET_ALL(self.client_id(), self.master.get_contents(), new_client_id) )
 
                     break
-
-        # Ask other clients to compare the information
-
-        else:
-
-            for client in self.master.clients:
-                
-                if client.id != self.leader().id: # dont make the leader change
-
-                    client.send( MSG_COMPARE(new_client_id, msg["data"]) )
             
         return
 

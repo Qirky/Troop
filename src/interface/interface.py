@@ -1,7 +1,7 @@
 from ..config import *
 from ..message import *
 from ..logfile import Log
-from ..interpreter import DummyInterpreter
+from ..interpreter import *
 
 from textbox import ThreadSafeText
 from console import Console
@@ -25,7 +25,7 @@ class BasicInterface:
     """
     def __init__(self):
         self.root=Tk()
-        self.root.configure(background="black")
+        self.root.configure(background=COLOURS["Background"])
         
         self.is_logging = False
         self.log_file = None
@@ -81,7 +81,7 @@ class DummyInterface(BasicInterface):
     def __init__(self):
         BasicInterface.__init__(self)
         self.lang = DummyInterpreter()
-        self.text=ThreadSafeText(self, bg=TEXT_BACKGROUND, fg="white", insertbackground=TEXT_BACKGROUND, height=15, bd=0)
+        self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"], height=15, bd=0)
         self.text.grid(row=0, column=0, sticky="nsew")
         self.text.marker = Peer(-1, self.text)
 
@@ -95,26 +95,13 @@ class Interface(BasicInterface):
         # Set language
 
         self.lang = language()
+        self.interpreters = {name: BooleanVar() for name in langnames}
 
         # Set logging
 
         if logging:
-            
-            # Check if there is a logs folder, if not create it
 
-            log_folder = os.path.join(ROOT_DIR, "logs")
-
-            if not os.path.exists(log_folder):
-
-                os.mkdir(log_folder)
-
-            # Create filename based on date and times
-            
-            self.fn = time.strftime("client-log-%d%m%y_%H%M%S.txt", time.localtime())
-            path    = os.path.join(log_folder, self.fn)
-            
-            self.log_file   = open(path, "w")
-            self.is_logging = True
+            self.set_up_logging()
 
         self.title = title
         
@@ -149,12 +136,12 @@ class Interface(BasicInterface):
         self.scroll.grid(row=0, column=3, sticky='nsew')
 
         # Text box
-        self.text=ThreadSafeText(self, bg=TEXT_BACKGROUND, fg="white", insertbackground=TEXT_BACKGROUND, height=15, bd=0)
+        self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"], height=15, bd=0)
         self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
         # Line numbers
-        self.line_numbers = LineNumbers(self.text, width=30, bg="black", bd=0, highlightthickness=0)
+        self.line_numbers = LineNumbers(self.text, width=30, bg=COLOURS["Background"], bd=0, highlightthickness=0)
         self.line_numbers.grid(row=0, column=0, sticky='nsew')
         
         # Drag is a small line that changes the size of the console
@@ -162,12 +149,12 @@ class Interface(BasicInterface):
         self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
-        self.console = Console(self.root, bg=CONSOLE_BACKGROUND, fg="white", height=5, width=10, font="Font")
+        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=10, font="Font")
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
         sys.stdout = self.console # routes stdout to print to console
 
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg=STATS_BACKGROUND, width=250, bd=0, relief="sunken")
+        self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=250, bd=0, relief="sunken")
         self.graphs.grid(row=2, column=2, sticky="nsew")
         self.graph_queue = Queue.Queue()
 
@@ -290,7 +277,7 @@ class Interface(BasicInterface):
                 
             self.pull.kill()
             self.push.kill()
-            self.text.lang.kill()
+            self.lang.kill()
             if self.logfile:
                 self.logfile.stop()
             if self.is_logging:
@@ -460,10 +447,6 @@ class Interface(BasicInterface):
             are using the same line. Use the wait flag when you want to force the
             message to go to the server and wait for the response before continuing """
 
-        # If we are waiting for a certain message, don't send any more
-
-        if self.waiting: return
-
         # Put message in into a list
 
         if isinstance(messages, MESSAGE):
@@ -472,28 +455,13 @@ class Interface(BasicInterface):
 
         # Messages such as mouse clicks need to wait to make sure they don't conflict with other messages
 
-        if wait is True:
-
-            reply = 1
-            self.waiting  = True
-            self.root.title(self.title + " (waiting)") ## TEMPORARY
-            self.wait_msg = messages[-1]
-
-        # If a marker is on its own line, set reply to 0
-
-        else:
-
-            reply = int(not self.text.alone(self.text.marker))
+        reply = 1
 
         # Set reply flag and send
 
         for msg in messages:
 
             msg['reply'] = reply
-
-            if not reply:
-
-                self.write(msg)
 
             # Add the list of messages to the send queue
 
@@ -557,9 +525,9 @@ class Interface(BasicInterface):
 
             # Only add a backspace if the last has been updated
 
-            # if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
+            if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
 
-            messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
+                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
 
             wait_for_reply = True
 
@@ -604,7 +572,7 @@ class Interface(BasicInterface):
 
         else:
 
-            # Only insert a character if the current "creative constraint" is satisfied
+            # Only insert a character if the current "creative constraint" is satisfied -- this is not tidy
         
             if self.__constraint__(self.text, self.text.marker):
 
@@ -775,7 +743,6 @@ class Interface(BasicInterface):
 
     def Selection(self, event=None):
         """ Handles selected areas """
-        # stdout("hello")
         return "break"
 
     """ Update colour / formatting """
@@ -1030,7 +997,7 @@ class Interface(BasicInterface):
         a, b = ("%d.0" % n for n in lines)
         string = self.text.get( a , b )
         # 3. Evaluate locally
-        self.text.lang.evaluate(string, str(self.text.marker), self.text.marker.bg)
+        self.lang.evaluate(string, str(self.text.marker), self.text.marker.bg)
         # 4. Highlight the text
         self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
@@ -1157,6 +1124,29 @@ class Interface(BasicInterface):
         self.menu.toggle()
         return "break"
 
+    def EditColours(self, event=None):
+        """ Opens up the colour options dialog """
+        from colour_picker import ColourPicker
+        ColourPicker(self)
+        return
+
+    def ApplyColours(self, event=None):
+        """ Update the IDE for the new colours """ 
+        LoadColours() # from config.py
+        # Text & Line numbers
+        self.text.config(bg=COLOURS["Background"], insertbackground=COLOURS["Background"])
+        self.line_numbers.config(bg=COLOURS["Background"])
+        # Console
+        self.console.config(bg=COLOURS["Console"])
+        # Stats
+        self.graphs.config(bg=COLOURS["Stats"])
+        # Peers
+        for peer in self.text.peers.values():
+            peer.update_colours()
+            peer.configure_tags()
+            self.graphs.itemconfig(peer.graph, fill=peer.bg)
+        return
+
     def OpenGitHub(self, event=None):
         webbrowser.open("https://github.com/Qirky/Troop")
 
@@ -1168,6 +1158,28 @@ class Interface(BasicInterface):
         self.logfile.recreate()
         return
 
+    def set_interpreter(self, name):
+        self.lang=langtypes[name]()
+        return
+
     def set_constraint(self, name):
         self.push_queue_put(MSG_CONSTRAINT(self.text.marker.id, name))
         return
+
+    def set_up_logging(self):
+            
+        # Check if there is a logs folder, if not create it
+
+        log_folder = os.path.join(ROOT_DIR, "logs")
+
+        if not os.path.exists(log_folder):
+
+            os.mkdir(log_folder)
+
+        # Create filename based on date and times
+        
+        self.fn = time.strftime("client-log-%d%m%y_%H%M%S.txt", time.localtime())
+        path    = os.path.join(log_folder, self.fn)
+        
+        self.log_file   = open(path, "w")
+        self.is_logging = True

@@ -8,15 +8,20 @@ def stdout(*args):
 def readin(prompt="", default=None):
     other = " ({})".format(default) if default is not None else ""
     while True:
-        val = raw_input("{}{}: ".format(prompt, other))
-        if val != "":
-            return val
-        elif val == "" and default is not None:
-            return default
+        try:
+            val = raw_input("{}{}: ".format(prompt, other))
+            if val != "":
+                return val
+            elif val == "" and default is not None:
+                return default
+        except (EOFError, SystemExit, KeyboardInterrupt):
+            sys.exit()
+    return
 
 # Absolute path of the root e.g. where run-client.py is found
 
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
+SRC_DIR = os.path.join(os.path.dirname(__file__))
 
 # Check for OS -> mac, linux, win
 
@@ -72,13 +77,47 @@ def getInterpreter(path):
         a custom path is used, which is returned """
     return langnames.get(path.lower(), path)
 
-# Colours
+# Sorting colours
 
-#f = open("conf/data.txt")
+global COLOUR_INFO_FILE
+global COLOURS
 
-    
+COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
 
-TEXT_BACKGROUND     = "Black"
-CONSOLE_BACKGROUND  = "Black"
-STATS_BACKGROUND    = "Black"
+COLOURS = { "Background" : "Black",
+            "Console"    : "Black",
+            "Stats"      : "Black",
+            "Peers"      : ["Deep Sky Blue",
+                            "Magenta2",
+                            "Gold",
+                            "Spring Green",
+                            "Deep Pink",
+                            "Yellow",
+                            "Dodger Blue",
+                            "DarkOrchid1",
+                            "Orange Red",
+                            "Lime Green" ] }
+
+def LoadColours():
+    """ Reads colour information from COLOUR_INFO and updates
+        the IDE accordingly. """
+    # Read from file
+    read = {}
+    try:
+        with open(COLOUR_INFO_FILE) as f:
+            for line in f.readlines():
+                attr, colour = [item.strip() for item in line.split("=")]
+                read[attr] = colour
+    except IOError:
+        pass
+    # Load into memory
+    for key, colour in read.items():
+        if key.startswith("Peer"):
+            _, i = key.split()
+            COLOURS["Peers"][int(i)-1] = colour
+        else:
+            COLOURS[key] = colour
+    return
+
+LoadColours()
 

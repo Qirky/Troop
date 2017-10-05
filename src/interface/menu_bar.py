@@ -1,5 +1,6 @@
 from Tkinter import Menu
 from functools import partial
+from ..config import *
 
 class MenuBar(Menu):
     def __init__(self, master, visible=True):
@@ -31,6 +32,8 @@ class MenuBar(Menu):
         editmenu.add_command(label="Decrease Font Size",      command=self.root.DecreaseFontSize, accelerator="Ctrl+-")
         editmenu.add_separator()
         editmenu.add_command(label="Toggle Menu", command=self.root.ToggleMenu, accelerator="Ctrl+M")
+        editmenu.add_separator()
+        editmenu.add_command(label="Edit Colours", command=self.root.EditColours)
         self.add_cascade(label="Edit", menu=editmenu)
 
         # Code menu
@@ -39,6 +42,19 @@ class MenuBar(Menu):
         codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Code Locally", command=self.root.LocalEvaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
+        editmenu.add_separator()
+
+        # Allow choice of interpreter
+        langmenu = Menu(self, tearoff=0)
+
+        for name, interpreter in langnames.items():
+
+            langmenu.add_checkbutton(label=name.title(),
+                                     command  = partial(self.root.set_interpreter, interpreter),
+                                     variable = self.root.interpreters[name])
+            
+        codemenu.add_cascade(label="Choose language", menu=langmenu)
+        
         self.add_cascade(label="Code", menu=codemenu)
 
         # Creative constraint menu
