@@ -5,15 +5,20 @@
     Real-time collaborative Live Coding.
 
     - Troop is a real-time collaborative tool that enables group live
-      coding within the same document. Currently, code is only executed
-      on the server-side (which may be running on the same machine as
-      a client) but this may change in future.
+      coding within the same document. To run the client application it
+      must be able to connect to a running Troop Server instance on
+      your network.
 
     - Using other Live Coding Languages:
     
         Troop is designed to be used with FoxDot (http://foxdot.org) but
-        the __call__ method of interpreter.Interpreter can be replaced to
-        do other interesting things with the evaluated portions of code.
+        is also configured to work with Tidal Cycles (http://tidalcycles.org).
+        You can run this file with the `--mode` flag followed by "tidalcycles"
+        to use the Tidal Cycles language. You can also use any other application
+        that can accept code commands as strings via the stdin by specifying
+        the path of the interpreter application, such as ghci in the case of
+        Tidal Cycles, in place of the "tidalcycles" string when using the
+        `--mode` flag.
 
 """
 from src.client import Client

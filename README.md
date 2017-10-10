@@ -1,10 +1,10 @@
-# Troop v0.3
+# Troop v0.4
 
 ## Real-time collaborative live coding
 
 Troop is a real-time collaborative tool that enables group live coding within the same document across multiple computers. Hypothetically Troop can talk to any interpreter that can take input as a string from the command line but it is already configured to work with live coding languages [FoxDot](https://github.com/Qirky/FoxDot), and [TidalCycles](https://tidalcycles.org/). 
 
-Troop is not a language for live coding but a tool for connecting multiple live coders over a network so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/). Click the links to find out more about installing. Both of these require the audio engine [SuperCollider](http://supercollider.github.io/) to work.
+Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/). Click the links to find out more about installing. Both of these require the audio engine [SuperCollider](http://supercollider.github.io/) to work.
 
 Troop requires [Python 2.7](https://www.python.org/downloads/release/python-2712/) to run. See **troubleshooting** below for more help on installing Python.
 
@@ -28,7 +28,7 @@ Then to run the server application, type in the following and press return:
 
 	python run-server.py
 
-You will be asked to enter a password. You can leave this blank if you wish - but make sure you are on a secure network if you do. Connecting clients will be required to enter the same password when connecting to the server. By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop clients can connect to the server and you're up and running!
+You will be asked to enter a password. You can leave this blank if you wish - but make sure you are on a secure network if you do. Connecting clients will be required to enter the same password when connecting to the server. By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop clients can connect to the server and you're up and running! To stop the server, either close the terminal window it's running in or use the keyboard shorcut `Ctrl+C` to kill the process. 
 
 **Warning:** Code executed by one client is executed on every client, so be careful when using public networks as you will then be susceptible to having malicious code run on your machine. Avoid using public networks and only give your server password to people you trust.
 
@@ -41,6 +41,8 @@ To run the client file in its default FoxDot mode you can either double click th
 To run Troop in TidalCycles mode you need to specify this using the "mode" flag like so:
 
 	python run-client.py --mode TidalCycles
+
+You can change the language after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.  
 
 On running this you will be asked for four things:
 
@@ -70,4 +72,4 @@ If you do find any problems when using Troop, please raise an issue on the GitHu
 
 ## Thanks
 
-Huge thank you to Alex McLean for his inspiration for this project and to Lucy and Laurie for testing it during its development. Also thank you to Laurie for his help in sorting the font colours - so if you don't like them, blame him.
+Huge thank you to Alex McLean for his inspiration for this project and to Lucy and Laurie for testing it during its development. 

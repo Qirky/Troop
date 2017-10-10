@@ -301,16 +301,18 @@ class ThreadSafeText(Text):
 
                 self.update_idletasks()
 
-                self.refreshPeerLabels()
-
                 if msg == self.root.wait_msg:
                     self.root.waiting = False
                     self.root.wait_msg = None
                     self.root.reset_title()
 
+                self.refreshPeerLabels()
+
         # Break when the queue is empty
         except Queue.Empty:
             pass
+
+        self.refreshPeerLabels()
 
         # Recursive call
         self.after(30, self.handle)
@@ -348,8 +350,6 @@ class ThreadSafeText(Text):
 
             # Move the peer
             peer.move(row, col, raised)
-
-            # Send message to server with their location?
 
             # Store location
             loc.append((row, col))
