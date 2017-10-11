@@ -6,7 +6,7 @@ Troop is a real-time collaborative tool that enables group live coding within th
 
 Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/). Click the links to find out more about installing. Both of these require the audio engine [SuperCollider](http://supercollider.github.io/) to work.
 
-Troop requires [Python 2.7](https://www.python.org/downloads/release/python-2712/) to run. See **troubleshooting** below for more help on installing Python.
+Troop is compatible with both Python 2 and 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
 
 ## Getting started
 
@@ -44,7 +44,7 @@ To run Troop in TidalCycles mode you need to specify this using the "mode" flag 
 
 You can change the language after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.  
 
-On running this you will be asked for four things:
+On running this script you will be asked for four things:
 
 - The IP address of the Troop Server
 - The port of the Troop Server
@@ -63,7 +63,11 @@ You can create a `client.cfg` file in the root directory if you have a host / po
 
 ### Installing Python
 
-If you are using Windows you might get an error along the lines of "python is not recognized command". This means you need to add Python to your system path so that your computer knows where to find Python's libraries. To do this open file explorer and right click on My Computer / This PC and click properties. From here you should open Advanced System Properties and click the button labelled Environment Variables. There should be a list of variables and their value. Of these variables there should be one named PATH. Edit it and add the location where Python was installed, most likely C:\Python27. If the PATH variable does not exist, create it and set its value to the Python installation. 
+If you are using Windows you might get an error along the lines of "python is not recognized command". This means you need to add Python to your system path so that your computer knows where to find Python's libraries. To do this open file explorer and right click on My Computer / This PC and click properties. From here you should open Advanced System Properties and click the button labelled Environment Variables. There should be a list of variables and their value. Of these variables there should be one named PATH. Edit it and add the location where Python was installed, most likely C:\Python27. If the PATH variable does not exist, create it and set its value to the Python installation.
+
+### Server says it is running on 127.0.0.1
+
+For some versions of Linux Python retrieves the localhost IP address instead of the public facing IP address, which means users trying to connect to 127.0.0.1 when running the Troop client will attempt to connect to *their own machine*. To find your IP address, open a terminal/command prompt and type `ipconfig` (windows) or `ifconfig` (Linux/Mac) and press enter. This will display information about your network adapters and your IP address will probably look along the lines of 192.168.0.xx if you are using a standard home network.  
 
 ### Errors or bugs while Troop is running
 

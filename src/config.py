@@ -4,6 +4,13 @@ import os.path
 if sys.version_info[0] == 2:
     input = raw_input
 
+# This removed blurry fonts on Windows
+from ctypes import windll
+try:
+    windll.shcore.SetProcessDpiAwareness(1)
+except:
+    pass
+
 def stdout(*args):
     """ Forces prints to server-side """
     sys.__stdout__.write(" ".join([str(s) for s in args]) + "\n")
@@ -88,18 +95,18 @@ global COLOURS
 COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
 
 COLOURS = { "Background" : "#272822",
-            "Console"    : "#272822",
-            "Stats"      : "#272822",
-            "Peers"      : ["Deep Sky Blue",
-                            "Magenta2",
-                            "Gold",
-                            "Spring Green",
-                            "Deep Pink",
-                            "Yellow",
-                            "Dodger Blue",
-                            "DarkOrchid1",
-                            "Orange Red",
-                            "Lime Green" ] }
+            "Console"    : "#151613",
+            "Stats"      : "#151613",
+            "Peers"      : [ "#66D9EF",
+                             "#F92672",
+                             "Gold",
+                             "#A6E22E",
+                             "Deep Pink",
+                             "Yellow",
+                             "Dodger Blue",
+                             "DarkOrchid1",
+                             "Orange Red",
+                             "Lime Green" ] }
 
 def LoadColours():
     """ Reads colour information from COLOUR_INFO and updates

@@ -155,7 +155,7 @@ class Interface(BasicInterface):
         self.scroll.config(command=self.text.yview)
 
         # Line numbers
-        self.line_numbers = LineNumbers(self.text, width=40, bg=COLOURS["Background"], bd=0, highlightthickness=0)
+        self.line_numbers = LineNumbers(self.text, width=55, bg=COLOURS["Background"], bd=0, highlightthickness=0)
         self.line_numbers.grid(row=0, column=0, sticky='nsew')
         
         # Drag is a small line that changes the size of the console
@@ -168,7 +168,7 @@ class Interface(BasicInterface):
         sys.stdout = self.console # routes stdout to print to console
 
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=250, bd=0, highlightthickness=0) #, relief="sunken")
+        self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=450, bd=0, highlightthickness=0)
         self.graphs.grid(row=2, column=2, sticky="nsew")
         self.graph_queue = queue.Queue()
 
@@ -371,6 +371,16 @@ class Interface(BasicInterface):
     def update_graphs(self):
         """ Continually counts the number of coloured chars and update self.graphs """
 
+        # TODO -- draw graph for peers no longer connected?
+
+        # Only draw graphs once the peer(s) connects
+
+        if len(self.text.peers) == 0:
+
+            self.root.after(100, self.update_graphs)
+
+            return
+
         # For each connected peer, find the range covered by the tag
         
         for peer in self.text.peers.values():
@@ -419,11 +429,16 @@ class Interface(BasicInterface):
         total = float(sum([p.count for p in self.text.peers.values()]))
 
         max_height = self.graphs.winfo_height()
+        max_width  = self.graphs.winfo_width()
+
+        # Gaps between edges
 
         offset_x = 10
         offset_y = 10
 
-        graph_w = 25
+        # Graph widths should all fit within the graph box but have maximum width of 40
+
+        graph_w = min(40, (max_width - (2 * offset_x)) / len(self.text.peers))
 
         for n, peer in enumerate(self.text.peers.values()):
 
