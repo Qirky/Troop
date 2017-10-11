@@ -8,6 +8,10 @@
 
 """
 
-import SocketServer
-class ThreadedServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+try:
+    import socketserver
+except ImportError:
+    import SocketServer as socketserver
+
+class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass

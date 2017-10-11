@@ -19,9 +19,10 @@
     SuperCollider running on the local machine.
 
 """
-
-import sys, os
+from __future__ import absolute_import
 from src.server import TroopServer
+import sys, os
+
 
 myServer = TroopServer(log = "--log" in sys.argv)
 myServer.start()

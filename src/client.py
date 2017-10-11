@@ -1,9 +1,11 @@
-from interface import *
-from sender import *
-from receiver import *
-from message import *
-from config import *
-from interpreter import *
+from __future__ import absolute_import
+
+from .interface import *
+from .sender import *
+from .receiver import *
+from .message import *
+from .config import *
+from .interpreter import *
 
 from time import sleep, time
 from getpass import getpass
@@ -13,7 +15,7 @@ import sys
 
 class Client:
 
-    version = '0.3'
+    version = '0.4'
     
     def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False, ipv6=False):
         

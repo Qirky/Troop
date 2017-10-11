@@ -1,22 +1,34 @@
+from __future__ import absolute_import
+
 from ..config import *
 from ..message import *
 from ..interpreter import *
-from peer import PeerFormatting
-from Tkinter import *
-import tkFont
-import Queue
+from .peer import PeerFormatting
+
+try:
+    from Tkinter import *
+    import tkFont
+except ImportError:
+    from tkinter import *
+    from tkinter import font as tkFont
+
+try:
+    import queue
+except:
+    import Queue as queue
+
 import re
 import time
 import sys
 import json
 
-import constraints
+from . import constraints
 constraints = vars(constraints)
 
 class ThreadSafeText(Text):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.root = root
 
         self.padx = 2
@@ -86,6 +98,7 @@ class ThreadSafeText(Text):
         return [""] + self.get("1.0", END).split("\n")[:-1]
 
     def log_message(self, message):
+        """ If logging is turned on, this method writes each message received to file """
         if self.root.is_logging:
             if len(repr(str(msg))) < 1:
                 stdout(msg)
@@ -289,7 +302,7 @@ class ThreadSafeText(Text):
 
                         pass
 
-                # Give some useful information about what the message looked like
+                # Give some useful information about what the message looked like if error
 
                 else:
 
@@ -301,7 +314,10 @@ class ThreadSafeText(Text):
 
                 self.update_idletasks()
 
+                # This is possible out of date - TODO check
+
                 if msg == self.root.wait_msg:
+
                     self.root.waiting = False
                     self.root.wait_msg = None
                     self.root.reset_title()
@@ -309,10 +325,9 @@ class ThreadSafeText(Text):
                 self.refreshPeerLabels()
 
         # Break when the queue is empty
-        except Queue.Empty:
-            pass
-
-        self.refreshPeerLabels()
+        except queue.Empty:
+            
+            self.refreshPeerLabels()
 
         # Recursive call
         self.after(30, self.handle)
@@ -349,7 +364,14 @@ class ThreadSafeText(Text):
                     break
 
             # Move the peer
-            peer.move(row, col, raised)
+
+            try:
+    
+                peer.move(row, col, raised)
+
+            except ValueError:
+
+                pass
 
             # Store location
             loc.append((row, col))
@@ -359,6 +381,7 @@ class ThreadSafeText(Text):
     # handling key events
 
     def handle_delete(self, peer, row, col):
+        """ Responds to a MSG_DELETE by deleting the character in front of the peer """
         if peer.hasSelection():
             
             peer.deleteSelection()
@@ -368,19 +391,23 @@ class ThreadSafeText(Text):
             self.delete("{}.{}".format(row, col))
             
         # peer.move(row, col)
-        self.refreshPeerLabels()
 
         return
 
     def handle_backspace(self, peer, row, col):
+        """ Responds to a MSG_BACKSPACE by deleting the character behind the peer """
+
+        # If the peer has selected text, delete that
         
         if peer.hasSelection():
             
             peer.deleteSelection()
 
             # Treat as if 1 char was deleted
+
+            if peer is self.marker:
             
-            self.root.last_col += 1
+               self.root.last_col += 1 # shouldn't this be just for the local peer?
 
         else:
 
@@ -392,8 +419,6 @@ class ThreadSafeText(Text):
 
                 self.delete(index)
 
-                # peer.move(row, col-1)
-
             elif row > 1 and col == 0:
 
                 index = "{}.end".format(row-1,)
@@ -403,8 +428,6 @@ class ThreadSafeText(Text):
                 col = int(self.index(index).split('.')[1])
 
                 # peer.move(row-1, col)
-
-        self.refreshPeerLabels()
 
         return
 
@@ -427,11 +450,9 @@ class ThreadSafeText(Text):
 
             # self.mark_set(peer.mark, index)
 
+        # Insert the character
+
         self.insert(peer.mark, char, peer.text_tag)
-
-        # Insert character
-
-        self.refreshPeerLabels()
         
         return
 
@@ -493,7 +514,8 @@ class ThreadSafeText(Text):
         return
 
     def set_ranges(self, data):
-        """ `data` should be a dict """
+        """ Takes a dictionary of tag names and the ranges they cover
+            within the text. Sets and formats these ranges """
 
         for tag, loc in data.items():
 
@@ -514,6 +536,7 @@ class ThreadSafeText(Text):
         return
 
     def change_ranges(self, data):
+        """ If resetting data, this updates existing ranges with new data """
         for tag, loc in data.items():
             self.tag_remove(tag, "1.0", END)
             for start, stop in loc:
@@ -521,7 +544,8 @@ class ThreadSafeText(Text):
         return
 
     def move_peers(self, data):
-        """ `data` is a dict """
+        """ Updates the locations of all the peers based on a list of tuples
+            containing peer id's, row, and column """
         for peer_id, row, col in data:
             if peer_id in self.peers:
                 self.peers[peer_id].move(row, col)
@@ -530,7 +554,9 @@ class ThreadSafeText(Text):
     def handle_compare(self, s):
         """ When a MSG_COMPARE comes in, this method unpacks the data and compares it to the
             current contents of the text box, chaning anything that doesn't match. The row currently being
-            edited is unaffected
+            edited is unaffected.
+
+            Currenetly un-used
         """
         
         # unpack the json data
@@ -615,4 +641,5 @@ class ThreadSafeText(Text):
         return
 
     def sort_indices(self, list_of_indexes):
+        """ Takes a list of Tkinter indices and returns them sorted by location """
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))

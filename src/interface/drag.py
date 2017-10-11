@@ -1,4 +1,7 @@
-from Tkinter import Frame
+try:
+    from Tkinter import Frame
+except ImportError:
+    from tkinter import Frame
 
 class Dragbar(Frame):
 

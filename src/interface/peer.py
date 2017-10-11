@@ -1,4 +1,10 @@
-from Tkinter import *
+from __future__ import absolute_import
+
+try:
+    from Tkinter import *
+except ImportError:
+    from tkinter import *
+    
 from ..config import *
 import colorsys
 

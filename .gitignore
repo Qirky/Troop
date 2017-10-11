@@ -1,5 +1,6 @@
 # Compiled Python file
 *.pyc
+__pycache__/*
 
 # Create logs
 logs/*

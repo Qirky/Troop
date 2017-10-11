@@ -1,8 +1,10 @@
 ### Experimental
 
+from __future__ import absolute_import
+
 from threading import Thread
 from time import sleep
-from message import *
+from .message import *
 
 class Log:
     text = None

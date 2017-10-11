@@ -8,7 +8,9 @@
     Use -1 as an ID when it doesn't matter
 
 """
-from config import *
+
+from __future__ import absolute_import
+from .config import *
 
 import re
 import inspect
@@ -20,8 +22,16 @@ class NetworkMessageReader:
         self.string = ""
         self.re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
-    def feed(self, string):
-        """ Text """
+    def feed(self, data):
+        """ Adds text (read from server connection) and either returns all the complete messages,
+            or returns `None` which means the message is incomplete. """
+
+        # Most data is read from the server, which is bytes in Python3 and str in Python2, so make
+        # sure it is properly decoded to a string.
+
+        if type(data) is bytes:
+
+            string = data.decode()
 
         # If the last character is not closing then return
         if string[-1] != ">":
@@ -79,18 +89,13 @@ class MESSAGE(  object):
         self.keys = ['type', 'src_id']
 
     def __str__(self):
-        # return "<{}>".format(self.type) + "".join(["<{}>".format(item) for item in self])
         return "".join(["<{}>".format(item) for item in self])
+
+    def bytes(self):
+        return str(self).encode("utf-8")
 
     def raw_string(self):
         return "<{}>".format(self.type) + "".join(["<{}>".format(repr(item)) for item in self])
-
-##    def json(self):
-##        try:
-##            return json.dumps(self.data, separators=(',',':'))
-##        except:
-##            stdout("this is an error in msg.json", self.data)
-##            return 
         
     def __repr__(self):
         return str(self)
@@ -214,7 +219,8 @@ class MSG_SET_ALL(MESSAGE):
     type = 9
     def __init__(self, src_id, data, client_id):
         MESSAGE.__init__(self, src_id)
-        self['data']=json.dumps(data) if type(data) != str else data
+        # If the json data is a dict, convert it. If not assume it is correctly formatted
+        self['data']=json.dumps(data) if type(data) is dict else data
         self['client_id']=int(client_id)
 
 class MSG_RESPONSE(MESSAGE):
@@ -328,35 +334,3 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "Could not connect to {}".format(self.name)
-
-if __name__ == "__main__":
-
-    if True:
-
-        d = {"ranges":{}, "contents":"", "marks": []}
-
-        s = json.dumps(d)
-
-        msg = MSG_SET_ALL(0,d,1)
-
-        print msg
-
-    else:
-
-        test = NetworkMessageReader()
-
-        msg1 = MSG_SET_MARK(0, 1, 1, 1)
-        msg2 = MSG_INSERT(0, ">", 1, 1)
-        msg3 = MSG_SET_MARK(1, 2, 4, 1)
-
-        a = str(msg1) + str(msg2)
-        b = str(msg3)
-
-        b = a[24:] + b
-        a = a[:24]
-
-        print(a, b)
-
-        print test.feed(a)
-        print test.feed(b)
-        

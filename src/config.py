@@ -1,6 +1,9 @@
 import sys
 import os.path
 
+if sys.version_info[0] == 2:
+    input = raw_input
+
 def stdout(*args):
     """ Forces prints to server-side """
     sys.__stdout__.write(" ".join([str(s) for s in args]) + "\n")
@@ -9,7 +12,7 @@ def readin(prompt="", default=None):
     other = " ({})".format(default) if default is not None else ""
     while True:
         try:
-            val = raw_input("{}{}: ".format(prompt, other))
+            val = input("{}{}: ".format(prompt, other))
             if val != "":
                 return val
             elif val == "" and default is not None:
@@ -84,9 +87,9 @@ global COLOURS
 
 COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
 
-COLOURS = { "Background" : "Black",
-            "Console"    : "Black",
-            "Stats"      : "Black",
+COLOURS = { "Background" : "#272822",
+            "Console"    : "#272822",
+            "Stats"      : "#272822",
             "Peers"      : ["Deep Sky Blue",
                             "Magenta2",
                             "Gold",

@@ -1,5 +1,12 @@
-from Tkinter import Menu
+from __future__ import absolute_import
+
+try:
+    from Tkinter import Menu
+except ImportError:
+    from tkinter import Menu
+    
 from functools import partial
+
 from ..config import *
 
 class MenuBar(Menu):
@@ -63,7 +70,7 @@ class MenuBar(Menu):
 
         # Get the names of constraints
 
-        import constraints
+        from . import constraints
         constraints = vars(constraints)
 
         for name in constraints:

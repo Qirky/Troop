@@ -9,9 +9,19 @@
 
 """
 
+from __future__ import absolute_import
+
+try:
+    import socketserver
+except ImportError:
+    import SocketServer as socketserver
+
+try:
+    import queue
+except:
+    import Queue as queue
+
 import socket
-import SocketServer
-import Queue
 import sys
 import time
 import os.path
@@ -23,10 +33,10 @@ from getpass import getpass
 from hashlib import md5
 from threading import Thread
 
-from threadserv import ThreadedServer
-from message import *
-from interpreter import *
-from config import *
+from .threadserv import ThreadedServer
+from .message import *
+from .interpreter import *
+from .config import *
 
 class TroopServer:
     """
@@ -84,14 +94,14 @@ class TroopServer:
         # Set a password for the server
         try:
 
-            self.password = md5(getpass("Password (leave blank for no password): "))
+            self.password = md5(getpass("Password (leave blank for no password): ").encode("utf-8"))
 
         except KeyboardInterrupt:
 
             sys.exit("Exited")
 
         # Set up a char queue
-        self.char_queue = Queue.Queue()
+        self.char_queue = queue.Queue()
         self.char_queue_thread = Thread(target=self.update_send)
 
         # Set up log for logging a performance
@@ -268,7 +278,7 @@ class TroopServer:
 
                 self.respond(msg)
 
-            except Queue.Empty:
+            except queue.Empty:
 
                 sleep(0.01)
 
@@ -342,9 +352,9 @@ class TroopServer:
 
 # Request Handler for TroopServer 
 
-class TroopRequestHandler(SocketServer.BaseRequestHandler):
+class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
-    bytes  = 2048
+    bytes  = 1024
         
     def client_id(self):
         return self.master.clientIDs[self.client_address]
@@ -378,7 +388,11 @@ class TroopRequestHandler(SocketServer.BaseRequestHandler):
 
             user_id = -1
 
-        self.request.send(str(user_id))
+        # Send back the user_id as a 4 digit number
+
+        reply = "{:04d}".format( user_id ).encode()
+
+        self.request.send(reply)
 
         return user_id
 
@@ -567,7 +581,7 @@ class Client:
 
     def send(self, message):
         try:
-            self.source.sendall(str(message)) 
+            self.source.sendall(message.bytes()) 
         except:
             raise DeadClientError(self.hostname)
         return

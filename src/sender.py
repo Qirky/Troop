@@ -6,9 +6,11 @@
 
 """
 
+from __future__ import absolute_import
+from .message import *
+from .config import *
+
 import socket
-from message import *
-from config import *
 from hashlib import md5
 
 class Sender:
@@ -60,18 +62,21 @@ class Sender:
                 raise(ConnectionError("Could not connect to host '{}'".format( self.hostname ) ) )
 
             # Send the password
-            
-            self.send(MSG_PASSWORD(-1, md5(password).hexdigest()))
-            self.conn_id   = int(self.conn.recv(1024))
+
+            conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest())
+
+            self.send( conn_msg )
+
+            self.conn_id   = int(self.conn.recv(4))
             self.connected = bool(self.conn_id >= 0)
             
         return self
 
     def send(self, message):
-        return self(message)
+        return self.__call__(message)
 
     def __call__(self, message):        
-        self.conn.sendall(str(message))
+        self.conn.sendall(message.bytes())
         return
 
     def kill(self):

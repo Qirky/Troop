@@ -6,10 +6,13 @@
     for other language communication
 
 """
+from __future__ import absolute_import
+from .config import *
+
 from subprocess import Popen
 from subprocess import PIPE, STDOUT
 from datetime import datetime
-from config import *
+
 import sys
 import re
 import time

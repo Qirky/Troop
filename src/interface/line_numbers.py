@@ -1,14 +1,19 @@
-import Tkinter as Tk
+from __future__ import absolute_import
+try:
+    import Tkinter as Tk
+except:
+    import tkinter as Tk
+    
+from ..config import *
 
 class LineNumbers(Tk.Canvas):
     def __init__(self, master, *args, **kwargs):
         Tk.Canvas.__init__(self, *args, **kwargs)
         self.textwidget = master
-        
         self.redraw()
 
     def redraw(self, *args):
-        '''redraw line numbers'''
+        '''Redraws the line numbers at 30 fps'''
         self.delete("all")
 
         # Draw a line
@@ -16,7 +21,7 @@ class LineNumbers(Tk.Canvas):
         w = self.winfo_width() - 5
         h = self.winfo_height()
 
-        self.create_line(w, 0, w, h, fill="black")
+        self.create_line(w, 0, w, h, fill=COLOURS["Background"])
 
         i = self.textwidget.index("@0,0")
         
@@ -28,15 +33,28 @@ class LineNumbers(Tk.Canvas):
                 break
 
             y = dline[1]
+            h = dline[3]
 
-            linenum = str(i).split(".")[0]
+            linenum = int(str(i).split(".")[0])
+
+            # If the linenum is the currently edited linenumber, highlight
+
+            if self.textwidget.marker is not None:
+
+                if linenum == self.textwidget.marker.row:
+
+                    x1, y1 = 0, y
+                    x2, y2 = w, y + h
+
+                    self.create_rectangle(x1, y1, x2, y2, fill="gray30", outline="gray30")
 
             self.create_text(w - 4, y, anchor="ne",
                              justify=Tk.RIGHT,
                              text=linenum,
                              font="Font",
-                             fill="gray")
+                             fill="#d3d3d3")
 
-            i = self.textwidget.index("%s+1line" % i)
+
+            i = self.textwidget.index("{}+1line".format(i))
 
         self.after(30, self.redraw)

@@ -1,6 +1,16 @@
-from  Tkinter import *
+from __future__ import absolute_import
 from ..config import *
-import Queue
+
+try:
+    from Tkinter import *
+except ImportError:
+    from tkinter import *
+
+try:
+    import queue
+except ImportError:
+    import Queue as queue
+
 import re
 
 re_colour = re.compile(r"<colour=\"(?P<colour>.*?)\">(?P<c_text>.*?)</colour>(?P<string>.*?)$", re.DOTALL)
@@ -14,7 +24,7 @@ class Console(Text):
         Text.__init__(self, root, **kwargs)       
 
         # Queue waits for messages to be added to the console
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
 
         # Don't allow keypresses
         self.bind("<Key>", self.null)
@@ -62,14 +72,19 @@ class Console(Text):
 
                 self.update_idletasks()
 
-        except Queue.Empty:
+        except queue.Empty:
 
             pass
         
         self.after(100, self.update_me)
 
     def write(self, string):        
+        """ Adds a string to the console queue """
         if string != "\n":
             self.queue.put(string)
+        return
+
+    def flush(self, *args, **kwargs):
+        """ Override """
         return
         

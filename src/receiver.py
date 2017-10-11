@@ -5,13 +5,14 @@
     This listens for incoming messages from the TroopServer
 
 """
+from __future__ import absolute_import
+from .threadserv import ThreadedServer
+from .message import *
+from .config import *
 
-import SocketServer, socket
+import socket
 from threading import Thread
-from threadserv import ThreadedServer
 from time import sleep
-from message import *
-from config import *
 
 class Receiver:
     """
@@ -56,6 +57,8 @@ class Receiver:
 
     def kill(self):
         self.running = False
+        self.sock.close()
+        return
 
     def handle(self):
         
@@ -68,6 +71,10 @@ class Receiver:
                 if network_msg is None:
 
                     continue
+                    
+            except ConnectionAbortedError:
+
+                return
 
             except Exception as e:
 
