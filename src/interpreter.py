@@ -66,7 +66,8 @@ class Interpreter(DummyInterpreter):
     re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
     stdout   = None
     def __init__(self, path):
-        self.lang = Popen([path], shell=True, universal_newlines=True,
+        path = [path] if type(path) is not list else path
+        self.lang = Popen(path, shell=True, universal_newlines=True,
                           stdin=PIPE,
                           stdout=PIPE,
                           stderr=STDOUT)
@@ -185,9 +186,10 @@ class SuperColliderInterpreter(Interpreter):
         return
 
 class TidalInterpreter(Interpreter):
+    path = 'ghci'
     def __init__(self):
         # Start haskell interpreter
-        Interpreter.__init__(self, 'ghci')
+        Interpreter.__init__(self, self.path)
 
         # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")
@@ -224,8 +226,12 @@ class TidalInterpreter(Interpreter):
 
     def stop_sound(self):
         """ Triggers the 'hush' command using Ctrl+. """
-        return "hush"       
+        return "hush"
+
+class StackTidalInterpreter(TidalInterpreter):
+    path = ["stack", "ghci"]
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
+              TIDALSTACK    : StackTidalInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter }

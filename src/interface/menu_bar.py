@@ -56,7 +56,7 @@ class MenuBar(Menu):
 
         for name, interpreter in langnames.items():
 
-            langmenu.add_checkbutton(label=name.title(),
+            langmenu.add_checkbutton(label=langtitles[name],
                                      command  = partial(self.root.set_interpreter, interpreter),
                                      variable = self.root.interpreters[name])
             

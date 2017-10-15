@@ -5,10 +5,13 @@ if sys.version_info[0] == 2:
     input = raw_input
 
 # This removed blurry fonts on Windows
-from ctypes import windll
 try:
-    windll.shcore.SetProcessDpiAwareness(1)
-except:
+    from ctypes import windll
+    try:
+        windll.shcore.SetProcessDpiAwareness(1)
+    except:
+        pass
+except ImportError:
     pass
 
 def stdout(*args):
@@ -76,11 +79,18 @@ PUBLIC_SERVER_ADDRESS = PUBLIC_SERVER_ADDRESS_IPV4
 
 FOXDOT        = 0
 TIDAL         = 1
-SUPERCOLLIDER = 2
+TIDALSTACK    = 2
+SUPERCOLLIDER = 3
 
 langnames = { "foxdot" : FOXDOT,
               "tidalcycles" : TIDAL,
+              "tidalcyclesstack" : TIDALSTACK,
               "supercollider" : SUPERCOLLIDER }
+
+langtitles = { "foxdot" : "FoxDot",
+               "tidalcycles": "TidalCycles",
+               "supercollider": "SuperCollider",
+               "tidalcyclesstack": "TidalCycles (stack)" }
 
 def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless
