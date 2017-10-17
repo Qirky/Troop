@@ -33,6 +33,10 @@ class NetworkMessageReader:
 
             string = data.decode()
 
+        if string == "":
+
+            raise EmptyMessageError()
+
         # If the last character is not closing then return
         if string[-1] != ">":
             self.string += string
@@ -291,7 +295,13 @@ class MSG_COMPARE(MESSAGE):
     type = 19
     def __init__(self, src_id, data):
         MESSAGE.__init__(self, src_id)
-        self['data']=json.dumps(data) if type(data) != str else data        
+        self['data']=json.dumps(data) if type(data) != str else data     
+
+class MSG_KILL(MESSAGE):
+    type = 20
+    def __init__(self, src_id, string):
+        MESSAGE.__init__(self, src_id)
+        self['string']=str(string)   
  
 # Create a dictionary of message type to message class 
 
@@ -313,7 +323,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_BRACKET,
                                              MSG_PING,
                                              MSG_CONSTRAINT,
-                                             MSG_COMPARE ] }
+                                             MSG_COMPARE,
+                                             MSG_KILL ] }
 
 # Exceptions
 

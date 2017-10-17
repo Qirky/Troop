@@ -44,6 +44,7 @@ class TroopServer:
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
+    bytes  = 2048
     def __init__(self, port=57890, log=False, debug=False):
           
         # Address information
@@ -324,7 +325,7 @@ class TroopServer:
         """ Properly terminates the server """
         if self.log_file is not None: self.log_file.close()
 
-        outgoing = MSG_RESPONSE(-1, "Warning: Server manually killed by keyboard interrupt. Please close the application")
+        outgoing = MSG_KILL(-1, "Warning: Server manually killed by keyboard interrupt. Please close the application")
 
         for client in self.clients:
 
@@ -354,7 +355,6 @@ class TroopServer:
 
 class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
-    bytes  = 1024
         
     def client_id(self):
         return self.master.clientIDs[self.client_address]
@@ -400,7 +400,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.authenticate(self.get_message()[0]['password']) < 0
 
     def get_message(self):
-        return self.reader.feed(self.request.recv(self.bytes))
+        return self.reader.feed(self.request.recv(self.master.bytes))
 
     def handle_client_lost(self):
         """ Terminates cleanly """
@@ -554,7 +554,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 # Keeps information about each connected client
 
 class Client:
-
+    bytes = TroopServer.bytes
     def __init__(self, address, id_num, request_handle, name=""):
 
         self.hostname = address[0]

@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 try:
     from Tkinter import *
+    from tkColorChooser import askcolor
 except ImportError:
     from tkinter import *
+    from tkinter.colorchooser import askcolor
     
-from tkColorChooser import askcolor
 from ..config import *
 
 """

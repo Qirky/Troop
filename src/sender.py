@@ -27,6 +27,8 @@ class Sender:
         self.conn_id   = None
         self.connected = False
 
+        self.ui        = None
+
     def connect(self, hostname, port=57890, using_ipv6=False, password=""):
         """ Connects to the master Troop server and
             start a listening instance on this machine """
@@ -43,15 +45,15 @@ class Sender:
 
                 if using_ipv6:
 
-                    socket_type = socket.AF_INET6
+                    self.socket_type = socket.AF_INET6
 
                     self.address = (self.hostname, self.port, 0, 0)
                     
                 else:
 
-                    socket_type = socket.AF_INET
+                    self.socket_type = socket.AF_INET
 
-                self.conn = socket.socket(socket_type, socket.SOCK_STREAM)
+                self.conn = socket.socket(self.socket_type, socket.SOCK_STREAM)
 
                 self.conn.connect(self.address)
 
@@ -63,9 +65,9 @@ class Sender:
 
             # Send the password
 
-            conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest())
+            self.conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest())
 
-            self.send( conn_msg )
+            self.send( self.conn_msg )
 
             self.conn_id   = int(self.conn.recv(4))
             self.connected = bool(self.conn_id >= 0)
@@ -75,12 +77,13 @@ class Sender:
     def send(self, message):
         return self.__call__(message)
 
-    def __call__(self, message):        
-        self.conn.sendall(message.bytes())
+    def __call__(self, message):
+        try:
+            self.conn.sendall(message.bytes())
+        except Exception as e:
+            raise ConnectionError("Can't connect to server")
         return
 
     def kill(self):
         self.conn.close()
         return
-
-

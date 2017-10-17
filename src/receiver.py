@@ -72,17 +72,27 @@ class Receiver:
 
                     continue
                     
-            except ConnectionAbortedError:
+            except(OSError, socket.error) as e:
 
-                return
+                # Connection lost errors - possible to reconnect?
 
-            except Exception as e:
+                print(e)
 
-                raise(e)
+                self.kill()
 
-                print("In receiver.handle()", str(e), e.__class__.__name__)
+                break
 
-                return
+            # Ignore empty message errors if we are no longer running
+
+            except EmptyMessageError as e:
+
+                if self.running:
+
+                    raise(e)
+
+                else:
+
+                    pass
 
             for msg in network_msg:
 
@@ -100,7 +110,7 @@ class Receiver:
         ''' Add a Troop message to the Queue '''
         while self.ui is None:
             sleep(0.1)
-        self.ui.write(message)
+        self.ui.text.write(message)
         return
  
 class Node:

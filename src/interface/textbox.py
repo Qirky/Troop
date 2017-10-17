@@ -82,6 +82,37 @@ class ThreadSafeText(Text):
         # Begin listening for messages
         self.handle()
 
+    def write(self, msg):
+        """ Writes a network message to the queue """
+
+        # msg must be a Troop message
+        assert isinstance(msg, MESSAGE)
+        
+        # Keep information about new peers
+
+        if 'src_id' in msg:
+
+            sender_id = msg['src_id']
+
+            if sender_id not in self.peers and sender_id != -1:
+
+                # Get peer's current location & name
+
+                name = self.root.pull(sender_id, "name")
+
+                peer = self.peers[sender_id] = Peer(sender_id, self) 
+
+                peer.name.set(name)
+
+                # Create a bar on the graph
+                
+                peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
+
+        # Add message to queue
+        self.queue.put(msg)
+
+        return
+
     def alone(self, peer, row=None):
         """ Returns True if there are no other peers editing the same line +- 1.
             Row can be specified. """
@@ -147,7 +178,18 @@ class ThreadSafeText(Text):
 
                         if hasattr(self.root, "console"):
 
-                            self.root.console.write(msg['string'])                    
+                            self.root.console.write(msg['string']) 
+
+                    # Stop running when server is manually killed                 
+
+                    elif isinstance(msg, MSG_KILL):
+
+                        if hasattr(self.root, "console"):
+
+                            self.root.console.write(msg['string']) 
+
+                        self.root.push.kill()
+                        self.root.pull.kill()
 
                     # Handles selection changes
 

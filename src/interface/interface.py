@@ -270,7 +270,7 @@ class Interface(BasicInterface):
         self.pull = lambda *x: None
 
         # Sender
-        self.push = lambda *x: None
+        self.push = None
         self.push_queue = queue.Queue()
 
         # Set the window focus
@@ -297,7 +297,6 @@ class Interface(BasicInterface):
             if self.is_logging:
                 self.log_file.close()
         except(Exception) as e:
-            stdout("Got an exception m8")
             stdout(e)
         BasicInterface.kill(self)
         return
@@ -335,37 +334,6 @@ class Interface(BasicInterface):
     def reset_title(self):
         """ Resets any changes to the window's title """
         self.root.title(self.title)
-        return
-        
-    def write(self, msg):
-        """ Writes a network message to the queue """
-
-        # msg must be a Troop message
-        assert isinstance(msg, MESSAGE)
-        
-        # Keep information about new peers
-
-        if 'src_id' in msg:
-
-            sender_id = msg['src_id']
-
-            if sender_id not in self.text.peers and sender_id != -1:
-
-                # Get peer's current location & name
-
-                name = self.pull(sender_id, "name")
-
-                peer = self.text.peers[sender_id] = Peer(sender_id, self.text) 
-
-                peer.name.set(name)
-
-                # Create a bar on the graph
-                
-                peer.graph = self.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
-
-        # Add message to queue
-        self.text.queue.put(msg)
-
         return
 
     def update_graphs(self):
@@ -464,8 +432,14 @@ class Interface(BasicInterface):
         """ Sends any keypress information added to the queue to the server """
         try:
             while True:
-                self.push( self.push_queue.get_nowait() )
-                self.root.update_idletasks()
+                if self.push is not None and self.push.connected:
+                    try:
+                        self.push( self.push_queue.get_nowait() )
+                    except ConnectionError:
+                        return
+                    self.root.update_idletasks()
+                else:
+                    break
         # Break when the queue is empty
         except queue.Empty:
             pass

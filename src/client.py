@@ -84,6 +84,8 @@ class Client:
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
+        self.send.ui = self.ui
+        
         self.ui.run()
 
     @staticmethod
