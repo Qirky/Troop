@@ -1,4 +1,4 @@
-# Troop v0.4
+# Troop v0.5
 
 ## Real-time collaborative live coding
 
@@ -71,7 +71,7 @@ For some versions of Linux Python retrieves the localhost IP address instead of 
 
 ### Errors or bugs while Troop is running
 
-If you do find any problems when using Troop, please raise an issue on the GitHub page quoting the error message and describing what you were doing at the time (on Troop not in life)
+If you do find any problems when using Troop, please raise an issue on the GitHub page quoting the error message and describing what you were doing at the time (on Troop not in life).
 
 
 ## Thanks
