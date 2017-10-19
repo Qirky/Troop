@@ -10,7 +10,6 @@
 """
 
 from __future__ import absolute_import
-from .config import *
 
 import re
 import inspect
@@ -23,8 +22,8 @@ class NetworkMessageReader:
         self.re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
 
     def feed(self, data):
-        """ Adds text (read from server connection) and either returns all the complete messages,
-            or returns `None` which means the message is incomplete. """
+        """ Adds text (read from server connection) and returns the complete messages within. Any
+            text un-processed is stored and used the next time `feed` is called. """
 
         # Most data is read from the server, which is bytes in Python3 and str in Python2, so make
         # sure it is properly decoded to a string.
@@ -37,53 +36,66 @@ class NetworkMessageReader:
 
             raise EmptyMessageError()
 
-        # If the last character is not closing then return
-        if string[-1] != ">":
-            self.string += string
-            return None
-
         # Collate with any existing text
         full_message = self.string + string
 
         # Identify message tags
         data = self.re_msg.findall(full_message)
 
+        # i is the data, pkg  is the list of messages
         i, pkg = 0, []
+
+        # length is the size of the string processed
+        length = 0
         
         while i < len(data):
 
-            # Find out which message it is, send back a list of messages
+            # Find out which message type it is
+            
             cls = MESSAGE_TYPE[int(data[i])]
+
+            # This tells us how many following items are arguments of this message
 
             j = len(cls.header())
 
             try:
 
+                # Collect the arguments
+
                 args = [data[n] for n in range(i+1, i+j)]
 
                 pkg.append(cls(*args))
 
+                # Keep track of how much of the string we have processed
+
+                length += len(str(pkg[-1]))
+
             except IndexError:
 
-                # If there aren't enough arguments, store the string for next time and return None
+                # If there aren't enough arguments, store the remaining string for next time
+                # and return the list we have so far
 
-                self.string = full_message
+                self.string = full_message[length:]
 
-                return None
+                return pkg
 
             except TypeError as e:
+
+                # Debug info
 
                 stdout( cls.__name__, e )
                 stdout( string )
 
             i += j
 
+        # If we process the whole string, reset the stored string
+
         self.string = ""
 
         return pkg
 
 
-class MESSAGE(  object):
+class MESSAGE(object):
     """ Abstract base class """
     data = {}
     keys = []
