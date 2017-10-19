@@ -357,3 +357,6 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "Could not connect to {}".format(self.name)
+
+if __name__ == "__main__":
+    print(MSG_INSERT(1, "a", 4, 1))

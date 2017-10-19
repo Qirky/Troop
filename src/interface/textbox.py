@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from ..config import *
 from ..message import *
 from ..interpreter import *
-from .peer import PeerFormatting
+
+from .peer import *
 
 try:
     from Tkinter import *

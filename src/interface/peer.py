@@ -119,14 +119,20 @@ class Peer:
         return self.bg, self.fg
 
     def configure_tags(self):
-        # Text tags
-        self.root.tag_config(self.text_tag, foreground=self.bg)
-        self.root.tag_config(self.str_tag,  foreground=self.fg)
-        self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
-        self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
-        # Label
-        self.label.config(bg=self.bg, fg=self.fg)
-        self.insert.config(bg=self.bg, fg=self.fg)
+        doing = True
+        while doing:
+            try:
+                # Text tags
+                self.root.tag_config(self.text_tag, foreground=self.bg)
+                self.root.tag_config(self.str_tag,  foreground=self.fg)
+                self.root.tag_config(self.code_tag, background=self.bg, foreground=self.fg)
+                self.root.tag_config(self.sel_tag,  background=self.bg, foreground=self.fg)
+                # Label
+                self.label.config(bg=self.bg, fg=self.fg)
+                self.insert.config(bg=self.bg, fg=self.fg)
+                doing = False
+            except TclError:
+                pass
         return
         
     def move(self, row, col, raised = False):
