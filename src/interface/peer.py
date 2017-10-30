@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 try:
-    from Tkinter import *
+    import Tkinter as Tk
 except ImportError:
-    from tkinter import *
+    import tkinter as Tk
     
 from ..config import *
 import colorsys
@@ -20,11 +20,11 @@ def int2rgb(i):
 
 class PeerColourTest:
     def __init__(self):
-        self.root=Tk()
+        self.root=Tk.Tk()
         num = 20
         h = 30
         w = 100
-        self.canvas = Canvas(self.root, width=300, height=num*h)
+        self.canvas =Tk.Canvas(self.root, width=300, height=num*h)
         self.canvas.pack()
         m = 0
         for n in range(num):
@@ -70,17 +70,18 @@ class Peer:
         self.root = widget # Text
         self.root_parent = widget.root
 
-        self.name = StringVar()
+        self.name = Tk.StringVar()
+        self.name.set("Peer")
 
         self.update_colours()
         
-        self.label = Label(self.root,
+        self.label = Tk.Label(self.root,
                            textvariable=self.name,
                            bg=self.bg,
                            fg=self.fg,
                            font="Font")
 
-        self.insert = Label(self.root,
+        self.insert = Tk.Label(self.root,
                             bg=self.bg,
                             fg=self.fg,
                             bd=0,
@@ -96,6 +97,7 @@ class Peer:
         self.root.peer_tags.append(self.text_tag)
 
         # Stat graph
+
         self.count = 0
         self.graph = None
 
@@ -106,8 +108,6 @@ class Peer:
         self.col = col
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
-
-        self.name.set("Unnamed Peer")
 
         # self.move(1,0) # create the peer
 
@@ -138,64 +138,70 @@ class Peer:
     def move(self, row, col, raised = False):
         """ Updates the location of the Peer's label """
 
-        row = int(row)
-        col = int(col)
+        try:
 
-        index = "{}.{}".format(row, col)
+            row = int(row)
+            col = int(col)
 
-        if index == self.root.index(END):
+            index = "{}.{}".format(row, col)
 
-            self.row = row - 1
-            end_index = self.root.index(str(self.row) + ".end")
+            if index == self.root.index(Tk.END):
 
-            self.col = int(end_index.split(".")[1])
+                self.row = row - 1
+                end_index = self.root.index(str(self.row) + ".end")
 
-        else:
-
-            self.row = row
-            self.col = col
-
-        index = "{}.{}".format(self.row, self.col)
-
-        # Update the Tk text tag
-
-        self.root.mark_set(self.mark, index)
-
-        # Only move the cursor if we have a valid index
-
-        bbox = self.root.bbox(index)
-
-        if bbox is not None:
-
-            x, y, width, height = bbox
-
-            x_val = x - 2
-
-            # Label can go on top of the cursor
-
-            if raised:
-
-                y_val = (y - height, y - height)
+                self.col = int(end_index.split(".")[1])
 
             else:
 
-                y_val = (y + height, y)
-            
-            self.label.place(x=x_val, y=y_val[0], anchor="nw")
-            self.insert.place(x=x_val, y=y_val[1], anchor="nw")
+                self.row = row
+                self.col = col
 
-        else:
+            index = "{}.{}".format(self.row, self.col)
 
-            # If we're not meant to see the peer, hide it
-            
-            self.label.place(x=-100, y=-100)
-            self.insert.place(x=-100, y=-100)
+            # Update the Tk text tag
+
+            self.root.mark_set(self.mark, index)
+
+            # Only move the cursor if we have a valid index
+
+            bbox = self.root.bbox(index)
+
+            if bbox is not None:
+
+                x, y, width, height = bbox
+
+                x_val = x - 2
+
+                # Label can go on top of the cursor
+
+                if raised:
+
+                    y_val = (y - height, y - height)
+
+                else:
+
+                    y_val = (y + height, y)
+                
+                self.label.place(x=x_val, y=y_val[0], anchor="nw")
+                self.insert.place(x=x_val, y=y_val[1], anchor="nw")
+
+            else:
+
+                # If we're not meant to see the peer, hide it
+                
+                self.label.place(x=-100, y=-100)
+                self.insert.place(x=-100, y=-100)
+
+        except Tk.TclError:
+
+            pass
             
         return
 
     def select(self, start, end):
         """ Highlights text selected by this peer"""
-        self.root.tag_remove(self.sel_tag, "1.0", END)
+        self.root.tag_remove(self.sel_tag, "1.0", Tk.END)
         start, end = self.root.sort_indices([start, end])
         self.sel_start = start
         self.sel_end   = end  
@@ -246,7 +252,7 @@ class Peer:
         return
 
     def unhighlight(self):
-        self.root.tag_remove(self.code_tag, "1.0", END)
+        self.root.tag_remove(self.code_tag, "1.0", Tk.END)
         return
 
     def index(self):

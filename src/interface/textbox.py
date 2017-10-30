@@ -74,6 +74,10 @@ class ThreadSafeText(Text):
         self.char_w = self.font.measure(" ")
         self.char_h = self.font.metrics("linespace")
 
+        # Flag to only allow connect and set all messages
+
+        self.is_up_to_date = False
+
         # Set formatting tags
         
         for tag_name, kwargs in tag_descriptions.items():
@@ -163,106 +167,13 @@ class ThreadSafeText(Text):
 
                         this_peer = self.peers[msg['src_id']]
 
-                # When a user connects -- TODO: this should add the peer... not the Interface
-
-                if True:
+                # If we are not up-to-date with server, only accept MSG_CONNECT and MSG_SET_ALL
 
                     if isinstance(msg, MSG_CONNECT):
 
                         if self.marker.id != msg['src_id']:
 
                             print("Peer '{}' has joined the session".format(msg['name']))
-
-                    # If the server responds with a console message
-
-                    elif isinstance(msg, MSG_RESPONSE):
-
-                        if hasattr(self.root, "console"):
-
-                            self.root.console.write(msg['string']) 
-
-                    # Stop running when server is manually killed                 
-
-                    elif isinstance(msg, MSG_KILL):
-
-                        if hasattr(self.root, "console"):
-
-                            self.root.console.write(msg['string']) 
-
-                        self.root.push.kill()
-                        self.root.pull.kill()
-
-                    # Handles selection changes
-
-                    elif isinstance(msg, MSG_SELECT):
-
-                        sel1 = str(msg['start'])
-                        sel2 = str(msg['end'])
-                            
-                        this_peer.select(sel1, sel2)
-
-                    # Handles keypresses
-
-                    elif isinstance(msg, MSG_DELETE):
-
-                        self.handle_delete(this_peer, msg['row'],  msg['col'])
-
-                        self.root.colour_line(msg['row'])
-
-                    elif type(msg) == MSG_BACKSPACE:
-
-                        self.handle_backspace(this_peer, msg['row'], msg['col'])
-
-                        self.root.colour_line(msg['row'])
-
-                    elif isinstance(msg, MSG_EVALUATE_BLOCK):
-
-                        lines = (int(msg['start_line']), int(msg['end_line']))
-
-                        this_peer.highlightBlock(lines)
-
-                        # Experimental -- evaluate code based on highlight
-
-                        string = self.get("{}.0".format(lines[0]), "{}.end".format(lines[1]))
-                        
-                        self.root.lang.evaluate(string, name=str(this_peer), colour=this_peer.bg)
-
-                    elif isinstance(msg, MSG_SET_MARK):
-
-                        row = msg['row']
-                        col = msg['col']
-
-                        this_peer.move(row, col)
-
-                        # If this is a local peer, make sure we can see the marker
-
-                        if this_peer == self.marker:
-
-                            self.see(self.marker.mark)
-
-                    elif type(msg) == MSG_INSERT:
-
-                        self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
-
-                        # Update IDE keywords
-
-                        self.root.colour_line(msg['row'])
-
-                        # If the msg is from the local peer, make sure they see their text AND marker
-
-                        if this_peer == self.marker:
-
-                            self.see(self.marker.mark)
-
-                    elif isinstance(msg, MSG_GET_ALL):
-
-                        # Return the contents of the text box
-
-                        data = self.handle_getall()
-
-                        reply = MSG_SET_ALL(-1, data, msg['src_id'])
-
-                        self.root.push_queue.put( reply )
 
                     elif type(msg) == MSG_SET_ALL:
 
@@ -286,66 +197,163 @@ class ThreadSafeText(Text):
 
                         # Move the local peer to the start
 
-                        self.marker.move(1,0)                    
+                        self.marker.move(1,0)
 
-                    elif isinstance(msg, MSG_REMOVE):
+                        # Flag that we've been update
 
-                        # Remove a Peer
-                        this_peer.remove()
-                        
-                        del self.peers[msg['src_id']]
-                        
-                        print("Peer '{}' has disconnected".format(this_peer))
+                        self.is_up_to_date = True
 
-                    elif isinstance(msg, MSG_EVALUATE_STRING):
+                    elif self.is_up_to_date:
 
-                        # Handles single lines of code evaluation, e.g. "Clock.stop()", that
-                        # might be evaluated but not within the text
+                            # If the server responds with a console message
 
-                        self.root.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
+                            if isinstance(msg, MSG_RESPONSE):
 
-                    elif isinstance(msg, MSG_BRACKET):
+                                if hasattr(self.root, "console"):
 
-                        # Highlight brackets on local client only
+                                    self.root.console.write(msg['string']) 
 
-                        if this_peer.id == self.marker.id:
+                            # Stop running when server is manually killed                 
 
-                            row1, col1 = msg['row1'], msg['col1']
-                            row2, col2 = msg['row2'], msg['col2']
+                            elif isinstance(msg, MSG_KILL):
 
-                            peer_col = int(self.index(this_peer.mark).split(".")[1])
+                                if hasattr(self.root, "console"):
 
-                            # If the *actual* mark is a ahead, adjust
+                                    self.root.console.write(msg['string']) 
 
-                            col2 = col2 + (peer_col - col2) - 1
+                                self.root.push.kill()
+                                self.root.pull.kill()
 
-                            self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
-                            self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
+                            # Handles selection changes
 
-                    elif type(msg) == MSG_CONSTRAINT:
+                            elif isinstance(msg, MSG_SELECT):
 
-                        new_name = msg['name']
+                                sel1 = str(msg['start'])
+                                sel2 = str(msg['end'])
+                                    
+                                this_peer.select(sel1, sel2)
 
-                        print("Changing to constraint to '{}'".format(new_name))
+                            # Handles keypresses
 
-                        for name in self.root.creative_constraints:
+                            elif isinstance(msg, MSG_DELETE):
 
-                            if name == new_name:
+                                self.handle_delete(this_peer, msg['row'],  msg['col'])
 
-                                self.root.creative_constraints[name].set(True)
-                                self.root.__constraint__ = constraints[name](msg['src_id'])
+                                self.root.colour_line(msg['row'])
 
-                            else:
+                            elif type(msg) == MSG_BACKSPACE:
 
-                                self.root.creative_constraints[name].set(False)
+                                self.handle_backspace(this_peer, msg['row'], msg['col'])
 
-                    elif type(msg) == MSG_COMPARE:
+                                self.root.colour_line(msg['row'])
 
-                        # self.handle_compare(msg["data"])
+                            elif isinstance(msg, MSG_EVALUATE_BLOCK):
 
-                        pass
+                                lines = (int(msg['start_line']), int(msg['end_line']))
 
-                # Give some useful information about what the message looked like if error
+                                this_peer.highlightBlock(lines)
+
+                                # Experimental -- evaluate code based on highlight
+
+                                string = self.get("{}.0".format(lines[0]), "{}.end".format(lines[1]))
+                                
+                                self.root.lang.evaluate(string, name=str(this_peer), colour=this_peer.bg)
+
+                            elif isinstance(msg, MSG_SET_MARK):
+
+                                row = msg['row']
+                                col = msg['col']
+
+                                this_peer.move(row, col)
+
+                                # If this is a local peer, make sure we can see the marker
+
+                                if this_peer == self.marker:
+
+                                    self.see(self.marker.mark)
+
+                            elif isinstance(msg, MSG_INSERT):
+
+                                self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
+
+                                # Update IDE keywords
+
+                                self.root.colour_line(msg['row'])
+
+                                # If the msg is from the local peer, make sure they see their text AND marker
+
+                                if this_peer == self.marker:
+
+                                    self.see(self.marker.mark)
+
+                            elif isinstance(msg, MSG_GET_ALL):
+
+                                # Return the contents of the text box
+
+                                data = self.handle_getall()
+
+                                reply = MSG_SET_ALL(-1, data, msg['src_id'])
+
+                                self.root.push_queue.put( reply )           
+
+                            elif isinstance(msg, MSG_REMOVE):
+
+                                # Remove a Peer
+                                this_peer.remove()
+                                
+                                del self.peers[msg['src_id']]
+                                
+                                print("Peer '{}' has disconnected".format(this_peer))
+
+                            elif isinstance(msg, MSG_EVALUATE_STRING):
+
+                                # Handles single lines of code evaluation, e.g. "Clock.stop()", that
+                                # might be evaluated but not within the text
+
+                                self.root.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
+
+                            elif isinstance(msg, MSG_BRACKET):
+
+                                # Highlight brackets on local client only
+
+                                if this_peer.id == self.marker.id:
+
+                                    row1, col1 = msg['row1'], msg['col1']
+                                    row2, col2 = msg['row2'], msg['col2']
+
+                                    peer_col = int(self.index(this_peer.mark).split(".")[1])
+
+                                    # If the *actual* mark is a ahead, adjust
+
+                                    col2 = col2 + (peer_col - col2) - 1
+
+                                    self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
+                                    self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
+
+                            elif type(msg) == MSG_CONSTRAINT:
+
+                                new_name = msg['name']
+
+                                print("Changing to constraint to '{}'".format(new_name))
+
+                                for name in self.root.creative_constraints:
+
+                                    if name == new_name:
+
+                                        self.root.creative_constraints[name].set(True)
+                                        self.root.__constraint__ = constraints[name](msg['src_id'])
+
+                                    else:
+
+                                        self.root.creative_constraints[name].set(False)
+
+                            elif type(msg) == MSG_COMPARE:
+
+                                # self.handle_compare(msg["data"])
+
+                                pass
+
+                        # Give some useful information about what the message looked like if error
 
                 else:
 
@@ -450,7 +458,7 @@ class ThreadSafeText(Text):
 
             if peer is self.marker:
             
-               self.root.last_col += 1 # shouldn't this be just for the local peer?
+               self.root.last_col += 1
 
         else:
 
@@ -592,95 +600,6 @@ class ThreadSafeText(Text):
         for peer_id, row, col in data:
             if peer_id in self.peers:
                 self.peers[peer_id].move(row, col)
-        return
-
-    def handle_compare(self, s):
-        """ When a MSG_COMPARE comes in, this method unpacks the data and compares it to the
-            current contents of the text box, chaning anything that doesn't match. The row currently being
-            edited is unaffected.
-
-            Currenetly un-used
-        """
-        
-        # unpack the json data
-        
-        try:
-            
-            new_data = json.loads(s)
-            
-        except ValueError:
-
-            return
-
-        # Get current contents
-
-        cur_data = self.handle_getall()
-
-        # Find out which line is being edited by the user
-
-        index = self.marker.index()
-        row, col = index.split(".")
-        cur_row = int(row)
-
-        # Split the data into lines
-
-        new_text = new_data["contents"].split("\n")
-        cur_text = cur_data["contents"].split("\n")
-
-        if len(new_text) != len(cur_text):
-
-            stdout(new_text)
-            stdout(cur_text)
-
-        if len(new_text) < len(cur_text):
-
-            # line has been deleted and cur_row is one less
-
-            cur_row -= 1
-
-        elif len(new_text) < len(cur_text):
-
-            # line has been added and cur_row is one more?
-
-            cur_row += 1
-            
-        # If there are conflicts, go through and update every row *except* the current row being edited
-
-        if new_data["contents"] != cur_data["contents"]:
-
-            for row in range(len(new_text)):
-
-                if row + 1 != cur_row:
-
-##                    if row >= len(cur_text):
-##
-##                        # If we have an extra row - add a newline to the past row
-##
-##                        self.insert(line_end, "\n")
-
-                    line_start, line_end = "{}.0".format(row+1), "{}.end".format(row+1)
-
-                    self.delete(line_start, line_end)
-                    self.insert(line_start, new_text[row])
-
-            # If a text tag is not used by a connected peer, format the colours anyway
-
-            self.change_ranges(new_data["ranges"])
-
-            # Set the marks
-
-            for peer_id, x, y in new_data["marks"]:
-                
-                if peer_id in self.peers and peer_id != self.local_peer:
-
-                    self.peers[peer_id].move(x, y)
-
-            # Format the lines
-
-            for line,  _ in enumerate(self.readlines()[:-1]):
-
-                self.root.colour_line(line + 1)
-                
         return
 
     def sort_indices(self, list_of_indexes):
