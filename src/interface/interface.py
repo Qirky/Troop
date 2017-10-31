@@ -145,6 +145,11 @@ class Interface(BasicInterface):
             # Use .gif if necessary
             self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
 
+        # Track whether user wants transparent background
+
+        self.transparent = BooleanVar()
+        self.transparent.set(False)
+
         # Scroll bar
         self.scroll = Scrollbar(self.root)
         self.scroll.grid(row=0, column=3, sticky='nsew')
@@ -1156,6 +1161,24 @@ class Interface(BasicInterface):
         """ Hides or shows the menu bar """
         self.menu.toggle()
         return "break"
+
+    def ToggleTransparency(self, event=None):
+        """ Sets the text and console background to black and then removes all black pixels from the GUI """
+        setting_transparent = self.transparent.get()
+        if setting_transparent:
+            alpha = "#000001"
+            self.text.config(background=alpha)
+            self.line_numbers.config(background=alpha)
+            self.console.config(background=alpha)
+            self.graphs.config(background=alpha)
+            self.root.wm_attributes('-transparentcolor', alpha)
+        else:
+            self.text.config(background=COLOURS["Background"])
+            self.line_numbers.config(background=COLOURS["Background"])
+            self.console.config(background=COLOURS["Console"])
+            self.graphs.config(background=COLOURS["Stats"])
+            self.root.wm_attributes('-transparentcolor', "")
+        return
 
     def EditColours(self, event=None):
         """ Opens up the colour options dialog """

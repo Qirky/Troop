@@ -41,6 +41,7 @@ class MenuBar(Menu):
         editmenu.add_command(label="Toggle Menu", command=self.root.ToggleMenu, accelerator="Ctrl+M")
         editmenu.add_separator()
         editmenu.add_command(label="Edit Colours", command=self.root.EditColours)
+        editmenu.add_checkbutton(label="Toggle Window Transparency",  command=self.root.ToggleTransparency, variable=self.root.transparent)
         self.add_cascade(label="Edit", menu=editmenu)
 
         # Code menu
