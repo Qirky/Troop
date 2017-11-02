@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from ..config import *
 from ..message import *
@@ -236,7 +236,10 @@ class Interface(BasicInterface):
         self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
         
         self.text.bind("<Button-2>", self.rightMousePress) # disabled
-        self.text.tag_configure(SEL, background="black")   # Temporary fix - set normal highlighting to background colour
+        
+        # select_background
+        self.text.tag_configure(SEL, background="red")   # Temporary fix - set normal highlighting to background colour
+        self.text.bind("<<Selection>>", self.Selection)
 
         # Local execution (only on the local machine)
 
@@ -767,7 +770,8 @@ class Interface(BasicInterface):
 
     def Selection(self, event=None):
         """ Overrides handling of selected areas """
-        return "break"
+        self.text.tag_remove(SEL, "1.0", END)
+        return
 
     """ Update colour / formatting """
 
@@ -1084,6 +1088,8 @@ class Interface(BasicInterface):
         
         self.push_queue_put( MSG_SET_MARK(self.text.marker.id, int(row), int(col)), wait=True )
 
+        #self.text.tag_remove(SEL, "1.0", END) # Remove any *actual* selection to stop scrolling
+
         return "break"
 
     def leftMouseDrag(self, event):
@@ -1110,7 +1116,7 @@ class Interface(BasicInterface):
 
         row, col = index.split(".")
 
-        # Set the mark
+        # Set the mark and remove selected area
 
         messages = [ MSG_SET_MARK(self.text.marker.id, row, col),
                      MSG_SELECT(self.text.marker.id, "0.0", "0.0") ]
@@ -1166,18 +1172,24 @@ class Interface(BasicInterface):
         """ Sets the text and console background to black and then removes all black pixels from the GUI """
         setting_transparent = self.transparent.get()
         if setting_transparent:
-            alpha = "#000001"
+            alpha = "#000001" if SYSTEM == WINDOWS else "systemTransparent"
             self.text.config(background=alpha)
             self.line_numbers.config(background=alpha)
             self.console.config(background=alpha)
             self.graphs.config(background=alpha)
-            self.root.wm_attributes('-transparentcolor', alpha)
+            if SYSTEM == WINDOWS:
+                self.root.wm_attributes('-transparentcolor', alpha)
+            else:
+                self.root.wm_attributes("-transparent", True)
         else:
             self.text.config(background=COLOURS["Background"])
             self.line_numbers.config(background=COLOURS["Background"])
             self.console.config(background=COLOURS["Console"])
             self.graphs.config(background=COLOURS["Stats"])
-            self.root.wm_attributes('-transparentcolor', "")
+            if SYSTEM == WINDOWS:
+                self.root.wm_attributes('-transparentcolor', "")
+            else:
+                self.root.wm_attributes("-transparent", False)
         return
 
     def EditColours(self, event=None):

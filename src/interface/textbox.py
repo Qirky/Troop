@@ -270,6 +270,8 @@ class ThreadSafeText(Text):
 
                                 if this_peer == self.marker:
 
+                                    self.mark_set(INSERT, "{}.{}".format(row, col))
+
                                     self.see(self.marker.mark)
 
                             elif isinstance(msg, MSG_INSERT):

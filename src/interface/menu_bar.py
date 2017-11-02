@@ -50,7 +50,7 @@ class MenuBar(Menu):
         codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Code Locally", command=self.root.LocalEvaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
-        editmenu.add_separator()
+        codemenu.add_separator()
 
         # Allow choice of interpreter
         langmenu = Menu(self, tearoff=0)
