@@ -2,12 +2,17 @@ from __future__ import absolute_import
 
 try:
     from Tkinter import Menu
+    import tkFileDialog
+    import tkMessageBox
 except ImportError:
     from tkinter import Menu
+    from tkinter import filedialog as tkFileDialog
+    from tkinter import messagebox as tkMessageBox
     
 from functools import partial
 
 from ..config import *
+from ..message import *
 
 class MenuBar(Menu):
     def __init__(self, master, visible=True):
@@ -19,9 +24,9 @@ class MenuBar(Menu):
         # File menu
 
         filemenu = Menu(self, tearoff=0)
-        filemenu.add_command(label="New Document",  command=lambda: "break",   accelerator="Ctrl+N")
-        filemenu.add_command(label="Save",          command=lambda: "break",   accelerator="Ctrl+S")
-        filemenu.add_command(label="Save As...",    command=lambda: "break" )
+        filemenu.add_command(label="New Document",  command=self.new_file,   accelerator="Ctrl+N")
+        filemenu.add_command(label="Save",          command=self.save_file,   accelerator="Ctrl+S")
+        filemenu.add_command(label="Open",          command=self.open_file,   accelerator="Ctrl+O")
         filemenu.add_separator()
         filemenu.add_command(label="Start logging performance", command=lambda: "break")
         filemenu.add_command(label="Import logged performance", command=self.root.ImportLog)
@@ -101,4 +106,41 @@ class MenuBar(Menu):
     def toggle(self):
         self.root.root.config(menu=self if not self.visible else 0)
         self.visible = not self.visible
+        return
+
+    def save_file(self, event=None):
+        """ Opens a save file dialog """
+        lang_files = ("{} file".format(repr(self.root.lang)), self.root.lang.filetype )
+        all_files = ("All files", "*.*")
+        fn = tkFileDialog.asksaveasfilename(title="Save as...", filetypes=(lang_files, all_files), defaultextension=lang_files[1])
+        if len(fn):
+            with open(fn, "w") as f:
+                f.write(self.root.text.read())
+            print("Saved: {}".format(fn))
+        return
+
+    def new_file(self, event=None):
+        """ Asks if the user wants to clear the screen and does so if yes """
+        return
+
+    def open_file(self, event=None):
+        """ Opens a fileopen dialog then sets the text box contents to the contents of the file """
+        lang_files = ("{} files".format(repr(self.root.lang)), self.root.lang.filetype )
+        all_files = ("All files", "*.*")
+        fn = tkFileDialog.askopenfilename(title="Open file", filetypes=(lang_files, all_files))
+        
+        if len(fn):
+
+            with open(fn) as f:
+                contents = f.read()
+
+            this_peer = self.root.text.marker.id
+
+            messages = [ MSG_SELECT(this_peer, "1.0", self.root.text.index("end")),
+                         MSG_SET_MARK(this_peer, 1, 0),
+                         MSG_BACKSPACE(this_peer, 1, 0),
+                         MSG_INSERT(this_peer, contents, 1, 0) ]
+
+            self.root.push_queue_put( messages, wait=True)
+
         return

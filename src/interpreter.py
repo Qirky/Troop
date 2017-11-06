@@ -46,7 +46,7 @@ class DummyInterpreter:
             names and formatting """
         # Split on newlines
         string = [line.strip() for line in string.split("\n") if len(line.strip()) > 0]
-        if len(string) > 0:
+        if len(string) > 0 and name is not None:
             name = str(name)
             print(colour_format(name, colour) + _ + string[0])
             # Use ... for the remainder  of the  lines
@@ -65,6 +65,7 @@ class Interpreter(DummyInterpreter):
     clock    = None
     re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
     stdout   = None
+    filetype = ".txt"
     def __init__(self, path):
         path = [path] if type(path) is not list else path
         self.lang = Popen(path, shell=True, universal_newlines=True,
@@ -84,6 +85,37 @@ class Interpreter(DummyInterpreter):
         # Read stdout (wait 0.1 seconds)
         threading.Thread(target=self.stdout).start()
         return
+
+    def get_block_of_code(self, text, index):
+        """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
+
+        # Get start and end of the buffer
+        start, end = "1.0", text.index("end")
+        lastline   = int(end.split('.')[0]) + 1
+
+        # Indicies of block to execute
+        block = [0,0]        
+        
+        # 1. Get position of cursor
+        cur_x, cur_y = index.split(".")
+        cur_x, cur_y = int(cur_x), int(cur_y)
+        
+        # 2. Go through line by line (back) and see what it's value is
+        
+        for line in range(cur_x, 0, -1):
+            if not text.get("%d.0" % line, "%d.end" % line).strip():
+                break
+
+        block[0] = line
+
+        # 3. Iterate forwards until we get two \n\n or index==END
+        for line in range(cur_x, lastline):
+            if not text.get("%d.0" % line, "%d.end" % line).strip():
+                break
+
+        block[1] = line
+
+        return block
 
     def stdout(self):
         """ Waits 0.1 seconds then reads the stdout from the self.lang process """
@@ -121,6 +153,7 @@ class CustomInterpreter:
         return Interpreter(*self.args, **self.kwargs)
 
 class FoxDotInterpreter(Interpreter):
+    filetype=".py"
     def __init__(self):
         import FoxDot
 
@@ -136,8 +169,12 @@ class FoxDotInterpreter(Interpreter):
 
         self.re["tag_bold"] = compile_regex(self.keywords)
 
+    def __repr__(self):
+        return "FoxDot"
+
     def kill(self):
-        self.evaluate("Clock.stop()")
+        self.evaluate(self.stop_sound())
+        return
 
     def stop_sound(self):
         return "Clock.clear()"
@@ -158,12 +195,9 @@ class FoxDotInterpreter(Interpreter):
 
 
 class SuperColliderInterpreter(Interpreter):
+    filetype = ".scd"
     def __init__(self):
-        import OSC
-
-        # Get password for Troop quark
-        from getpass import getpass
-        self.__password = getpass("Enter the password for your SuperCollider Troop Quark: ")
+        from . import OSC # need to deal with Python 3
 
         # Connect to OSC client
         self.host = 'localhost'
@@ -172,21 +206,120 @@ class SuperColliderInterpreter(Interpreter):
         self.lang.connect((self.host, self.port))
 
         # Define a function to produce new OSC messages
-        self.new_msg = lambda: OSC.OSCMessage()
+        self.new_msg = lambda: OSC.OSCMessage("/troop")
+
+    def __repr__(self):
+        return "SuperCollider"
+
+    def kill(self):
+        self.evaluate(self.stop_sound())
+        self.lang.close()
+        return
+
+    def get_block_of_code(self, text, index):
+        """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
+
+        # Get start and end of the buffer
+        start, end = "1.0", text.index("end")
+        lastline   = int(end.split('.')[0]) + 1
+
+        # Indicies of block to execute
+        block = [0,0]        
+        
+        # 1. Get position of cursor
+        cur_y, cur_x = index.split(".")
+        cur_y, cur_x = int(cur_y), int(cur_x)
+
+        left_cur_y, left_cur_x   = cur_y, cur_x
+        right_cur_y, right_cur_x = cur_y, cur_x
+
+        # Go back to find a left bracket
+
+        while True:
+
+            new_left_cur_y,  new_left_cur_x  = self.get_left_bracket(text, left_cur_y, left_cur_x)
+            new_right_cur_y, new_right_cur_x = self.get_right_bracket(text, right_cur_y, right_cur_x)
+
+            if new_left_cur_y is None or new_right_cur_y is None:
+
+                block = [left_cur_y, right_cur_y + 1]
+
+                break
+
+            else:
+
+                left_cur_y,  left_cur_x  = new_left_cur_y,  new_left_cur_x
+                right_cur_y, right_cur_x = new_right_cur_y, new_right_cur_x
+
+        return block
+
+    def get_left_bracket(self, text, cur_y, cur_x):
+        count = 0
+        line_text = text.get("{}.{}".format(cur_y, 0), "{}.{}".format(cur_y, "end"))
+        for line_num in range(cur_y, 0, -1):
+            # Only check line if it has text
+            if len(line_text) > 0:
+                for char_num in range(cur_x - 1, -1, -1):
+                    
+                    try:
+                        char = line_text[char_num] 
+                    except IndexError as e:
+                        print("left bracket, string is {}, index is {}".format(line_text, char_num))
+                        raise(e)
+
+                    if char == ")":
+                        count += 1
+                    elif char == "(":
+                        if count == 0:
+                            return line_num, char_num
+                        else:
+                            count -= 1
+            line_text = text.get("{}.{}".format(line_num - 1, 0), "{}.{}".format(line_num - 1, "end"))
+            cur_x     = len(line_text)
+        return None, None
+
+    def get_right_bracket(self, text, cur_y, cur_x):
+        num_lines = int(text.index("end").split(".")[0]) + 1
+        count = 0
+        for line_num in range(cur_y, num_lines):
+            line_text = text.get("{}.{}".format(line_num, 0), "{}.{}".format(line_num, "end"))
+            # Only check line if it has text
+            if len(line_text) > 0:
+                for char_num in range(cur_x, len(line_text)):
+                    
+                    try:
+                        char = line_text[char_num] 
+                    except IndexError as e:
+                        print("right bracket, string is {}, index is {}".format(line_text, char_num))
+                        raise(e)
+
+                    if char == "(":
+                        count += 1
+                    if char == ")":
+                        if count == 0:
+                            return line_num, char_num + 1
+                        else:
+                            count -= 1
+            cur_x = 0
+        else:
+            return None, None
+
 
     def stop_sound(self):
         return "s.freeAll"
         
-    def evaluate(self, *args, **kwargs):
-        Interpreter.evaluate(self, *args, **kwargs)
+    def evaluate(self, string, *args, **kwargs):
+        # Print to the console the message
+        Interpreter.print_stdin(self, string, *args, **kwargs)
+        # Create an osc message and send to SuperCollider
         msg = self.new_msg()
-        msg.setAddress("/troop")
-        msg.append([self.__password, string])
+        msg.append([string])
         self.lang.send(msg)
         return
 
 class TidalInterpreter(Interpreter):
     path = 'ghci'
+    filetype = ".tidal"
     def __init__(self):
         # Start haskell interpreter
         Interpreter.__init__(self, self.path)
@@ -218,6 +351,9 @@ class TidalInterpreter(Interpreter):
         while self.stdout() > 0:
 
             pass
+
+    def __repr__(self):
+        return "TidalCycles"
     
     @staticmethod
     def format(string):

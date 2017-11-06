@@ -249,7 +249,7 @@ class Interface(BasicInterface):
 
         disable = lambda e: "break"
 
-        for key in list("qwertyuiopsdfghjklbnm") + ["slash"]:
+        for key in list("qwertyuipdfghjklbm") + ["slash"]:
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), disable)
 
@@ -257,6 +257,10 @@ class Interface(BasicInterface):
 
         self.text.bind("<{}-equal>".format(CtrlKey),  self.IncreaseFontSize)
         self.text.bind("<{}-minus>".format(CtrlKey),  self.DecreaseFontSize)
+
+        self.text.bind("<{}-s>".format(CtrlKey),  self.menu.save_file)
+        self.text.bind("<{}-o>".format(CtrlKey),  self.menu.open_file)
+        self.text.bind("<{}-n>".format(CtrlKey),  self.menu.new_file)
 
         self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling")
 
@@ -992,45 +996,11 @@ class Interface(BasicInterface):
         """ Finds the 'block' of code that the local peer is currently in
             and returns a tuple of the start and end row """
 
-        # Get start and end of the buffer
-        start, end = "1.0", self.text.index(END)
-        lastline   = int(end.split('.')[0]) + 1
-
-        # Indicies of block to execute
-        block = [0,0]        
-        
-        # 1. Get position of cursor
-        cur_x, cur_y = self.text.index(self.text.marker.mark).split(".")
-        cur_x, cur_y = int(cur_x), int(cur_y)
-        
-        # 2. Go through line by line (back) and see what it's value is
-        
-        for line in range(cur_x, 0, -1):
-            if not self.text.get("%d.0" % line, "%d.end" % line).strip():
-                break
-
-        block[0] = line
-
-        # 3. Iterate forwards until we get two \n\n or index==END
-        for line in range(cur_x, lastline):
-            if not self.text.get("%d.0" % line, "%d.end" % line).strip():
-                break
-
-        block[1] = line
-
-        return block
+        index = self.text.index(self.text.marker.mark)
+        return self.lang.get_block_of_code(self.text, index)
 
 
     def LocalEvaluate(self, event=None): # TODO -- change this to single line evaluate
-        # 1. Get the block of code
-        lines = self.currentBlock()
-        # 2. Convert to string
-        a, b = ("%d.0" % n for n in lines)
-        string = self.text.get( a , b )
-        # 3. Evaluate locally
-        self.lang.evaluate(string, str(self.text.marker), self.text.marker.bg)
-        # 4. Highlight the text
-        self.text.peers[self.text.local_peer].highlightBlock((lines[0], lines[1]))
         return "break"
 
     def Evaluate(self, event=None):
@@ -1232,6 +1202,10 @@ class Interface(BasicInterface):
         """ Tells Troop to interpret a new language, takes a string """
         self.lang.kill()
         self.lang=langtypes[name]()
+        s = "Changing interpreted lanaguage to {}".format(repr(self.lang))
+        print("\n" + "="*len(s))
+        print(s)
+        print("\n" + "="*len(s))
         return
 
     def set_constraint(self, name):

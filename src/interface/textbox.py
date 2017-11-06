@@ -133,6 +133,10 @@ class ThreadSafeText(Text):
             to accommodate TKinter's 1-indexing of rows and columns """
         return [""] + self.get("1.0", END).split("\n")[:-1]
 
+    def read(self):
+        """ Returns the entire contents of the text box as a string """
+        return self.get("1.0", END)
+
     def log_message(self, message):
         """ If logging is turned on, this method writes each message received to file """
         if self.root.is_logging:
