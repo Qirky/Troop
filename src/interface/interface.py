@@ -1164,7 +1164,7 @@ class Interface(BasicInterface):
 
     def EditColours(self, event=None):
         """ Opens up the colour options dialog """
-        from colour_picker import ColourPicker
+        from .colour_picker import ColourPicker
         ColourPicker(self)
         return
 

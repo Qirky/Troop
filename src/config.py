@@ -102,6 +102,10 @@ def getInterpreter(path):
 global COLOUR_INFO_FILE
 global COLOURS
 
+# to avoid putting CONF_DIR into the namespace
+if not os.path.exists(os.path.join(SRC_DIR, "conf")):
+    os.makedirs(os.path.join(SRC_DIR, "conf"))
+
 COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
 
 COLOURS = { "Background" : "#272822",
