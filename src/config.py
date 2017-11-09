@@ -1,7 +1,12 @@
 import sys
 import os.path
 
-if sys.version_info[0] == 2:
+PY_VERSION = sys.version_info[0]
+
+# Any Py2to3
+
+if PY_VERSION == 2:
+
     input = raw_input
 
 # This removed blurry fonts on Windows

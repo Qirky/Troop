@@ -197,7 +197,11 @@ class FoxDotInterpreter(Interpreter):
 class SuperColliderInterpreter(Interpreter):
     filetype = ".scd"
     def __init__(self):
-        from . import OSC # need to deal with Python 3
+        
+        if PY_VERSION == 2:
+            from . import OSC
+        else:
+            from . import OSC3 as OSC
 
         # Connect to OSC client
         self.host = 'localhost'

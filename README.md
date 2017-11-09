@@ -2,9 +2,9 @@
 
 ## Real-time collaborative live coding
 
-Troop is a real-time collaborative tool that enables group live coding within the same document across multiple computers. Hypothetically Troop can talk to any interpreter that can take input as a string from the command line but it is already configured to work with live coding languages [FoxDot](https://github.com/Qirky/FoxDot), and [TidalCycles](https://tidalcycles.org/). 
+Troop is a real-time collaborative tool that enables group live coding within the same document across multiple computers. Hypothetically Troop can talk to any interpreter that can take input as a string from the command line but it is already configured to work with live coding languages [FoxDot](https://github.com/Qirky/FoxDot), [TidalCycles](https://tidalcycles.org/), and [SuperCollider](http://supercollider.github.io/). 
 
-Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/). Click the links to find out more about installing. Both of these require the audio engine [SuperCollider](http://supercollider.github.io/) to work.
+Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/) and [SuperCollider](http://supercollider.github.io/). Click the links to find out more about installing. Both TidalCycles and FoxDot require [SuperCollider](http://supercollider.github.io/) to work, so it's a good bet you'll need it.
 
 Troop is compatible with both Python 2 and 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
 
@@ -38,16 +38,39 @@ To run the client file in its default FoxDot mode you can either double click th
 
 	python run-client.py
 
-To run Troop in TidalCycles mode you need to specify this using the "mode" flag like so:
+You can change the language after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.
+
+Alternatively you can start Troop in a different "mode" so that it is interpreting another language at startup. To do this, run the following from the command line depending on your desired startup language:
+ 
+**TidalCycles**
 
 	python run-client.py --mode TidalCycles
 
-You can change the language after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.  
+**TidalCycles (installed using Stack)**
+
+	python run-client.py --mode TidalCyclesStack
+
+**SuperCollider**
+
+	python run-client.py --mode SuperCollider
+
+To use the SuperCollider language from Troop you will need to install the Troop Quark but opening SuperCollider and running the following line of code. This will create a class that listens for messages from Troop containing SuperCollider code.
+
+	Quarks.install("http://github.com/Qirky/TroopQuark.git")
+
+Once this is done you'll need to make SuperCollider listen for Troop messages by evaluating the following line of code in SuperCollider:
+
+	Troop.start
+  
+
+**Other**
+
+	python run-client.py --mode path/to/interpreter
 
 On running this script you will be asked for four things:
 
-- The IP address of the Troop Server
-- The port of the Troop Server
+- The IP address of the Troop Server (default is "localhost")
+- The port of the Troop Server (default is 57890)
 - A name you wish to be identified by while using Troop
 - The password for the Troop Server
 
@@ -76,4 +99,8 @@ If you do find any problems when using Troop, please raise an issue on the GitHu
 
 ## Thanks
 
-Huge thank you to Alex McLean for his inspiration for this project and to Lucy and Laurie for testing it during its development. 
+Huge thank you to Alex McLean for his inspiration for this project and to Lucy and Laurie, among other users from the live coding community, for testing it during its development. 
+
+### Feedback
+
+Your feedback for this project would be greatly appreciated. If you have used the Troop software yourself, please take a few minutes to fill out my (mostly) multiple-choice [online questionnaire](http://tinyurl.com/troop-feedback).
