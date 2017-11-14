@@ -3,8 +3,10 @@ from ..config import *
 
 try:
     from Tkinter import *
+    import tkFont
 except ImportError:
     from tkinter import *
+    from tkinter import font as tkFont
 
 try:
     import queue
@@ -21,7 +23,26 @@ def find_colour(string):
 class Console(Text):
     def __init__(self, root, **kwargs):
         # Inherit
-        Text.__init__(self, root, **kwargs)       
+        Text.__init__(self, root, **kwargs)   
+
+        # Set font
+
+        if SYSTEM == MAC_OS:
+
+            fontfamily = "Monaco"
+
+        elif SYSTEM == WINDOWS:
+
+            fontfamily = "Consolas"
+
+        else:
+
+            fontfamily = "Courier New"
+
+        self.font = tkFont.Font(family=fontfamily, size=12, name="ConsoleFont")
+        self.font.configure(**tkFont.nametofont("ConsoleFont").configure())
+
+        self.configure(font="ConsoleFont")
 
         # Queue waits for messages to be added to the console
         self.queue = queue.Queue()
