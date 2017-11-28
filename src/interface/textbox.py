@@ -278,6 +278,30 @@ class ThreadSafeText(Text):
 
                                     self.see(self.marker.mark)
 
+                            elif isinstance(msg, MSG_MOVE_CURSOR):
+
+                                # Get direction
+                                dir_string = msg.get_direction()
+
+                                row, col = this_peer.row, this_peer.col
+
+                                if dir_string == "left":
+                                    row, col = self.root.Left(row, col)
+                                elif dir_string == "right":
+                                    row, col = self.root.Right(row, col)
+                                elif dir_string == "up":
+                                    row, col = self.root.Up(row, col)
+                                elif dir_string == "down":
+                                    row, col = self.root.Down(row, col)
+
+                                this_peer.move(row, col)
+
+                                if this_peer == self.marker:
+
+                                    self.mark_set(INSERT, "{}.{}".format(row, col))
+
+                                    self.see(self.marker.mark)
+
                             elif isinstance(msg, MSG_INSERT):
 
                                 self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])

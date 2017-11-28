@@ -1,6 +1,9 @@
 # Compiled Python file
 *.pyc
 __pycache__/*
+setup.py
+dist/*
+build/*
 
 # Create logs
 logs/*

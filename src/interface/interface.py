@@ -555,29 +555,37 @@ class Interface(BasicInterface):
             old_row, old_col = row, col
 
             if event.keysym == "Left":
-                row, col = self.Left(old_row, old_col)
+                #row, col = self.Left(old_row, old_col)
+                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("left")) )
 
             elif event.keysym == "Right":
-                row, col = self.Right(old_row, old_col)
-
+                #row, col = self.Right(old_row, old_col)
+                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("right")) )
+            
             elif event.keysym == "Up":
-                
-                row, col = self.Up(old_row, old_col)
+                #row, col = self.Up(old_row, old_col)
+                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("up")) )
 
             elif event.keysym == "Down":
-                row, col = self.Down(old_row, old_col)
+                #row, col = self.Down(old_row, old_col)
+                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("down")) )
 
             elif event.keysym == "Home":
-                col = 0
+
+                # Move mark to start of the row
+                messages.append( MSG_SET_MARK(self.text.marker.id, row, 0) )
 
             elif event.keysym == "End":
+                
+                # Move mark to the end of the row
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
+                messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
 
-            if old_row != row:
+            # if old_row != row:
 
-                wait_for_reply = True
+            wait_for_reply = True
 
-            messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
+            # messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
 
             # if there is some selected text, de-select
 

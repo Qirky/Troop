@@ -81,7 +81,7 @@ class Sender:
         try:
             self.conn.sendall(message.bytes())
         except Exception as e:
-            raise ConnectionError("Can't connect to server")
+            raise ConnectionError("Error in sender.send(): can't connect to server")
         return
 
     def kill(self):
