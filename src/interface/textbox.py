@@ -241,13 +241,18 @@ class ThreadSafeText(Text):
 
                             elif isinstance(msg, MSG_DELETE):
 
-                                self.handle_delete(this_peer, msg['row'],  msg['col'])
+                                # self.handle_delete(this_peer, msg['row'],  msg['col'])
+                                row, col = this_peer.get_coords()
+
+                                self.handle_delete(this_peer, row, col)
 
                                 self.root.colour_line(msg['row'])
 
                             elif type(msg) == MSG_BACKSPACE:
 
-                                self.handle_backspace(this_peer, msg['row'], msg['col'])
+                                row, col = this_peer.get_coords()
+
+                                self.handle_backspace(this_peer, row, col)
 
                                 self.root.colour_line(msg['row'])
 
@@ -256,8 +261,6 @@ class ThreadSafeText(Text):
                                 lines = (int(msg['start_line']), int(msg['end_line']))
 
                                 this_peer.highlightBlock(lines)
-
-                                # Experimental -- evaluate code based on highlight
 
                                 string = self.get("{}.0".format(lines[0]), "{}.end".format(lines[1]))
                                 
@@ -271,6 +274,42 @@ class ThreadSafeText(Text):
                                 this_peer.move(row, col)
 
                                 # If this is a local peer, make sure we can see the marker
+
+                                if this_peer == self.marker:
+
+                                    self.mark_set(INSERT, "{}.{}".format(row, col))
+
+                                    self.see(self.marker.mark)
+
+                            elif isinstance(msg, MSG_MOVE_SELECTION):
+
+                                # Get direction
+                                dir_string = msg.get_direction()
+
+                                row, col = this_peer.row, this_peer.col
+
+                                row, col = this_peer.get_coords()
+
+                                if dir_string == "left":
+                                    row, col = self.root.Left(row, col)
+                                elif dir_string == "right":
+                                    row, col = self.root.Right(row, col)
+                                elif dir_string == "up":
+                                    row, col = self.root.Up(row, col)
+                                elif dir_string == "down":
+                                    row, col = self.root.Down(row, col)
+                                elif dir_string == "home":
+                                    col = 0
+                                elif dir_string == "end":
+                                    col = this_peer.get_end_col()
+
+                                # Update selection
+                                sel1, sel2 = self.root.UpdateSelect(this_peer.row, this_peer.col, row, col)
+                                
+                                this_peer.select(sel1, sel2)
+
+                                # Update peer
+                                this_peer.move(row, col)
 
                                 if this_peer == self.marker:
 
@@ -304,11 +343,15 @@ class ThreadSafeText(Text):
 
                             elif isinstance(msg, MSG_INSERT):
 
-                                self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
+                                # self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
+
+                                row, col = this_peer.get_coords()
+
+                                self.handle_insert(this_peer, msg['char'], row, col)
 
                                 # Update IDE keywords
 
-                                self.root.colour_line(msg['row'])
+                                self.root.colour_line(row)
 
                                 # If the msg is from the local peer, make sure they see their text AND marker
 
@@ -344,7 +387,7 @@ class ThreadSafeText(Text):
 
                             elif isinstance(msg, MSG_BRACKET):
 
-                                # Highlight brackets on local client only
+                                # Highlight brackets on local client only -- should be evaluated on this end
 
                                 if this_peer.id == self.marker.id:
 
@@ -523,17 +566,51 @@ class ThreadSafeText(Text):
 
             peer.deleteSelection()
 
-        # Move peer.mark to index if necessary - if different row?
+        # Add highlighting if 
 
-        # if index != peer.index():
+        if char in self.root.closing_bracket_types:
 
-            # stdout(index, peer.index())
+            text = self.readlines()
 
-            # self.mark_set(peer.mark, index)
+            # "insert" the bracket in the text to simulate actually adding it
 
-        # Insert the character
+            try:
 
-        self.insert(peer.mark, char, peer.text_tag)
+                text[row] = text[row][:col] + char + text[row][col:]
+
+            except IndexError as e:
+
+                stdout("IndexError", e)
+                stdout(row, col, text) 
+
+            if self.root.handle_bracket.is_inserting_bracket(text, row, col, char):
+
+                self.insert(peer.mark, char, peer.text_tag)
+
+            else:
+
+                new_row, new_col = self.root.Right(row, col)
+
+                peer.move(new_row, new_col)
+
+            loc = self.root.handle_bracket.find_starting_bracket(text, row, col - 1, char)
+
+            if loc is not None:
+
+                row1, col1 = loc
+                row2, col2 = row, col
+
+                if peer.id == self.marker.id:
+
+                    self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
+                    self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
+
+
+        else:
+
+            # Insert the character
+
+            self.insert(peer.mark, char, peer.text_tag)
         
         return
 
