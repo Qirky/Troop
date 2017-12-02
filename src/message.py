@@ -313,26 +313,7 @@ class MSG_KILL(MESSAGE):
     type = 20
     def __init__(self, src_id, string):
         MESSAGE.__init__(self, src_id)
-        self['string']=str(string)
-
-class MSG_MOVE_CURSOR(MESSAGE):
-    type = 21
-    dirs = ["left", "right", "up", "down", "home", "end"]
-    def __init__(self, src_id, direction, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self["direction"]=int(direction)
-        self["reply"] = int(reply)
-
-    @classmethod
-    def get_index(cls, string):
-        return cls.dirs.index(string.lower())
-
-    def get_direction(self):
-        return self.dirs[self["direction"]]
-
-class MSG_MOVE_SELECTION(MSG_MOVE_CURSOR):
-    type = 22
-
+        self['string']=str(string)   
  
 # Create a dictionary of message type to message class 
 
@@ -355,9 +336,7 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_PING,
                                              MSG_CONSTRAINT,
                                              MSG_COMPARE,
-                                             MSG_KILL,
-                                             MSG_MOVE_CURSOR,
-                                             MSG_MOVE_SELECTION ] }
+                                             MSG_KILL ] }
 
 # Exceptions
 
@@ -378,3 +357,6 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "Could not connect to {}".format(self.name)
+
+if __name__ == "__main__":
+    print(MSG_INSERT(1, "a", 4, 1))

@@ -217,8 +217,6 @@ class Interface(BasicInterface):
         self.text.bind("<Shift-Down>",  self.SelectDown)
         self.text.bind("<Shift-End>",   self.SelectEnd)
         self.text.bind("<Shift-Home>",  self.SelectHome)
-        self.text.bind("<Shift-{}-Home>".format(CtrlKey), self.SelectCtrlHome)
-        self.text.bind("<Shift-{}-End>".format(CtrlKey), self.SelectCtrlEnd)
         self.text.bind("<{}-a>".format(CtrlKey), self.SelectAll)
 
         # Copy and paste key bindings
@@ -544,9 +542,9 @@ class Interface(BasicInterface):
 
             # Only add a backspace if the last has been updated
 
-            #if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
+            if (self.last_keypress, self.last_row, self.last_col) != ("BackSpace", row, col):
 
-            messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
+                messages.append( MSG_BACKSPACE(self.text.marker.id, row, col) )
 
             wait_for_reply = True
 
@@ -557,40 +555,29 @@ class Interface(BasicInterface):
             old_row, old_col = row, col
 
             if event.keysym == "Left":
-                
-                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("left")) )
+                row, col = self.Left(old_row, old_col)
 
             elif event.keysym == "Right":
-                
-                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("right")) )
-            
+                row, col = self.Right(old_row, old_col)
+
             elif event.keysym == "Up":
                 
-                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("up")) )
+                row, col = self.Up(old_row, old_col)
 
             elif event.keysym == "Down":
-                
-                messages.append( MSG_MOVE_CURSOR(self.text.marker.id, MSG_MOVE_CURSOR.get_index("down")) )
+                row, col = self.Down(old_row, old_col)
 
             elif event.keysym == "Home":
-
-                # Move mark to start of the row
-                
-                messages.append( MSG_SET_MARK(self.text.marker.id, row, 0) )
+                col = 0
 
             elif event.keysym == "End":
-                
-                # Move mark to the end of the row
-                
                 col = int(self.text.index("{}.end".format(row)).split(".")[1])
-                
-                messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
 
-            # if old_row != row:
+            if old_row != row:
 
-            wait_for_reply = True
+                wait_for_reply = True
 
-            # messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
+            messages.append( MSG_SET_MARK(self.text.marker.id, row, col) )
 
             # if there is some selected text, de-select
 
@@ -621,13 +608,59 @@ class Interface(BasicInterface):
                     
                     char = event.char
 
-                messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
+                if char in self.closing_bracket_types:
+
+                    # Work out if we need to add this bracket
+
+                    text = self.text.readlines()
+
+                    # "insert" the bracket in the text to simulate actually adding it
+
+                    try:
+
+                        text[row] = text[row][:col] + char + text[row][col:]
+
+                    except IndexError as e:
+
+                        stdout("IndexError", e)
+                        stdout(row, col, text)                    
+
+                    # If we need to add a closing bracket, just insert
+
+                    if self.handle_bracket.is_inserting_bracket(text, row, col, event.char):
+
+                        messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
+
+                    # else, move to the right one space
+
+                    else:
+
+                        new_row, new_col = self.Right(row, col)
+
+                        messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col) )
+
+                    # Work out where the appropriate enclosing bracket is and send a message to highlight
+
+                    loc = self.handle_bracket.find_starting_bracket(text, row, col - 1, event.char)
+
+                    if loc is not None:
+
+                        row1, col1 = loc
+                        row2, col2 = row, col
+
+                        messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2) )
+
+                # Add any other character
+
+                else:
+
+                    messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
         # Push messages
 
         self.push_queue_put(messages, wait_for_reply)
             
-        # Store the key info -- not sure we need this any more
+        # Store the key info
 
         self.last_keypress  = event.keysym
         self.last_row       = row
@@ -639,55 +672,10 @@ class Interface(BasicInterface):
     
         return "break"
 
-    def get_bracket_messages(self, char, row, col):
-        """ Returns a list of messages if entering a left/right bracket - may be empty """
-
-        messages = []
-
-        text = self.text.readlines()
-
-        # "insert" the bracket in the text to simulate actually adding it
-
-        try:
-
-            text[row] = text[row][:col] + char + text[row][col:]
-
-        except IndexError as e:
-
-            stdout("IndexError", e)
-            stdout(row, col, text)                    
-
-        # If we need to add a closing bracket, just insert
-
-        if self.handle_bracket.is_inserting_bracket(text, row, col, char):
-
-            messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
-
-        # else, move to the right one space
-
-        else:
-
-            new_row, new_col = self.Right(row, col)
-
-            messages.append( MSG_SET_MARK(self.text.marker.id, new_row, new_col) )
-
-        # Work out where the appropriate enclosing bracket is and send a message to highlight
-
-        loc = self.handle_bracket.find_starting_bracket(text, row, col - 1, char)
-
-        if loc is not None:
-
-            row1, col1 = loc
-            row2, col2 = row, col
-
-            messages.append( MSG_BRACKET(self.text.marker.id, row1, col1, row2, col2) )
-
-        return messages
-
+    """ Handling changes in selected areas """
 
     def UpdateSelect(self, last_row, last_col, new_row, new_col):
         """ Updates the currently selected portion of text for the local peer """
-
         try:
             start = self.text.index(self.text.marker.sel_tag + ".first")
             end   = self.text.index(self.text.marker.sel_tag + ".last")
@@ -702,75 +690,73 @@ class Interface(BasicInterface):
             start = "{}.{}".format(last_row, last_col)
             end   = "{}.{}".format(new_row, new_col)
 
-        return start, end
+        wait_for_reply = (new_row != last_row)
 
-        #wait_for_reply = (new_row != last_row)
+        messages = [ MSG_SELECT(self.text.marker.id, start, end),
+                     MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
 
-        #messages = [ MSG_SELECT(self.text.marker.id, start, end),
-        #             MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
-
-        #self.push_queue_put( messages, wait_for_reply)
+        self.push_queue_put( messages, wait_for_reply)
                 
         return "break"
 
     def SelectLeft(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("left")) )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Left(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
 
     def SelectRight(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("right")) )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Right(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
     
     def SelectUp(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("up")) )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Up(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
     
     def SelectDown(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("down")) )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = self.Down(row1, col1)
+        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
 
     def SelectEnd(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("end")) )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = (int(i) for i in self.text.index("{}.end".format(row1)).split("."))
+        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
 
     def SelectHome(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        self.push_queue_put( MSG_MOVE_SELECTION(self.text.marker.id, MSG_MOVE_SELECTION.get_index("home")) )
-        return "break"
-
-    def SelectCtrlHome(self, event=None):
-        """ Selects from the current location to 1.0 """
-        start = "1.0"
-        end   = self.text.marker.index()
-
-        messages = [ MSG_SELECT(self.text.marker.id, start, end),
-                     MSG_SET_MARK(self.text.marker.id, 1, 0) ]
-
-        self.push_queue_put( messages, wait=True )
+        row1, col1 = self.text.index(self.text.marker.mark).split(".")
+        row1, col1 = int(row1), int(col1)
+        row2, col2 = (int(i) for i in self.text.index("{}.0".format(row1)).split("."))
         
-        return "break"
-
-    def SelectCtrlEnd(self, event=None):
-        """ Selects from the current index to EOF """
-        start = self.text.marker.index()
-        end   = self.text.index(END)
-
-        messages = [ MSG_SELECT(self.text.marker.id, start, end),
-                     MSG_SET_MARK(self.text.marker.id, 1, 0) ]
-
-        self.push_queue_put( messages, wait=True )
-        
+        self.UpdateSelect(row1, col1, row2, col2)
         return "break"
 
     def SelectAll(self, event=None):

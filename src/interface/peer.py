@@ -261,14 +261,6 @@ class Peer:
         if a != b:
             stdout(a, b)
         return b
-
-    def get_coords(self):
-        return tuple(int(value) for value in self.root.index(self.mark).split("."))
-
-    def get_end_col(self):
-        row, _ = self.get_coords()
-        _, col = self.root.index("{}.end".format(row)).split(".")
-        return int(col)
     
     def __eq__(self, other):
         return self.id == other
