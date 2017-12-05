@@ -13,6 +13,11 @@ from subprocess import Popen
 from subprocess import PIPE, STDOUT
 from datetime import datetime
 
+try:
+    broken_pipe_exception = BrokenPipeError
+except NameError:  # Python 2
+    broken_pipe_exception = IOError
+
 import sys
 import re
 import time
@@ -52,7 +57,7 @@ class DummyInterpreter:
             # Use ... for the remainder  of the  lines
             n = len(name)
             for i in range(1,len(string)):
-                print(colour_format("." * n, colour) + _ + string[i])
+                sys.stdout.write(colour_format("." * n, colour) + _ + string[i])
         return
     def stop_sound(self):
         return ""
@@ -67,7 +72,7 @@ class Interpreter(DummyInterpreter):
     stdout   = None
     filetype = ".txt"
     def __init__(self, path):
-        path = [path] if type(path) is not list else path
+        path = path if type(path) is list else [path]
         self.lang = Popen(path, shell=True, universal_newlines=True,
                           stdin=PIPE,
                           stdout=PIPE,
@@ -80,6 +85,7 @@ class Interpreter(DummyInterpreter):
         # Write to stdin
         try:
             self.lang.stdin.write(self.format(string))
+            self.lang.stdin.flush()
         except Exception as e:
             stdout(e, string)
         # Read stdout (wait 0.1 seconds)
@@ -132,11 +138,12 @@ class Interpreter(DummyInterpreter):
                 # Read to end of buffer
                 text = self.lang.stdout.read(buf_end)
                 # Print to console
-                print(text)
+                sys.stdout.write(text)
                 # Return length of text (useful for nonzero tests)
                 return len(text)
-            except IOError:
+            except broken_pipe_exception:
                 return 0
+        return 0
 
     def kill(self):
         """ Stops communicating with the subprocess """
