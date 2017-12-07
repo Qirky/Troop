@@ -87,6 +87,7 @@ class Interpreter(DummyInterpreter):
             self.lang.stdin.write(self.format(string))
             self.lang.stdin.flush()
         except Exception as e:
+            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
             stdout(e, string)
         # Read stdout (wait 0.1 seconds)
         threading.Thread(target=self.stdout).start()
@@ -337,18 +338,23 @@ class TidalInterpreter(Interpreter):
 
         # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")
+        self.lang.stdin.flush()
         self.lang.stdin.write(":set -XOverloadedStrings\n")
+        self.lang.stdin.flush()
         self.lang.stdin.write("(cps, getNow) <- bpsUtils\n")
+        self.lang.stdin.flush()
 
         # Not always necessary but some versions of windows need setting d1-9
         d_vals = range(1,10)
         
         for n in d_vals:
             self.lang.stdin.write("(d{}, t{}) <- superDirtSetters getNow\n".format(n, n))
+            self.lang.stdin.flush()
 
         # Define hush
 
         self.lang.stdin.write("let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]\n")
+        self.lang.stdin.flush()
 
         # Set any keywords e.g. d1 and $
 
