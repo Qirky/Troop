@@ -22,6 +22,7 @@ import sys
 import re
 import time
 import threading
+import io
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -73,7 +74,7 @@ class Interpreter(DummyInterpreter):
     filetype = ".txt"
     def __init__(self, path):
         path = path if type(path) is list else [path]
-        self.lang = Popen(path, shell=True, universal_newlines=True,
+        self.lang = Popen(path, shell=False, universal_newlines=True,
                           stdin=PIPE,
                           stdout=PIPE,
                           stderr=STDOUT)
@@ -142,7 +143,7 @@ class Interpreter(DummyInterpreter):
                 sys.stdout.write(text)
                 # Return length of text (useful for nonzero tests)
                 return len(text)
-            except broken_pipe_exception:
+            except(broken_pipe_exception, io.UnsupportedOperation):
                 return 0
         return 0
 
@@ -382,7 +383,7 @@ class TidalInterpreter(Interpreter):
         return "hush"
 
 class StackTidalInterpreter(TidalInterpreter):
-    path = ["stack", "ghci"]
+    path = "stack ghci"
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
