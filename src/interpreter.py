@@ -73,8 +73,8 @@ class Interpreter(DummyInterpreter):
     stdout   = None
     filetype = ".txt"
     def __init__(self, path):
-        path = path if type(path) is list else [path]
-        self.lang = Popen(path, shell=False, universal_newlines=True,
+        #path = path if type(path) is list else [path]
+        self.lang = Popen(path, shell=True, universal_newlines=True,
                           stdin=PIPE,
                           stdout=PIPE,
                           stderr=STDOUT)
