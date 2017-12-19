@@ -263,6 +263,13 @@ class ThreadSafeText(Text):
                                 
                                 self.root.lang.evaluate(string, name=str(this_peer), colour=this_peer.bg)
 
+                            elif isinstance(msg, MSG_EVALUATE_STRING):
+
+                                # Handles single lines of code evaluation, e.g. "Clock.stop()", that
+                                # might be evaluated but not within the text
+
+                                self.root.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
+
                             elif isinstance(msg, MSG_SET_MARK):
 
                                 row = msg['row']
@@ -309,14 +316,7 @@ class ThreadSafeText(Text):
                                 
                                 del self.peers[msg['src_id']]
                                 
-                                print("Peer '{}' has disconnected".format(this_peer))
-
-                            elif isinstance(msg, MSG_EVALUATE_STRING):
-
-                                # Handles single lines of code evaluation, e.g. "Clock.stop()", that
-                                # might be evaluated but not within the text
-
-                                self.root.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
+                                print("Peer '{}' has disconnected".format(this_peer))                            
 
                             elif isinstance(msg, MSG_BRACKET):
 

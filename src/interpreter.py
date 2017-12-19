@@ -77,7 +77,7 @@ class Interpreter(DummyInterpreter):
         self.lang = Popen(path, shell=True, universal_newlines=True,
                           stdin=PIPE,
                           stdout=PIPE,
-                          stderr=STDOUT)
+                          stderr=PIPE)
 
     def evaluate(self, string, *args, **kwargs):
         """ Sends a string to the stdin and prints the text to the console """
@@ -127,25 +127,11 @@ class Interpreter(DummyInterpreter):
 
     def stdout(self):
         """ Waits 0.1 seconds then reads the stdout from the self.lang process """
-        if self.lang.stdout is not None:
-            try:
-                # Wait 0.1 sec
-                time.sleep(0.1)
-                # Go to the end of the stdout buffer
-                self.lang.stdout.seek(0,2)
-                # Get the end of the buffer
-                buf_end = self.lang.stdout.tell()
-                # Go back
-                self.lang.stdout.seek(0)
-                # Read to end of buffer
-                text = self.lang.stdout.read(buf_end)
-                # Print to console
-                sys.stdout.write(text)
-                # Return length of text (useful for nonzero tests)
-                return len(text)
-            except(broken_pipe_exception, io.UnsupportedOperation):
-                return 0
-        return 0
+        size = 0
+        for stdout_line in iter(self.lang.stdout.readline, ""):
+            size = len(stdout_line)
+            sys.stdout.write(stdout_line)
+        return size
 
     def kill(self):
         """ Stops communicating with the subprocess """
@@ -163,6 +149,11 @@ class CustomInterpreter:
 
 class FoxDotInterpreter(Interpreter):
     filetype=".py"
+    path = "python -m FoxDot --pipe"
+    # This will be implemented soon: after the next FoxDot update
+    #def __init__(self):
+    #    # Start haskell interpreter
+    #    Interpreter.__init__(self, self.path)
     def __init__(self):
         import FoxDot
 

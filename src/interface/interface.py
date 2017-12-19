@@ -142,8 +142,14 @@ class Interface(BasicInterface):
             
         except:
 
-            # Use .gif if necessary
-            self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
+            try:
+                # Use .gif if necessary
+                self.root.tk.call('wm', 'iconphoto', self.root._w, PhotoImage(file=icon + ".gif"))
+
+            except:
+
+                # If there is no image, just ignore for now -- this is not good practice
+                pass
 
         # Track whether user wants transparent background
 
@@ -334,7 +340,7 @@ class Interface(BasicInterface):
 
     def stopSound(self, event):
         """ Sends a kill all sound message to the server based on the language """
-        self.push_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound(), reply=1) )
+        self.push_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
 
     def setInsert(self, index):
