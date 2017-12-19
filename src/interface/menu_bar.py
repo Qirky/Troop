@@ -53,7 +53,7 @@ class MenuBar(Menu):
 
         codemenu = Menu(self, tearoff=0)
         codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
-        codemenu.add_command(label="Evaluate Code Locally", command=self.root.LocalEvaluate,   accelerator="Alt+Return")
+        codemenu.add_command(label="Evaluate Single Line",  command=self.root.SingleLineEvaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
         codemenu.add_separator()
 

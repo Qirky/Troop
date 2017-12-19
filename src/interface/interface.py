@@ -238,12 +238,12 @@ class Interface(BasicInterface):
         self.text.bind("<Button-2>", self.rightMousePress) # disabled
         
         # select_background
-        self.text.tag_configure(SEL, background="red")   # Temporary fix - set normal highlighting to background colour
+        self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
         self.text.bind("<<Selection>>", self.Selection)
 
-        # Local execution (only on the local machine)
+        # Single line execution
 
-        self.text.bind("<Alt-Return>", self.LocalEvaluate)
+        self.text.bind("<Alt-Return>", self.SingleLineEvaluate)
 
         # Disabled Key bindings (for now)
 
@@ -1000,7 +1000,26 @@ class Interface(BasicInterface):
         return self.lang.get_block_of_code(self.text, index)
 
 
-    def LocalEvaluate(self, event=None): # TODO -- change this to single line evaluate
+    def SingleLineEvaluate(self, event=None): # TODO -- change this to single line evaluate
+
+        # Get this line
+
+        index = self.text.marker.index()
+
+        row   = int(index.split(".")[0])
+
+        a, b  = "{}.0".format(row), "{}.end".format(row)
+
+        string = self.text.get( a , b ).lstrip()
+
+        if string != "":
+
+            #  Send notification to other peers
+
+            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, row, row)
+            
+            self.push_queue_put( msg )
+        
         return "break"
 
     def Evaluate(self, event=None):

@@ -1,0 +1,12 @@
+Background=#272822
+Console=#151613
+Peer 1=#66D9EF
+Peer 2=#ffff00
+Peer 3=Gold
+Peer 4=#A6E22E
+Peer 5=Deep Pink
+Peer 6=Yellow
+Peer 7=Dodger Blue
+Peer 8=DarkOrchid1
+Peer 9=Orange Red
+Peer 10=Lime Green
