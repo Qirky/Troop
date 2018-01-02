@@ -99,6 +99,7 @@ class DummyInterface(BasicInterface):
         self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"], height=15, bd=0)
         self.text.grid(row=0, column=0, sticky="nsew")
         self.text.marker = Peer(-1, self.text)
+        self.lang.start()
 
 class Interface(BasicInterface):
     def __init__(self, title, language, logging=False):
@@ -109,7 +110,7 @@ class Interface(BasicInterface):
 
         # Set language -- TODO have knowledge of language and set boolean to True
 
-        self.lang = language()
+        self.lang = language.start()
         self.interpreters = {name: BooleanVar() for name in langnames}
 
         # Set logging
@@ -1231,6 +1232,7 @@ class Interface(BasicInterface):
         print("\n" + "="*len(s))
         print(s)
         print("\n" + "="*len(s))
+        self.lang.start()
         return
 
     def set_constraint(self, name):
