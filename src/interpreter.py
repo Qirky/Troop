@@ -41,58 +41,6 @@ def colour_format(text, colour):
 class DummyInterpreter:
     def __init__(self, *args, **kwargs):
         self.re={}
-    def evaluate(self, *args, **kwargs):
-        pass
-    def stdout(self, *args, **kwargs):
-        pass
-    def kill(self, *args, **kwargs):
-        pass
-    def print_stdin(self, string, name=None, colour="White"):
-        """ Handles the printing of the execute code to screen with coloured
-            names and formatting """
-        # Split on newlines
-        string = [line.strip() for line in string.split("\n") if len(line.strip()) > 0]
-        if len(string) > 0 and name is not None:
-            name = str(name)
-            print(colour_format(name, colour) + _ + string[0])
-            # Use ... for the remainder  of the  lines
-            n = len(name)
-            for i in range(1,len(string)):
-                sys.stdout.write(colour_format("." * n, colour) + _ + string[i])
-        return
-    def stop_sound(self):
-        return ""
-    @staticmethod
-    def format(string):
-        return string
-    
-class Interpreter(DummyInterpreter):
-    lang     = None
-    clock    = None
-    re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
-    stdout   = None
-    filetype = ".txt"
-    def __init__(self, path):
-        #path = path if type(path) is list else [path]
-        self.lang = Popen(path, shell=True, universal_newlines=True,
-                          stdin=PIPE,
-                          stdout=PIPE,
-                          stderr=PIPE)
-
-    def evaluate(self, string, *args, **kwargs):
-        """ Sends a string to the stdin and prints the text to the console """
-        # Print to console
-        self.print_stdin(string, *args, **kwargs)
-        # Write to stdin
-        try:
-            self.lang.stdin.write(self.format(string))
-            self.lang.stdin.flush()
-        except Exception as e:
-            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
-            stdout(e, string)
-        # Read stdout (wait 0.1 seconds)
-        threading.Thread(target=self.stdout).start()
-        return
 
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
@@ -124,21 +72,95 @@ class Interpreter(DummyInterpreter):
         block[1] = line
 
         return block
+    
+    def evaluate(self, string, *args, **kwargs):
+        self.print_stdin(string, *args, **kwargs)
+        return
+
+    def start(self):
+        return self
+    
+    def stdout(self, *args, **kwargs):
+        pass
+    
+    def kill(self, *args, **kwargs):
+        pass
+    
+    def print_stdin(self, string, name=None, colour="White"):
+        """ Handles the printing of the execute code to screen with coloured
+            names and formatting """
+        # Split on newlines
+        string = [line.replace("\n", "") for line in string.split("\n") if len(line.strip()) > 0]
+        if len(string) > 0 and name is not None:
+            name = str(name)
+            print(colour_format(name, colour) + _ + string[0])
+            # Use ... for the remainder  of the  lines
+            n = len(name)
+            for i in range(1,len(string)):
+                sys.stdout.write(colour_format("." * n, colour) + _ + string[i])
+        return
+    
+    def stop_sound(self):
+        return ""
+    
+    @staticmethod
+    def format(string):
+        return string
+    
+class Interpreter(DummyInterpreter):
+    lang     = None
+    clock    = None
+    re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
+    stdout   = None
+    filetype = ".txt"
+    def __init__(self, path):
+        #path = path if type(path) is list else [path]
+        self.path = path
+
+
+    def start(self):
+
+        self.lang = Popen(self.path, shell=True, universal_newlines=True,
+                          stdin=PIPE,
+                          stdout=PIPE,
+                          stderr=STDOUT)
+
+        return self
+
+    def write_stdout(self, string):
+        self.lang.stdin.write(self.format(string))
+        self.lang.stdin.flush()
+
+    def evaluate(self, string, *args, **kwargs):
+        """ Sends a string to the stdin and prints the text to the console """
+        # Print to console
+        self.print_stdin(string, *args, **kwargs)
+        # Write to stdin
+        try:
+            self.write_stdout(string)
+        except Exception as e:
+            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
+            stdout(e, string)
+        # Read stdout (wait 0.1 seconds)
+        threading.Thread(target=self.stdout).start()
+        return
 
     def stdout(self):
-        """ Waits 0.1 seconds then reads the stdout from the self.lang process """
+        """ Reads the stdout from the self.lang process """
+        if self.lang.stdout is None:
+            return 0
+
         size = 0
         for stdout_line in iter(self.lang.stdout.readline, ""):
             size = len(stdout_line)
             sys.stdout.write(stdout_line)
+            
         return size
 
     def kill(self):
         """ Stops communicating with the subprocess """
         self.lang.communicate()
         self.lang.kill() 
-
-    
 
 class CustomInterpreter:
     def __init__(self, *args, **kwargs):
@@ -150,48 +172,51 @@ class CustomInterpreter:
 class FoxDotInterpreter(Interpreter):
     filetype=".py"
     path = "python -m FoxDot --pipe"
-    # This will be implemented soon: after the next FoxDot update
-    #def __init__(self):
-    #    # Start haskell interpreter
-    #    Interpreter.__init__(self, self.path)
+
     def __init__(self):
-        import FoxDot
+        # Start Python interpreter
+        
+        Interpreter.__init__(self, self.path)
 
-        self.lang  = FoxDot
-
-        try:
-
-            self.keywords = list(FoxDot.get_keywords()) + list(FoxDot.SynthDefs) + ["play"]
-
-        except AttributeError:
-
-            self.keywords = ['>>']
+        self.keywords = ['classmethod', 'Clock', 'rFloorDiv', 'any', 'type', 'dict', 'max_length', 
+                         'sorted', 'staticmethod', 'or', 'loop_pattern_method', 'format', 'super', 
+                         'globals', 'rXor', 'inf', 'PTree', 'isinstance', 'callable', 'Scale', 'PRange', 
+                         'Div', 'PRand', 'pattern_depth', 'unicode', 'chr', '__import__', 'next', 'Or', 
+                         'EuclidsAlgorithm', 'FloorDiv', 'memoryview', 'setattr', 'sum', 'import', 
+                         'sliceToRange', 'PatternFormat', 'modi', 'Pow', 'PulsesToDurations', 'True', 
+                         'issubclass', 'PWalk', 'cmp', 'PDelay', 'list', 'dir', 'len', 'enumerate', 
+                         'Format', 'PTri', 'reduce', 'reload', 'PEuclid', 'PIndex', 'PFibMod', 'divmod', 
+                         'PSquare', 'unichr', 'round', 'map', 'long', 'Group', 'linvar', 'mapvar', 
+                         'PPairs', 'with', 'Mod', 'None', 'locals', 'basestring', 'P10', 'PRhythm', 
+                         'tuple', 'from', 'not', 'class', 'try', 'hasattr', 'compile', 'PSum', 'Pvar', 
+                         'filter', 'loop_pattern_func', 'PJoin', 'bool', 'Root', 'eval', 'for', 'Server', 
+                         'Add', 'PSq', 'str', 'PStutter', 'get_inverse_op', 'var', 'repr', 'PChain', 
+                         'reversed', 'hex', 'Nil', 'rSub', 'equal_values', 'if', 'all', 'rAdd', 'return', 
+                         'PZip', 'global', 'else', 'Samples', 'print', 'PWhite', 'file', 'ord', 'rOr', 'range',
+                         'complex', 'PwRand', 'PEuclid2', 'group_modi', 'Get', 'PStretch', 'asStream', 'lambda',
+                          'PSine', 'PDur', 'self', 'False', 'rGet', 'except', 'PQuicken', 'zip', 'hash', 'PAlt', 
+                          'PatternContainer', 'help', 'pow', 'PEq', 'in', 'PStep', 'iter', 'is', 'GeneratorPattern', 
+                          'ClassPatternMethod', 'min', 'DominantPattern', 'Mul', 'when', 'metaPattern', 'rMod', 
+                          'input', 'object', 'def', 'POperand', 'elif', 'while', 'PNe', 'PShuf', 'xrange',
+                          'getattr', 'get_expanded_len', 'rPow', 'bytearray', 'asPattern', 'expvar', 'Pattern', 
+                          'EmptyItem', 'vars', 'PZip2', 'delattr', 'frozenset', 'property', 'execfile', 
+                          'deepcopy', 'stdout', 'Xor', 'int', 'Sub', 'PxRand', 'PatternMethod', 'as', 'float', 
+                          'set', '\\A\\s*@.+', 'max', 'dots', 'patternclass', 'LCM', 'open', 'raw_input', 
+                          'PBeat', 'PGroup', 'StaticPatternMethod', 'Convert', 'P', 'and', 'abs', 'bin', 
+                          'slice', 'id', 'rDiv', '>>']
 
         self.re["tag_bold"] = compile_regex(self.keywords)
 
     def __repr__(self):
         return "FoxDot"
 
-    def kill(self):
-        self.evaluate(self.stop_sound())
+    def write_stdout(self, string):
+        self.lang.stdin.write(string + "\n")
+        self.lang.stdin.flush()
         return
 
     def stop_sound(self):
         return "Clock.clear()"
-            
-    def evaluate(self, *args, **kwargs):
-        """ Sends code to FoxDot instance and prints any error text """
-        Interpreter.print_stdin(self, *args, **kwargs)
-
-        response = self.lang.execute(args[0], verbose=False)
-
-        if response is not None:
-
-            if response.startswith("Traceback"):
-
-                print(response)
-        
-        return
 
 
 class SuperColliderInterpreter(Interpreter):
@@ -328,6 +353,11 @@ class TidalInterpreter(Interpreter):
         # Start haskell interpreter
         Interpreter.__init__(self, self.path)
 
+    def start(self):
+
+        self.lang = Popen(self.path, shell=True, universal_newlines=True,
+                          stdin=PIPE)
+
         # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")
         self.lang.stdin.flush()
@@ -354,12 +384,8 @@ class TidalInterpreter(Interpreter):
         self.keywords += ["\$", "#", "hush"] # add string regex?
 
         self.re["tag_bold"] = compile_regex(self.keywords)
-
-        # Wait until ghci finishes printing to terminal
-
-        while self.stdout() > 0:
-
-            pass
+        
+        return self
 
     def __repr__(self):
         return "TidalCycles"
@@ -379,4 +405,5 @@ class StackTidalInterpreter(TidalInterpreter):
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
               TIDALSTACK    : StackTidalInterpreter,
-              SUPERCOLLIDER : SuperColliderInterpreter }
+              SUPERCOLLIDER : SuperColliderInterpreter,
+              DUMMY         : DummyInterpreter }
