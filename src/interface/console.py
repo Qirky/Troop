@@ -61,7 +61,7 @@ class Console(Text):
         try:
             while True:
                 
-                string = self.queue.get_nowait().strip()
+                string = self.queue.get_nowait().rstrip() # Remove trailing whitespace
                 
                 match = find_colour(string)
 
