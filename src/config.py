@@ -82,20 +82,23 @@ PUBLIC_SERVER_ADDRESS = PUBLIC_SERVER_ADDRESS_IPV4
 
 # Choose a language
 
+DUMMY         = -1
 FOXDOT        = 0
 TIDAL         = 1
 TIDALSTACK    = 2
 SUPERCOLLIDER = 3
 
-langnames = { "foxdot" : FOXDOT,
-              "tidalcycles" : TIDAL,
+langnames = { "foxdot"           : FOXDOT,
+              "tidalcycles"      : TIDAL,
               "tidalcyclesstack" : TIDALSTACK,
-              "supercollider" : SUPERCOLLIDER }
+              "supercollider"    : SUPERCOLLIDER,
+              "none"             : DUMMY }
 
 langtitles = { "foxdot" : "FoxDot",
                "tidalcycles": "TidalCycles",
                "supercollider": "SuperCollider",
-               "tidalcyclesstack": "TidalCycles (stack)" }
+               "tidalcyclesstack": "TidalCycles (stack)",
+               "none": "No Interpreter" }
 
 def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless
