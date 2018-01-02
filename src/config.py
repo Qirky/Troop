@@ -1,5 +1,5 @@
 import sys
-import os.path
+import os, os.path
 
 PY_VERSION = sys.version_info[0]
 
@@ -152,4 +152,16 @@ def LoadColours():
     return
 
 LoadColours()
+
+def exe_exists(exe):
+    if SYSTEM == WINDOWS: 
+      exe = "{}.exe".format(exe)
+    return any(
+        os.access(os.path.join(path, exe), os.X_OK) 
+        for path in os.environ["PATH"].split(os.pathsep)
+    )
+
+
+class ExecutableNotFoundError(Exception):
+    pass
 

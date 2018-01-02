@@ -57,13 +57,21 @@ class Client:
 
         # Choose the language to use
 
-        if lang in langtypes:
+        try:
 
-            self.lang = langtypes[lang]()
+            if lang in langtypes:
 
-        else:
+                self.lang = langtypes[lang]()
 
-            self.lang = Interpreter(lang)
+            else:
+
+                self.lang = Interpreter(lang)
+
+        except ExecutableNotFoundError as e:
+
+            print(e)
+
+            self.lang = DummyInterpreter()
 
         # Set up a user interface
 

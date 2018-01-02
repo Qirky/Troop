@@ -1007,7 +1007,7 @@ class Interface(BasicInterface):
         return self.lang.get_block_of_code(self.text, index)
 
 
-    def SingleLineEvaluate(self, event=None): # TODO -- change this to single line evaluate
+    def SingleLineEvaluate(self, event=None):
 
         # Get this line
 
@@ -1227,12 +1227,23 @@ class Interface(BasicInterface):
     def set_interpreter(self, name):
         """ Tells Troop to interpret a new language, takes a string """
         self.lang.kill()
-        self.lang=langtypes[name]()
+
+        try:
+            self.lang=langtypes[name]()
+        
+        except ExecutableNotFoundError as e:
+
+            print(e)
+
+            self.lang = DummyInterpreter()
+
         s = "Changing interpreted lanaguage to {}".format(repr(self.lang))
         print("\n" + "="*len(s))
         print(s)
         print("\n" + "="*len(s))
+
         self.lang.start()
+
         return
 
     def set_constraint(self, name):

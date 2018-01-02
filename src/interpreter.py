@@ -114,8 +114,14 @@ class Interpreter(DummyInterpreter):
     stdout   = None
     filetype = ".txt"
     def __init__(self, path):
-        #path = path if type(path) is list else [path]
-        self.path = path
+
+        if exe_exists(path.split()[0]):
+
+            self.path = path
+
+        else:
+
+            raise ExecutableNotFoundError("'{}' is not a valid executable. Using Dummy Interpreter instead.".format(path))
 
 
     def start(self):
@@ -154,7 +160,7 @@ class Interpreter(DummyInterpreter):
         for stdout_line in iter(self.lang.stdout.readline, ""):
             size = len(stdout_line)
             sys.stdout.write(stdout_line)
-            
+
         return size
 
     def kill(self):
@@ -211,7 +217,7 @@ class FoxDotInterpreter(Interpreter):
         return "FoxDot"
 
     def write_stdout(self, string):
-        self.lang.stdin.write(string + "\n")
+        self.lang.stdin.write(string + "\n\n")
         self.lang.stdin.flush()
         return
 
