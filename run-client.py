@@ -70,4 +70,10 @@ else:
 
 name = readin("Enter a name").replace(" ", "_")
 
-myClient = Client(host, port, name, lang, logging)
+try:
+
+    myClient = Client(host, port, name, lang, logging)
+
+except Exception as e:
+
+    input("{}\nPress return to close.".format(e))
