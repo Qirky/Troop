@@ -8,6 +8,7 @@ PY_VERSION = sys.version_info[0]
 if PY_VERSION == 2:
 
     input = raw_input
+    FileNotFoundError = IOError
 
 # This removed blurry fonts on Windows
 try:

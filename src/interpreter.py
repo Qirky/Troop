@@ -180,38 +180,70 @@ class FoxDotInterpreter(Interpreter):
     path = "python -m FoxDot --pipe"
 
     def __init__(self):
-        # Start Python interpreter
-        
-        Interpreter.__init__(self, self.path)
 
-        self.keywords = ['classmethod', 'Clock', 'rFloorDiv', 'any', 'type', 'dict', 'max_length', 
-                         'sorted', 'staticmethod', 'or', 'loop_pattern_method', 'format', 'super', 
-                         'globals', 'rXor', 'inf', 'PTree', 'isinstance', 'callable', 'Scale', 'PRange', 
-                         'Div', 'PRand', 'pattern_depth', 'unicode', 'chr', '__import__', 'next', 'Or', 
-                         'EuclidsAlgorithm', 'FloorDiv', 'memoryview', 'setattr', 'sum', 'import', 
-                         'sliceToRange', 'PatternFormat', 'modi', 'Pow', 'PulsesToDurations', 'True', 
-                         'issubclass', 'PWalk', 'cmp', 'PDelay', 'list', 'dir', 'len', 'enumerate', 
-                         'Format', 'PTri', 'reduce', 'reload', 'PEuclid', 'PIndex', 'PFibMod', 'divmod', 
-                         'PSquare', 'unichr', 'round', 'map', 'long', 'Group', 'linvar', 'mapvar', 
-                         'PPairs', 'with', 'Mod', 'None', 'locals', 'basestring', 'P10', 'PRhythm', 
-                         'tuple', 'from', 'not', 'class', 'try', 'hasattr', 'compile', 'PSum', 'Pvar', 
-                         'filter', 'loop_pattern_func', 'PJoin', 'bool', 'Root', 'eval', 'for', 'Server', 
-                         'Add', 'PSq', 'str', 'PStutter', 'get_inverse_op', 'var', 'repr', 'PChain', 
-                         'reversed', 'hex', 'Nil', 'rSub', 'equal_values', 'if', 'all', 'rAdd', 'return', 
-                         'PZip', 'global', 'else', 'Samples', 'print', 'PWhite', 'file', 'ord', 'rOr', 'range',
-                         'complex', 'PwRand', 'PEuclid2', 'group_modi', 'Get', 'PStretch', 'asStream', 'lambda',
-                          'PSine', 'PDur', 'self', 'False', 'rGet', 'except', 'PQuicken', 'zip', 'hash', 'PAlt', 
-                          'PatternContainer', 'help', 'pow', 'PEq', 'in', 'PStep', 'iter', 'is', 'GeneratorPattern', 
-                          'ClassPatternMethod', 'min', 'DominantPattern', 'Mul', 'when', 'metaPattern', 'rMod', 
-                          'input', 'object', 'def', 'POperand', 'elif', 'while', 'PNe', 'PShuf', 'xrange',
-                          'getattr', 'get_expanded_len', 'rPow', 'bytearray', 'asPattern', 'expvar', 'Pattern', 
-                          'EmptyItem', 'vars', 'PZip2', 'delattr', 'frozenset', 'property', 'execfile', 
-                          'deepcopy', 'stdout', 'Xor', 'int', 'Sub', 'PxRand', 'PatternMethod', 'as', 'float', 
-                          'set', '\\A\\s*@.+', 'max', 'dots', 'patternclass', 'LCM', 'open', 'raw_input', 
-                          'PBeat', 'PGroup', 'StaticPatternMethod', 'Convert', 'P', 'and', 'abs', 'bin', 
-                          'slice', 'id', 'rDiv', '>>']
+        # 1. Try importing directly
 
-        self.re["tag_bold"] = compile_regex(self.keywords)
+        try:
+            # Try importing from install
+
+            try:
+
+                import FoxDot
+
+            except ImportError:
+
+                # Import locally if not found
+
+                from . import FoxDot
+
+            self.lang = FoxDot
+
+            self.imported = True
+
+            try:
+
+                self.keywords = list(FoxDot.get_keywords()) + list(FoxDot.SynthDefs) + ["play"]
+
+            except AttributeError:
+
+                self.keywords = ['>>']
+
+            self.re["tag_bold"] = compile_regex(self.keywords)
+
+        except (ImportError, FileNotFoundError):
+            
+            Interpreter.__init__(self, self.path)
+
+            self.imported = False
+
+            self.keywords = ['classmethod', 'Clock', 'rFloorDiv', 'any', 'type', 'dict', 'max_length', 
+                             'sorted', 'staticmethod', 'or', 'loop_pattern_method', 'format', 'super', 
+                             'globals', 'rXor', 'inf', 'PTree', 'isinstance', 'callable', 'Scale', 'PRange', 
+                             'Div', 'PRand', 'pattern_depth', 'unicode', 'chr', '__import__', 'next', 'Or', 
+                             'EuclidsAlgorithm', 'FloorDiv', 'memoryview', 'setattr', 'sum', 'import', 
+                             'sliceToRange', 'PatternFormat', 'modi', 'Pow', 'PulsesToDurations', 'True', 
+                             'issubclass', 'PWalk', 'cmp', 'PDelay', 'list', 'dir', 'len', 'enumerate', 
+                             'Format', 'PTri', 'reduce', 'reload', 'PEuclid', 'PIndex', 'PFibMod', 'divmod', 
+                             'PSquare', 'unichr', 'round', 'map', 'long', 'Group', 'linvar', 'mapvar', 
+                             'PPairs', 'with', 'Mod', 'None', 'locals', 'basestring', 'P10', 'PRhythm', 
+                             'tuple', 'from', 'not', 'class', 'try', 'hasattr', 'compile', 'PSum', 'Pvar', 
+                             'filter', 'loop_pattern_func', 'PJoin', 'bool', 'Root', 'eval', 'for', 'Server', 
+                             'Add', 'PSq', 'str', 'PStutter', 'get_inverse_op', 'var', 'repr', 'PChain', 
+                             'reversed', 'hex', 'Nil', 'rSub', 'equal_values', 'if', 'all', 'rAdd', 'return', 
+                             'PZip', 'global', 'else', 'Samples', 'print', 'PWhite', 'file', 'ord', 'rOr', 'range',
+                             'complex', 'PwRand', 'PEuclid2', 'group_modi', 'Get', 'PStretch', 'asStream', 'lambda',
+                              'PSine', 'PDur', 'self', 'False', 'rGet', 'except', 'PQuicken', 'zip', 'hash', 'PAlt', 
+                              'PatternContainer', 'help', 'pow', 'PEq', 'in', 'PStep', 'iter', 'is', 'GeneratorPattern', 
+                              'ClassPatternMethod', 'min', 'DominantPattern', 'Mul', 'when', 'metaPattern', 'rMod', 
+                              'input', 'object', 'def', 'POperand', 'elif', 'while', 'PNe', 'PShuf', 'xrange',
+                              'getattr', 'get_expanded_len', 'rPow', 'bytearray', 'asPattern', 'expvar', 'Pattern', 
+                              'EmptyItem', 'vars', 'PZip2', 'delattr', 'frozenset', 'property', 'execfile', 
+                              'deepcopy', 'stdout', 'Xor', 'int', 'Sub', 'PxRand', 'PatternMethod', 'as', 'float', 
+                              'set', '\\A\\s*@.+', 'max', 'dots', 'patternclass', 'LCM', 'open', 'raw_input', 
+                              'PBeat', 'PGroup', 'StaticPatternMethod', 'Convert', 'P', 'and', 'abs', 'bin', 
+                              'slice', 'id', 'rDiv', '>>']
+
+            self.re["tag_bold"] = compile_regex(self.keywords)
 
     def __repr__(self):
         return "FoxDot"
@@ -219,6 +251,38 @@ class FoxDotInterpreter(Interpreter):
     def write_stdout(self, string):
         self.lang.stdin.write(string + "\n\n")
         self.lang.stdin.flush()
+        return
+
+    def start(self):
+        if not self.imported:
+            Interpreter.start(self)
+        return self
+
+    def kill(self):
+        if self.imported:
+            self.evaluate(self.stop_sound())
+        else:
+            Interpreter.kill(self)
+        return
+
+    def evaluate(self, *args, **kwargs):
+        """ Sends code to FoxDot instance and prints any error text """
+
+        if self.imported:
+        
+            Interpreter.print_stdin(self, *args, **kwargs)
+
+            response = self.lang.execute(args[0], verbose=False)
+
+            if response is not None:
+
+                if response.startswith("Traceback"):
+
+                    print(response)
+        else:
+
+            Interpreter.evaluate(self, *args, **kwargs)
+        
         return
 
     def stop_sound(self):
