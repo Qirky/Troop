@@ -447,6 +447,11 @@ class Interface(BasicInterface):
 
         return
 
+    def syncText(self):
+        """ Re-sends the information about this client to all connected peers """
+        self.push_queue_put(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
+        return
+
     def update_send(self):
         """ Sends any keypress information added to the queue to the server """
         try:

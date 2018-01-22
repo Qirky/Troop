@@ -353,11 +353,25 @@ class ThreadSafeText(Text):
 
                                         self.root.creative_constraints[name].set(False)
 
-                            elif type(msg) == MSG_COMPARE:
+                            elif type(msg) == MSG_SYNC:
 
-                                # self.handle_compare(msg["data"])
+                                # Set the contents of the text box
 
-                                pass
+                                self.handle_setall(msg['data'])
+
+                                # Move the peers to their position
+
+                                for _, peer in self.peers.items():
+                                    
+                                    peer.move(peer.row, peer.col)
+
+                                    # self.mark_set(peer.mark, peer.index())
+
+                                # Format the lines
+
+                                for line,  _ in enumerate(self.readlines()[:-1]):
+
+                                    self.root.colour_line(line + 1)
 
                         # Give some useful information about what the message looked like if error
 

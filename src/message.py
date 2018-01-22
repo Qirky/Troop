@@ -313,7 +313,15 @@ class MSG_KILL(MESSAGE):
     type = 20
     def __init__(self, src_id, string):
         MESSAGE.__init__(self, src_id)
-        self['string']=str(string)   
+        self['string']=str(string)
+
+class MSG_SYNC(MESSAGE):
+    type=21
+    def __init__(self, src_id, data, reply=1):
+        MESSAGE.__init__(self, src_id)
+        # If the json data is a dict, convert it. If not assume it is correctly formatted
+        self['data']=json.dumps(data) if type(data) is dict else data
+        self['reply'] = int(reply)
  
 # Create a dictionary of message type to message class 
 
@@ -336,7 +344,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_PING,
                                              MSG_CONSTRAINT,
                                              MSG_COMPARE,
-                                             MSG_KILL ] }
+                                             MSG_KILL,
+                                             MSG_SYNC ] }
 
 # Exceptions
 
@@ -359,4 +368,4 @@ class DeadClientError(Exception):
         return "Could not connect to {}".format(self.name)
 
 if __name__ == "__main__":
-    print(MSG_INSERT(1, "a", 4, 1))
+    print(MSG_SYNC(1, {"Test": 0}, 1))

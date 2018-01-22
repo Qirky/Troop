@@ -55,6 +55,7 @@ class MenuBar(Menu):
         codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Single Line",  command=self.root.SingleLineEvaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
+        codemenu.add_command(label="Re-sync text",          command=self.root.syncText)
         codemenu.add_separator()
 
         # Allow choice of interpreter
