@@ -233,7 +233,8 @@ class Interface(BasicInterface):
         self.text.bind("<{}-v>".format(CtrlKey), self.Paste)
 
         # Undo -- not implemented
-        self.text.bind("<{}-z>".format(CtrlKey), self.Undo)        
+        self.text.bind("<{}-z>".format(CtrlKey), self.Undo)    
+        self.text.bind("<{}-y>".format(CtrlKey), self.Redo)    
 
         # Handling mouse events
         self.leftMouse_isDown = False
@@ -791,29 +792,29 @@ class Interface(BasicInterface):
 
     """ Update colour / formatting """
 
-    def colour_line(self, line):
-        """ Embold keywords defined in Interpreter.py """
+    # def colour_line(self, line):
+    #     """ Embold keywords defined in Interpreter.py """
 
-        # Get contents of the line
+    #     # Get contents of the line
 
-        start, end = "{}.0".format(line), "{}.end".format(line)
+    #     start, end = "{}.0".format(line), "{}.end".format(line)
         
-        string = self.text.get(start, end)
+    #     string = self.text.get(start, end)
 
-        # Go through the possible tags
+    #     # Go through the possible tags
 
-        for tag_name, re_tag in self.lang.re.items():
+    #     for tag_name, re_tag in self.lang.re.items():
 
-            self.text.tag_remove(tag_name, start, end)
+    #         self.text.tag_remove(tag_name, start, end)
             
-            for match in re_tag.finditer(string):
+    #         for match in re_tag.finditer(string):
                 
-                tag_start = "{}.{}".format(line, match.start())
-                tag_end   = "{}.{}".format(line, match.end())
+    #             tag_start = "{}.{}".format(line, match.start())
+    #             tag_end   = "{}.{}".format(line, match.end())
 
-                self.text.tag_add(tag_name, tag_start, tag_end)
+    #             self.text.tag_add(tag_name, tag_start, tag_end)
                 
-        return
+    #     return
 
     """ Ctrl-Home and Ctrl-End Handling """
 
@@ -1126,7 +1127,7 @@ class Interface(BasicInterface):
 
         # Make sure the text box gets focus
 
-        self.text.focus_set()        
+        self.text.focus_set()
 
         return "break"
 
@@ -1136,7 +1137,15 @@ class Interface(BasicInterface):
 
     def Undo(self, event):
         ''' Override for Ctrl+Z -- Not implemented '''
-        # self.text.edit_undo()
+        self.push_queue_put(MSG_UNDO(self.text.marker.id))
+        return "break"
+
+    def Redo(self, event):
+        ''' Override for Ctrl+Y -- Not currently implmented '''
+        try:
+            self.text.edit_redo()
+        except TclError:
+            pass
         return "break"
 
     def Copy(self, event=None):

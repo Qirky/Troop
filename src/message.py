@@ -322,6 +322,13 @@ class MSG_SYNC(MESSAGE):
         # If the json data is a dict, convert it. If not assume it is correctly formatted
         self['data']=json.dumps(data) if type(data) is dict else data
         self['reply'] = int(reply)
+
+class MSG_UNDO(MESSAGE):
+    type = 22
+    def __init__(self, src_id, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['reply'] = int(reply)
+
  
 # Create a dictionary of message type to message class 
 
@@ -345,7 +352,8 @@ MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
                                              MSG_CONSTRAINT,
                                              MSG_COMPARE,
                                              MSG_KILL,
-                                             MSG_SYNC ] }
+                                             MSG_SYNC,
+                                             MSG_UNDO ] }
 
 # Exceptions
 

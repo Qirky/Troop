@@ -29,6 +29,9 @@ constraints = vars(constraints)
 class ThreadSafeText(Text):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
+
+        self.config(undo=True, autoseparators=True, maxundo=50)
+
         self.queue = queue.Queue()
         self.root = root
 
@@ -195,9 +198,7 @@ class ThreadSafeText(Text):
 
                         # Format the lines
 
-                        for line,  _ in enumerate(self.readlines()[:-1]):
-
-                            self.root.colour_line(line + 1)
+                        self.format_text()
 
                         # Move the local peer to the start
 
@@ -299,6 +300,8 @@ class ThreadSafeText(Text):
 
                                     self.see(self.marker.mark)
 
+                                self.edit_separator()
+
                             elif isinstance(msg, MSG_GET_ALL):
 
                                 # Return the contents of the text box
@@ -365,13 +368,13 @@ class ThreadSafeText(Text):
                                     
                                     peer.move(peer.row, peer.col)
 
-                                    # self.mark_set(peer.mark, peer.index())
-
                                 # Format the lines
 
-                                for line,  _ in enumerate(self.readlines()[:-1]):
+                                self.format_text()
 
-                                    self.root.colour_line(line + 1)
+                            elif type(msg) == MSG_UNDO:
+
+                                self.handle_undo()
 
                         # Give some useful information about what the message looked like if error
 
@@ -527,6 +530,22 @@ class ThreadSafeText(Text):
         
         return
 
+    def handle_undo(self):
+        ''' Override for Ctrl+Z -- Not implemented '''
+        try:
+            self.edit_undo()
+        except TclError:
+            pass
+        return "break"
+
+    def handle_redo(self):
+        ''' Override for Ctrl+Y -- Not currently implmented '''
+        try:
+            self.edit_redo()
+        except TclError:
+            pass
+        return "break"
+
     def handle_getall(self):
         """ Returns a dictionary containing with three pieces of information:
 
@@ -621,6 +640,11 @@ class ThreadSafeText(Text):
             if peer_id in self.peers:
                 self.peers[peer_id].move(row, col)
         return
+
+    def format_text(self):
+        """ Iterates over each line in the text and updates the correct colour / formatting """
+        for line,  _ in enumerate(self.readlines()[:-1]):
+            self.root.colour_line(line + 1)
 
     def sort_indices(self, list_of_indexes):
         """ Takes a list of Tkinter indices and returns them sorted by location """
