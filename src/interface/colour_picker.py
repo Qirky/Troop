@@ -24,7 +24,7 @@ class ColourPicker(Frame):
         
         self.attributes = ["Background", "Console"] + ["Peer {}".format(n) for n in range(1,11)]
 
-        # load in colours TODO
+        # load in colours 
         self.colours = self.read()
         self.labels  = {}
         self.selected = IntVar(value=0)

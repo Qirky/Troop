@@ -122,14 +122,14 @@ COLOURS = { "Background" : "#272822",
             "Stats"      : "#151613",
             "Peers"      : [ "#66D9EF",
                              "#F92672",
-                             "Gold",
+                             "#ffd549",
                              "#A6E22E",
-                             "Deep Pink",
-                             "Yellow",
-                             "Dodger Blue",
-                             "DarkOrchid1",
-                             "Orange Red",
-                             "Lime Green" ] }
+                             "#ff108f",
+                             "#fffd56",
+                             "#0589e7",
+                             "#c345f5",
+                             "#ff411f",
+                             "#05cc50" ] }
 
 def LoadColours():
     """ Reads colour information from COLOUR_INFO and updates

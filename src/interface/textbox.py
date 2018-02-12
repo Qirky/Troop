@@ -32,6 +32,14 @@ class ThreadSafeText(Text):
 
         self.config(undo=True, autoseparators=True, maxundo=50)
 
+        # If we are blending font colours
+
+        self.merge_colour       = None
+        self.merge_time         = 0
+        self.merge_time_elapsed = 0
+        self.merge_recur_time   = 0
+        self.merge_weight       = 0
+
         self.queue = queue.Queue()
         self.root = root
 
@@ -139,6 +147,31 @@ class ThreadSafeText(Text):
     def read(self):
         """ Returns the entire contents of the text box as a string """
         return self.get("1.0", END)
+
+    def update_font_colours(self, recur_time=0):
+        """ Updates the font colours of all the peers. Set a recur time
+            to update reguarly. 
+        """
+        # Peers
+        for peer in self.peers.values():
+            peer.update_colours()
+            peer.configure_tags()
+            self.root.graphs.itemconfig(peer.graph, fill=peer.bg)
+
+        if recur_time > 0:
+
+            self.merge_time_elapsed += recur_time
+
+            self.merge_weight = min(self.merge_weight + 0.01, 1)
+
+            if self.merge_weight < 1:
+
+                self.after(recur_time, lambda: self.update_font_colours(recur_time = self.merge_recur_time))
+
+        return
+
+    def get_peer_colour_merge_weight(self):
+        return self.merge_weight
 
     def log_message(self, message):
         """ If logging is turned on, this method writes each message received to file """
@@ -515,14 +548,6 @@ class ThreadSafeText(Text):
         if len(char) > 0 and peer.hasSelection():
 
             peer.deleteSelection()
-
-        # Move peer.mark to index if necessary - if different row?
-
-        # if index != peer.index():
-
-            # stdout(index, peer.index())
-
-            # self.mark_set(peer.mark, index)
 
         # Insert the character
 

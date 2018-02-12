@@ -7,7 +7,7 @@ from ..interpreter import *
 
 from .textbox import ThreadSafeText
 from .console import Console
-from .peer import Peer
+from .peer import Peer, rgb2hex, hex2rgb
 from .drag import Dragbar
 from .bracket import BracketHandler
 from .line_numbers import LineNumbers
@@ -17,10 +17,12 @@ try:
     from Tkinter import *
     import tkFileDialog
     import tkFont
+    from tkColorChooser import askcolor
 except ImportError:
     from tkinter import *
     from tkinter import filedialog as tkFileDialog
     from tkinter import font as tkFont
+    from tkinter.colorchooser import askcolor
 
 try:
     import queue
@@ -1136,16 +1138,13 @@ class Interface(BasicInterface):
         return "break"
 
     def Undo(self, event):
-        ''' Override for Ctrl+Z -- Not implemented '''
+        ''' Triggers an undo event '''
         self.push_queue_put(MSG_UNDO(self.text.marker.id))
         return "break"
 
     def Redo(self, event):
         ''' Override for Ctrl+Y -- Not currently implmented '''
-        try:
-            self.text.edit_redo()
-        except TclError:
-            pass
+        # self.push_queue_put(MSG_REDO(self.text.marker.id))
         return "break"
 
     def Copy(self, event=None):
@@ -1281,3 +1280,68 @@ class Interface(BasicInterface):
         
         self.log_file   = open(path, "w")
         self.is_logging = True
+
+    def beginFontMerge(self, event=None):
+        """ Opens a basic text-entry window and starts the process of "merging fonts".
+            This is the slow process of converging all the font colours to the same
+            colour. 
+        """
+
+        # TODO get values from a window
+
+        _, self.text.merge_colour = askcolor()
+        self.text.merge_time = self.ask_duration()
+
+        self.text.merge_recur_time = int( (60000 * self.text.merge_time) / 100)
+
+        self.text.update_font_colours(recur_time = self.text.merge_recur_time )
+
+        return
+
+
+    def ask_duration(self):
+        """ Opens a small window that asks the user to enter a duration """
+        popup = popup_window(self.root, title="Set duration")
+        
+        popup.text.focus_set()
+
+        # Put the popup on top
+        
+        self.root.wait_window(popup.top)
+
+        return float(popup.value)
+
+
+class popup_window:
+    def __init__(self, master, title=""):
+        self.top=Toplevel(master)
+        self.top.title(title)
+        # Text entry
+        lbl = Label(self.top, text="Duration:")
+        lbl.grid(row=0, column=0, sticky=W)
+        self.text=Entry(self.top)
+        self.text.grid(row=0, column=1, sticky=NSEW)
+        self.value = None
+        # Ok button
+        self.button=Button(self.top,text='Ok',command=self.cleanup)
+        self.button.grid(row=1, column=0, columnspan=2, sticky=NSEW)
+        # Enter shortcut
+        self.top.bind("<Return>", self.cleanup)
+        # Start
+        self.center()
+
+    def cleanup(self, event=None):
+        """ Stores the data in the entry fields then closes the window """
+        self.value = float(self.text.get())
+        self.top.destroy()
+
+    def center(self):
+        """ Centers the popup in the middle of the screen """
+        self.top.update_idletasks()
+        w = self.top.winfo_screenwidth()
+        h = self.top.winfo_screenheight()
+        size = tuple(int(_) for _ in self.top.geometry().split('+')[0].split('x'))
+        x = w/2 - size[0]/2
+        y = h/2 - size[1]/2
+        self.top.geometry("%dx%d+%d+%d" % (size + (x, y)))
+        return
