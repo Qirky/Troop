@@ -158,7 +158,7 @@ class Interface(BasicInterface):
 
         self.transparent = BooleanVar()
         self.transparent.set(False)
-        self.using_alpha = (SYSTEM == WINDOWS)
+        self.using_alpha = (SYSTEM != WINDOWS)
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
