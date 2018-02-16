@@ -158,6 +158,7 @@ class Interface(BasicInterface):
 
         self.transparent = BooleanVar()
         self.transparent.set(False)
+        self.using_alpha = (SYSTEM == WINDOWS)
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
@@ -1181,24 +1182,31 @@ class Interface(BasicInterface):
         """ Sets the text and console background to black and then removes all black pixels from the GUI """
         setting_transparent = self.transparent.get()
         if setting_transparent:
-            alpha = "#000001" if SYSTEM == WINDOWS else "systemTransparent"
-            self.text.config(background=alpha)
-            self.line_numbers.config(background=alpha)
-            self.console.config(background=alpha)
-            self.graphs.config(background=alpha)
-            if SYSTEM == WINDOWS:
-                self.root.wm_attributes('-transparentcolor', alpha)
+            if not self.using_alpha:
+                alpha = "#000001" if SYSTEM == WINDOWS else "systemTransparent"
+                self.text.config(background=alpha)
+                self.line_numbers.config(background=alpha)
+                self.console.config(background=alpha)
+                self.graphs.config(background=alpha)
+                if SYSTEM == WINDOWS:
+                    self.root.wm_attributes('-transparentcolor', alpha)
+                else:
+                    self.root.wm_attributes("-transparent", True)
             else:
-                self.root.wm_attributes("-transparent", True)
+                self.root.wm_attributes("-alpha", float(COLOURS["Alpha"]))
         else:
-            self.text.config(background=COLOURS["Background"])
-            self.line_numbers.config(background=COLOURS["Background"])
-            self.console.config(background=COLOURS["Console"])
-            self.graphs.config(background=COLOURS["Stats"])
-            if SYSTEM == WINDOWS:
-                self.root.wm_attributes('-transparentcolor', "")
+            # Re-use colours
+            if not self.using_alpha:
+                self.text.config(background=COLOURS["Background"])
+                self.line_numbers.config(background=COLOURS["Background"])
+                self.console.config(background=COLOURS["Console"])
+                self.graphs.config(background=COLOURS["Stats"])
+                if SYSTEM == WINDOWS:
+                    self.root.wm_attributes('-transparentcolor', "")
+                else:
+                    self.root.wm_attributes("-transparent", False)
             else:
-                self.root.wm_attributes("-transparent", False)
+                self.root.wm_attributes("-alpha", 1)
         return
 
     def EditColours(self, event=None):

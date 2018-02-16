@@ -120,6 +120,7 @@ COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
 COLOURS = { "Background" : "#272822",
             "Console"    : "#151613",
             "Stats"      : "#151613",
+            "Alpha"      : 0.8,
             "Peers"      : [ "#66D9EF",
                              "#F92672",
                              "#ffd549",
@@ -161,7 +162,6 @@ def exe_exists(exe):
         os.access(os.path.join(path, exe), os.X_OK) 
         for path in os.environ["PATH"].split(os.pathsep)
     )
-
 
 class ExecutableNotFoundError(Exception):
     pass
