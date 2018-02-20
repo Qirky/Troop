@@ -672,6 +672,20 @@ class Interface(BasicInterface):
 
                     messages.append( MSG_INSERT(self.text.marker.id, char, row, col) )
 
+                    # If the char is a bracket, add a closing bracket
+
+                    if char in self.handle_bracket.left_brackets:
+
+                        # Get the next char
+
+                        next_char = self.text.get(self.text.marker.mark)
+
+                        if next_char not in self.handle_bracket.right_brackets:
+
+                            messages.append( MSG_INSERT(self.text.marker.id, self.handle_bracket.left_brackets[char], row, col + 1))
+
+                            messages.append( MSG_SET_MARK(self.text.marker.id, row, col + 1) )
+
         # Push messages
 
         self.push_queue_put(messages, wait_for_reply)
