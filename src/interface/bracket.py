@@ -28,6 +28,10 @@ class BracketHandler:
         self.left_brackets  = dict(zip(left_b, right_b))
         self.right_brackets = dict(zip(right_b, left_b))
 
+        self.left_brackets_all  = dict(list(zip(left_b, right_b)) + [("'","'"), ('"','"')])
+        self.right_brackets_all = dict(list(zip(right_b, left_b)) + [("'","'"), ('"','"')])
+
+
     def is_inserting_bracket(self, text, row, col, char):
 
         # Assume we are adding a new bracket

@@ -674,17 +674,17 @@ class Interface(BasicInterface):
 
                     # If the char is a bracket, add a closing bracket
 
-                    if char in self.handle_bracket.left_brackets:
+                    if char in self.handle_bracket.left_brackets_all:
 
                         # Get the next char
 
-                        next_char = self.text.get(self.text.marker.mark)
+                        # next_char = self.text.get(self.text.marker.mark)
 
-                        if next_char not in self.handle_bracket.right_brackets:
+                        #if next_char not in self.handle_bracket.right_brackets_all:
 
-                            messages.append( MSG_INSERT(self.text.marker.id, self.handle_bracket.left_brackets[char], row, col + 1))
+                        messages.append( MSG_INSERT(self.text.marker.id, self.handle_bracket.left_brackets_all[char], row, col + 1))
 
-                            messages.append( MSG_SET_MARK(self.text.marker.id, row, col + 1) )
+                        messages.append( MSG_SET_MARK(self.text.marker.id, row, col + 1) )
 
         # Push messages
 
