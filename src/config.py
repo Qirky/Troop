@@ -70,7 +70,7 @@ string_regex = re.compile(r"\".*?\"|'.*?'|\".*?$|'.*?$")
 tag_descriptions = {
     "code"          : {"background": "Red", "foreground": "White"},
     "tag_bold"      : {"font": "BoldFont"},
-    "tag_string"    : {"font": "ItalicFont"}
+    "tag_italic"    : {"font": "ItalicFont"}
     }
 
 

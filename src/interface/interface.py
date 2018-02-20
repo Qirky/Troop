@@ -80,14 +80,14 @@ class BasicInterface:
 
         # Go through the possible tags
 
-        for tag_name, re_tag in self.lang.re.items():
+        for tag_name, tag_finding_func in self.lang.re.items():
 
             self.text.tag_remove(tag_name, start, end)
             
-            for match in re_tag.finditer(string):
+            for match_start, match_end in tag_finding_func(string):
                 
-                tag_start = "{}.{}".format(line, match.start())
-                tag_end   = "{}.{}".format(line, match.end())
+                tag_start = "{}.{}".format(line, match_start)
+                tag_end   = "{}.{}".format(line, match_end)
 
                 self.text.tag_add(tag_name, tag_start, tag_end)
                 

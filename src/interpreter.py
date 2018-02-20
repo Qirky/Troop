@@ -110,10 +110,13 @@ class DummyInterpreter:
 class Interpreter(DummyInterpreter):
     lang     = None
     clock    = None
-    re       = {"tag_bold": compile_regex([]), "tag_string": string_regex}
+    keyword_regex = compile_regex([])
+    comment_regex = compile_regex([])
     stdout   = None
     filetype = ".txt"
     def __init__(self, path):
+
+        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
         if exe_exists(path.split()[0]):
 
@@ -132,6 +135,14 @@ class Interpreter(DummyInterpreter):
                           stderr=STDOUT)
 
         return self
+
+    @classmethod
+    def find_keyword(cls, string):
+        return [(match.start(), match.end()) for match in cls.keyword_regex.finditer(string)]
+
+    @classmethod
+    def find_comment(cls, string):
+        return [(match.start(), match.end()) for match in cls.comment_regex.finditer(string)]
 
     def write_stdout(self, string):
         self.lang.stdin.write(self.format(string))
@@ -208,8 +219,6 @@ class FoxDotInterpreter(Interpreter):
 
                 self.keywords = ['>>']
 
-            self.re["tag_bold"] = compile_regex(self.keywords)
-
         except (ImportError, FileNotFoundError):
             
             Interpreter.__init__(self, self.path)
@@ -243,10 +252,29 @@ class FoxDotInterpreter(Interpreter):
                               'PBeat', 'PGroup', 'StaticPatternMethod', 'Convert', 'P', 'and', 'abs', 'bin', 
                               'slice', 'id', 'rDiv', '>>']
 
-            self.re["tag_bold"] = compile_regex(self.keywords)
+        self.keyword_regex = compile_regex(self.keywords)
+
+        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
     def __repr__(self):
         return "FoxDot"
+
+    @classmethod
+    def find_comment(cls, string):        
+        instring, instring_char = False, ""
+        for i, char in enumerate(string):
+            if char in ('"', "'"):
+                if instring:
+                    if char == instring_char:
+                        instring = False
+                        instring_char = ""
+                else:
+                    instring = True
+                    instring_char = char
+            elif char == "#":
+              if not instring:
+                  return [(i, len(string))]
+        return []
 
     def write_stdout(self, string):
         self.lang.stdin.write(string + "\n\n")
@@ -307,8 +335,27 @@ class SuperColliderInterpreter(Interpreter):
         # Define a function to produce new OSC messages
         self.new_msg = lambda: OSC.OSCMessage("/troop")
 
+        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
+
     def __repr__(self):
         return "SuperCollider"
+
+    @classmethod
+    def find_comment(cls, string):        
+        instring, instring_char = False, ""
+        for i, char in enumerate(string):
+            if char in ('"', "'"):
+                if instring:
+                    if char == instring_char:
+                        instring = False
+                        instring_char = ""
+                else:
+                    instring = True
+                    instring_char = char
+            elif char == "/":
+                if not instring and i < len(string) and string[i + 1] == "/":
+                    return [(i, len(string))]
+        return []
 
     def kill(self):
         self.evaluate(self.stop_sound())
@@ -422,6 +469,7 @@ class TidalInterpreter(Interpreter):
     def __init__(self):
         # Start haskell interpreter
         Interpreter.__init__(self, self.path)
+        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
     def start(self):
 
@@ -453,12 +501,29 @@ class TidalInterpreter(Interpreter):
         self.keywords  = ["d{}".format(n) for n in d_vals]
         self.keywords += ["\$", "#", "hush"] # add string regex?
 
-        self.re["tag_bold"] = compile_regex(self.keywords)
+        self.keyword_regex = compile_regex(self.keywords)
         
         return self
 
     def __repr__(self):
         return "TidalCycles"
+
+    @classmethod
+    def find_comment(cls, string):        
+        instring, instring_char = False, ""
+        for i, char in enumerate(string):
+            if char in ('"', "'"):
+                if instring:
+                    if char == instring_char:
+                        instring = False
+                        instring_char = ""
+                else:
+                    instring = True
+                    instring_char = char
+            elif char == "-":
+                if not instring and i < len(string) and string[i + 1] == "-":
+                    return [(i, len(string))]
+        return []
     
     @staticmethod
     def format(string):
