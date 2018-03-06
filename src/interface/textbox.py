@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from ..config import *
 from ..message import *
 from ..interpreter import *
+from ..ot.client import Client as OTClient
+from ..ot.text_operations import TextOperation
 
 from .peer import *
 
@@ -26,9 +28,12 @@ import json
 from . import constraints
 constraints = vars(constraints)
 
-class ThreadSafeText(Text):
+class ThreadSafeText(Text, OTClient):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
+        OTClient.__init__(self, revision=0)
+
+        self.operation = TextOperation()
 
         self.config(undo=True, autoseparators=True, maxundo=50)
 
@@ -45,6 +50,15 @@ class ThreadSafeText(Text):
 
         self.padx = 2
         self.pady = 2
+
+        # Define message handlers
+
+        self.handles = {}
+        self.add_handle(MSG_INSERT,  self.handle_insert)
+        self.add_handle(MSG_DELETE,  self.handle_delete)
+        self.add_handle(MSG_SET_ALL, self.handle_set_all)
+        self.add_handle(MSG_GET_ALL, self.handle_get_all)
+        self.add_handle(MSG_CONNECT, self.handle_connect)
         
         # Information about other connected users
         self.peers      = {}
@@ -52,42 +66,10 @@ class ThreadSafeText(Text):
         self.marker     = None
         self.local_peer = None
 
-        if SYSTEM == MAC_OS:
-
-            fontfamily = "Monaco"
-
-        elif SYSTEM == WINDOWS:
-
-            fontfamily = "Consolas"
-
-        else:
-
-            fontfamily = "Courier New"
-
-        # Font
-
-        self.font_names = []
-        
-        self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
-        self.font.configure(**tkFont.nametofont("Font").configure())
-        self.font_names.append("Font")
-
-        self.font_bold = tkFont.Font(family=fontfamily, size=12, weight="bold", name="BoldFont")
-        self.font_bold.configure(**tkFont.nametofont("BoldFont").configure())
-        self.font_names.append("BoldFont")
-
-        self.font_italic = tkFont.Font(family=fontfamily, size=12, slant="italic", name="ItalicFont")
-        self.font_italic.configure(**tkFont.nametofont("ItalicFont").configure())
-        self.font_names.append("ItalicFont")
-        
-        self.configure(font="Font")
+        self.configure_font()
         
         self.char_w = self.font.measure(" ")
         self.char_h = self.font.metrics("linespace")
-
-        # Flag to only allow connect and set all messages
-
-        self.is_up_to_date = False
 
         # Set formatting tags
         
@@ -96,12 +78,24 @@ class ThreadSafeText(Text):
             self.tag_config(tag_name, **kwargs)
 
         # Begin listening for messages
-        self.handle()
 
-    def write(self, msg):
+        self.run()
+
+    # Override OTClient
+    def send_operation(self, revision, operation):
+        """Should send an operation and its revision number to the server."""
+        raise NotImplementedError("You have to override 'send_operation' in your Client child class")
+
+    def apply_operation(self, operation):
+        """Should apply an operation from the server to the current document."""
+        s = operation(self.get_all())
+        # raise NotImplementedError("You have to overrid 'apply_operation' in your Client child class")
+
+    def put(self, msg):
         """ Writes a network message to the queue """
 
         # msg must be a Troop message
+
         assert isinstance(msg, MESSAGE)
         
         # Keep information about new peers
@@ -112,20 +106,218 @@ class ThreadSafeText(Text):
 
             if sender_id not in self.peers and sender_id != -1:
 
-                # Get peer's current location & name
-
-                name = self.root.pull(sender_id, "name")
-
-                peer = self.peers[sender_id] = Peer(sender_id, self) 
-
-                peer.name.set(name)
-
-                # Create a bar on the graph
-                
-                peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
+                self.add_new_user(sender_id)
 
         # Add message to queue
         self.queue.put(msg)
+
+        return
+
+    def add_handle(self, msg_cls, func):
+        self.handles[msg_cls.type] = func
+        return
+
+    # Handles
+    # =======
+
+    def handle(self, message):
+        ''' Passes the message onto the correct handler '''
+        return self.handles[message.type](message)
+
+    def handle_connect(self, message):
+        ''' Prints to the console that new user has connected '''
+        if self.marker.id != message['src_id']:
+            print("Peer '{}' has joined the session".format(messsage['name']))  
+        return
+
+    def handle_insert(self, message):
+        ''' Manual character insert for connected peer '''
+
+        peer  = self.get_peer(message)
+        index = self.root.number_index_to_tcl(message["index"])
+
+        # Delete a selection if inputting a character
+
+        if len(message["char"]) > 0 and peer.hasSelection():
+
+            peer.deleteSelection()
+
+        # Insert the character
+
+        # self.insert(peer.mark, message["char"], peer.text_tag)
+
+        self.apply_operation(message["char"])
+        
+        return
+
+    def handle_delete(self, message):
+        """ Responds to a MSG_DELETE by deleting the character in front of the peer """
+
+        peer  = self.get_peer(message)
+        index = self.root.number_index_to_tcl(message["index"])
+
+        self.apply_operation(message["value"])
+        
+        # if peer.hasSelection():
+            
+        #     peer.deleteSelection()
+            
+        # else:
+
+        #     self.delete(index)
+
+        return
+
+    def handle_set_all(self, message):
+        ''' Sets the contents of the text box and updates the location of peer markers '''
+
+        # Set the contents of the text box
+
+        self.set_contents(message['data'])
+
+        # Move the peers to their position
+
+        for _, peer in self.peers.items():
+            
+            peer.move(peer.row, peer.col)
+
+        # Format the lines
+
+        self.format_text()
+
+        # Move the local peer to the start
+
+        self.marker.move(1,0)
+
+        return
+
+    def handle_get_all(self, message):
+        ''' Creates a dictionary of data about the text editor and sends it to the server '''
+        data = self.get_contents()
+        reply = MSG_SET_ALL(-1, data, message['src_id'])
+        self.root.push_queue.put( reply )
+        return
+
+    # def handle_backspace(self, peer, row, col):
+    #     """ Responds to a MSG_BACKSPACE by deleting the character behind the peer """
+
+    #     # If the peer has selected text, delete that
+        
+    #     if peer.hasSelection():
+            
+    #         peer.deleteSelection()
+
+    #         # Treat as if 1 char was deleted
+
+    #         if peer is self.marker:
+            
+    #            self.root.last_col += 1
+
+    #     else:
+
+    #         # Move the cursor left one for a backspace
+
+    #         if row > 0 and col > 0:
+
+    #             index = "{}.{}".format(row, col-1)
+
+    #             self.delete(index)
+
+    #         elif row > 1 and col == 0:
+
+    #             index = "{}.end".format(row-1,)
+
+    #             self.delete(index)
+
+    #             col = int(self.index(index).split('.')[1])
+
+    #             # peer.move(row-1, col)
+
+    #     return
+
+    def handle_undo(self):
+        ''' Override for Ctrl+Z -- Not implemented '''
+        try:
+            self.edit_undo()
+        except TclError:
+            pass
+        return "break"
+
+    def handle_redo(self):
+        ''' Override for Ctrl+Y -- Not currently implmented '''
+        try:
+            self.edit_redo()
+        except TclError:
+            pass
+        return "break"
+
+    def get_contents(self):
+        """ Returns a dictionary containing with three pieces of information:
+
+        `ranges` - The TK text tags and the spans the cover withinthe text
+        `contents` - The text as a string
+        `marks` - The locations of the other client markers
+
+        """
+
+        message = {"ranges": {}}
+
+        for tag in self.tag_names(None):
+
+            if tag.startswith("text_"):
+
+                message["ranges"][tag] = []
+
+                ranges = self.tag_ranges(tag)
+
+                for i in range(0, len(ranges), 2):
+
+                    message["ranges"][tag].append( (str(ranges[i]), str(ranges[i+1])) )
+
+        message["contents"] = self.get("1.0", END)[:-1]
+
+        message["marks"] = [(peer_id, peer.row, peer.col) for peer_id, peer in self.peers.items()]
+
+        return message
+
+    def set_contents(self, data):
+        """ Sets the contents of the text box """
+
+        # unpack the json data
+
+        data = json.loads(data)
+
+        # Insert the text
+        
+        self.delete("1.0", END)
+        self.insert("1.0", data["contents"])
+
+        # If a text tag is not used by a connected peer, format the colours anyway
+
+        self.set_ranges(data["ranges"])
+
+        # Set the marks
+
+        for peer_id, row, col in data["marks"]:
+            
+            if peer_id in self.peers:
+
+                self.peers[peer_id].row = int(row)
+                self.peers[peer_id].col = int(col)
+                
+        return
+
+    # Other utils
+
+    def add_new_user(self, user_id):
+        # Get peer's current location & name
+
+        name = self.root.pull(user_id, "name")
+        peer = self.peers[user_id] = Peer(user_id, self) 
+        peer.name.set(name)
+
+        # Create a bar on the graph
+        peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
 
         return
 
@@ -152,10 +344,13 @@ class ThreadSafeText(Text):
         """ Updates the font colours of all the peers. Set a recur time
             to update reguarly. 
         """
-        # Peers
+
         for peer in self.peers.values():
+
             peer.update_colours()
+            
             peer.configure_tags()
+            
             self.root.graphs.itemconfig(peer.graph, fill=peer.bg)
 
         if recur_time > 0:
@@ -170,18 +365,23 @@ class ThreadSafeText(Text):
 
         return
 
+    def get_all(self):
+        return self.get("1.0", "end")
+
     def get_peer_colour_merge_weight(self):
         return self.merge_weight
 
-    def log_message(self, message):
-        """ If logging is turned on, this method writes each message received to file """
-        if self.root.is_logging:
-            if len(repr(str(msg))) < 1:
-                stdout(msg)
-            self.root.log_file.write("%.4f" % time.time() + " " + repr(str(msg)) + "\n")
-        return
+    def get_peer(self, message):
+
+        this_peer = None
+
+        if 'src_id' in message and message['src_id'] != -1:
+
+            this_peer = self.peers[message['src_id']]
+
+        return this_peer
     
-    def handle(self):
+    def run(self):
         """ Continuously reads from the queue of messages read from the server
             and carries out the specified actions. """
         try:
@@ -193,254 +393,30 @@ class ThreadSafeText(Text):
 
                 # Log anything if necesary
 
-                self.log_message(msg)
+                if self.root.is_logging:
 
-                # Identify the src peer
+                    self.root.log_message(msg)
 
-                if 'src_id' in msg:
+                # Get the handler method and call
 
-                    if msg['src_id'] == -1:
-
-                        this_peer = None # Server message
-
-                    else:
-
-                        this_peer = self.peers[msg['src_id']]
-
-                # If we are not up-to-date with server, only accept MSG_CONNECT and MSG_SET_ALL
-
-                    if isinstance(msg, MSG_CONNECT):
-
-                        if self.marker.id != msg['src_id']:
-
-                            print("Peer '{}' has joined the session".format(msg['name']))
-
-                    elif type(msg) == MSG_SET_ALL:
-
-                        # Set the contents of the text box
-
-                        self.handle_setall(msg['data'])
-
-                        # Move the peers to their position
-
-                        for _, peer in self.peers.items():
-                            
-                            peer.move(peer.row, peer.col)
-
-                            # self.mark_set(peer.mark, peer.index())
-
-                        # Format the lines
-
-                        self.format_text()
-
-                        # Move the local peer to the start
-
-                        self.marker.move(1,0)
-
-                        # Flag that we've been update
-
-                        self.is_up_to_date = True
-
-                    elif self.is_up_to_date:
-
-                            # If the server responds with a console message
-
-                            if isinstance(msg, MSG_RESPONSE):
-
-                                if hasattr(self.root, "console"):
-
-                                    self.root.console.write(msg['string']) 
-
-                            # Stop running when server is manually killed                 
-
-                            elif isinstance(msg, MSG_KILL):
-
-                                if hasattr(self.root, "console"):
-
-                                    self.root.console.write(msg['string']) 
-
-                                self.root.push.kill()
-                                self.root.pull.kill()
-
-                            # Handles selection changes
-
-                            elif isinstance(msg, MSG_SELECT):
-
-                                sel1 = str(msg['start'])
-                                sel2 = str(msg['end'])
-                                    
-                                this_peer.select(sel1, sel2)
-
-                            # Handles keypresses
-
-                            elif isinstance(msg, MSG_DELETE):
-
-                                self.handle_delete(this_peer, msg['row'],  msg['col'])
-
-                                self.root.colour_line(msg['row'])
-
-                            elif type(msg) == MSG_BACKSPACE:
-
-                                self.handle_backspace(this_peer, msg['row'], msg['col'])
-
-                                self.root.colour_line(msg['row'])
-
-                            elif isinstance(msg, MSG_EVALUATE_BLOCK):
-
-                                lines = (int(msg['start_line']), int(msg['end_line']))
-
-                                this_peer.highlightBlock(lines)
-
-                                # Experimental -- evaluate code based on highlight
-
-                                string = self.get("{}.0".format(lines[0]), "{}.end".format(lines[1]))
-                                
-                                self.root.lang.evaluate(string, name=str(this_peer), colour=this_peer.bg)
-
-                            elif isinstance(msg, MSG_EVALUATE_STRING):
-
-                                # Handles single lines of code evaluation, e.g. "Clock.stop()", that
-                                # might be evaluated but not within the text
-
-                                self.root.lang.evaluate(msg['string'], name=str(this_peer), colour=this_peer.bg)
-
-                            elif isinstance(msg, MSG_SET_MARK):
-
-                                row = msg['row']
-                                col = msg['col']
-
-                                this_peer.move(row, col)
-
-                                # If this is a local peer, make sure we can see the marker
-
-                                if this_peer == self.marker:
-
-                                    self.mark_set(INSERT, "{}.{}".format(row, col))
-
-                                    self.see(self.marker.mark)
-
-                            elif isinstance(msg, MSG_INSERT):
-
-                                self.handle_insert(this_peer, msg['char'], msg['row'], msg['col'])
-
-                                # Update IDE keywords
-
-                                self.root.colour_line(msg['row'])
-
-                                # If the msg is from the local peer, make sure they see their text AND marker
-
-                                if this_peer == self.marker:
-
-                                    self.see(self.marker.mark)
-
-                                self.edit_separator()
-
-                            elif isinstance(msg, MSG_GET_ALL):
-
-                                # Return the contents of the text box
-
-                                data = self.handle_getall()
-
-                                reply = MSG_SET_ALL(-1, data, msg['src_id'])
-
-                                self.root.push_queue.put( reply )           
-
-                            elif isinstance(msg, MSG_REMOVE):
-
-                                # Remove a Peer
-                                this_peer.remove()
-                                
-                                del self.peers[msg['src_id']]
-                                
-                                print("Peer '{}' has disconnected".format(this_peer))                            
-
-                            elif isinstance(msg, MSG_BRACKET):
-
-                                # Highlight brackets on local client only
-
-                                if this_peer.id == self.marker.id:
-
-                                    row1, col1 = msg['row1'], msg['col1']
-                                    row2, col2 = msg['row2'], msg['col2']
-
-                                    peer_col = int(self.index(this_peer.mark).split(".")[1])
-
-                                    # If the *actual* mark is a ahead, adjust
-
-                                    col2 = col2 + (peer_col - col2) - 1
-
-                                    self.tag_add("tag_open_brackets", "{}.{}".format(row1, col1), "{}.{}".format(row1, col1 + 1))
-                                    self.tag_add("tag_open_brackets", "{}.{}".format(row2, col2), "{}.{}".format(row2, col2 + 1))
-
-                            elif type(msg) == MSG_CONSTRAINT:
-
-                                new_name = msg['name']
-
-                                print("Changing to constraint to '{}'".format(new_name))
-
-                                for name in self.root.creative_constraints:
-
-                                    if name == new_name:
-
-                                        self.root.creative_constraints[name].set(True)
-                                        self.root.__constraint__ = constraints[name](msg['src_id'])
-
-                                    else:
-
-                                        self.root.creative_constraints[name].set(False)
-
-                            elif type(msg) == MSG_SYNC:
-
-                                # Set the contents of the text box
-
-                                self.handle_setall(msg['data'])
-
-                                # Move the peers to their position
-
-                                for _, peer in self.peers.items():
-                                    
-                                    peer.move(peer.row, peer.col)
-
-                                # Format the lines
-
-                                self.format_text()
-
-                            elif type(msg) == MSG_UNDO:
-
-                                self.handle_undo()
-
-                        # Give some useful information about what the message looked like if error
-
-                else:
-
-                    print("Error in text box handling. Message was {}".format(msg.info()))
-
-                    raise e
+                self.handle(msg)
 
                 # Update any other idle tasks
 
                 self.update_idletasks()
 
-                # This is possible out of date - TODO check
-
-                if msg == self.root.wait_msg:
-
-                    self.root.waiting = False
-                    self.root.wait_msg = None
-                    self.root.reset_title()
-
-                self.refreshPeerLabels()
+                self.refresh_peer_labels()
 
         # Break when the queue is empty
         except queue.Empty:
             
-            self.refreshPeerLabels()
+            self.refresh_peer_labels()
 
         # Recursive call
-        self.after(30, self.handle)
+        self.after(30, self.run)
         return
     
-    def refreshPeerLabels(self):
+    def refresh_peer_labels(self):
         ''' Updates the locations of the peers to their marks'''
         loc = []
         
@@ -486,147 +462,6 @@ class ThreadSafeText(Text):
         return
 
     # handling key events
-
-    def handle_delete(self, peer, row, col):
-        """ Responds to a MSG_DELETE by deleting the character in front of the peer """
-        if peer.hasSelection():
-            
-            peer.deleteSelection()
-            
-        else:
-
-            self.delete("{}.{}".format(row, col))
-            
-        # peer.move(row, col)
-
-        return
-
-    def handle_backspace(self, peer, row, col):
-        """ Responds to a MSG_BACKSPACE by deleting the character behind the peer """
-
-        # If the peer has selected text, delete that
-        
-        if peer.hasSelection():
-            
-            peer.deleteSelection()
-
-            # Treat as if 1 char was deleted
-
-            if peer is self.marker:
-            
-               self.root.last_col += 1
-
-        else:
-
-            # Move the cursor left one for a backspace
-
-            if row > 0 and col > 0:
-
-                index = "{}.{}".format(row, col-1)
-
-                self.delete(index)
-
-            elif row > 1 and col == 0:
-
-                index = "{}.end".format(row-1,)
-
-                self.delete(index)
-
-                col = int(self.index(index).split('.')[1])
-
-                # peer.move(row-1, col)
-
-        return
-
-    def handle_insert(self, peer, char, row, col):
-        ''' Manual character insert for connected peer '''
-
-        index = str(row) + "." + str(col)
-
-        # Delete a selection if inputting a character
-
-        if len(char) > 0 and peer.hasSelection():
-
-            peer.deleteSelection()
-
-        # Insert the character
-
-        self.insert(peer.mark, char, peer.text_tag)
-        
-        return
-
-    def handle_undo(self):
-        ''' Override for Ctrl+Z -- Not implemented '''
-        try:
-            self.edit_undo()
-        except TclError:
-            pass
-        return "break"
-
-    def handle_redo(self):
-        ''' Override for Ctrl+Y -- Not currently implmented '''
-        try:
-            self.edit_redo()
-        except TclError:
-            pass
-        return "break"
-
-    def handle_getall(self):
-        """ Returns a dictionary containing with three pieces of information:
-
-        `ranges` - The TK text tags and the spans the cover withinthe text
-        `contents` - The text as a string
-        `marks` - The locations of the other client markers
-
-        """
-
-        message = {"ranges": {}}
-
-        for tag in self.tag_names(None):
-
-            if tag.startswith("text_"):
-
-                message["ranges"][tag] = []
-
-                ranges = self.tag_ranges(tag)
-
-                for i in range(0, len(ranges), 2):
-
-                    message["ranges"][tag].append( (str(ranges[i]), str(ranges[i+1])) )
-
-        message["contents"] = self.get("1.0", END)[:-1]
-
-        message["marks"] = [(peer_id, peer.row, peer.col) for peer_id, peer in self.peers.items()]
-
-        return message
-
-    def handle_setall(self, data):
-        """ Sets the contents of the text box """
-
-        # unpack the json data
-
-        data = json.loads(data)
-
-        # Insert the text
-        
-        self.delete("1.0", END)
-        self.insert("1.0", data["contents"])
-
-        # If a text tag is not used by a connected peer, format the colours anyway
-
-        self.set_ranges(data["ranges"])
-
-        # Set the marks
-
-        for peer_id, row, col in data["marks"]:
-            
-            if peer_id in self.peers:
-
-                self.peers[peer_id].row = int(row)
-                self.peers[peer_id].col = int(col)
-
-                
-        return
 
     def set_ranges(self, data):
         """ Takes a dictionary of tag names and the ranges they cover
@@ -674,3 +509,35 @@ class ThreadSafeText(Text):
     def sort_indices(self, list_of_indexes):
         """ Takes a list of Tkinter indices and returns them sorted by location """
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
+
+    def configure_font(self):
+
+        if SYSTEM == MAC_OS:
+
+            fontfamily = "Monaco"
+
+        elif SYSTEM == WINDOWS:
+
+            fontfamily = "Consolas"
+
+        else:
+
+            fontfamily = "Courier New"
+
+        self.font_names = []
+        
+        self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
+        self.font.configure(**tkFont.nametofont("Font").configure())
+        self.font_names.append("Font")
+
+        self.font_bold = tkFont.Font(family=fontfamily, size=12, weight="bold", name="BoldFont")
+        self.font_bold.configure(**tkFont.nametofont("BoldFont").configure())
+        self.font_names.append("BoldFont")
+
+        self.font_italic = tkFont.Font(family=fontfamily, size=12, slant="italic", name="ItalicFont")
+        self.font_italic.configure(**tkFont.nametofont("ItalicFont").configure())
+        self.font_names.append("ItalicFont")
+        
+        self.configure(font="Font")
+
+        return

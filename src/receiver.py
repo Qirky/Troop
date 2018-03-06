@@ -110,7 +110,7 @@ class Receiver:
         ''' Add a Troop message to the Queue '''
         while self.ui is None:
             sleep(0.1)
-        self.ui.text.write(message)
+        self.ui.text.put(message)
         return
  
 class Node:

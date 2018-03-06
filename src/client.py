@@ -79,7 +79,7 @@ class Client:
 
         # If there was an error connecting then this method  does not create a local marker
 
-        self.ui.createLocalMarker(self.id, self.name)
+        self.ui.create_local_marker(self.id, self.name)
 
         # Send information about this client to the server
 

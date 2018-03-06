@@ -35,27 +35,27 @@ class MenuBar(Menu):
         # Edit menu
 
         editmenu = Menu(self, tearoff=0)
-        editmenu.add_command(label="Cut",        command=self.root.Cut,   accelerator="Ctrl+X")
-        editmenu.add_command(label="Copy",       command=self.root.Copy,  accelerator="Ctrl+C")
-        editmenu.add_command(label="Paste",      command=self.root.Paste, accelerator="Ctrl+V")
-        editmenu.add_command(label="Select All", command=self.root.SelectAll,  accelerator="Ctrl+/")
+        editmenu.add_command(label="Cut",        command=self.root.cut,   accelerator="Ctrl+X")
+        editmenu.add_command(label="Copy",       command=self.root.copy,  accelerator="Ctrl+C")
+        editmenu.add_command(label="Paste",      command=self.root.paste, accelerator="Ctrl+V")
+        editmenu.add_command(label="Select All", command=self.root.select_all,  accelerator="Ctrl+/")
         editmenu.add_separator()
-        editmenu.add_command(label="Increase Font Size",      command=self.root.IncreaseFontSize, accelerator="Ctrl+=")
-        editmenu.add_command(label="Decrease Font Size",      command=self.root.DecreaseFontSize, accelerator="Ctrl+-")
+        editmenu.add_command(label="Increase Font Size",      command=self.root.increase_font_size, accelerator="Ctrl+=")
+        editmenu.add_command(label="Decrease Font Size",      command=self.root.decrease_font_size, accelerator="Ctrl+-")
         editmenu.add_separator()
-        editmenu.add_command(label="Toggle Menu", command=self.root.ToggleMenu, accelerator="Ctrl+M")
+        editmenu.add_command(label="Toggle Menu", command=self.root.toggle_menu, accelerator="Ctrl+M")
         editmenu.add_separator()
-        editmenu.add_command(label="Edit Colours", command=self.root.EditColours)
+        editmenu.add_command(label="Edit Colours", command=self.root.edit_colours)
         editmenu.add_checkbutton(label="Toggle Window Transparency",  command=self.root.ToggleTransparency, variable=self.root.transparent)
         self.add_cascade(label="Edit", menu=editmenu)
 
         # Code menu
 
         codemenu = Menu(self, tearoff=0)
-        codemenu.add_command(label="Evaluate Code",         command=self.root.Evaluate,        accelerator="Ctrl+Return")
-        codemenu.add_command(label="Evaluate Single Line",  command=self.root.SingleLineEvaluate,   accelerator="Alt+Return")
+        codemenu.add_command(label="Evaluate Code",         command=self.root.evaluate,        accelerator="Ctrl+Return")
+        codemenu.add_command(label="Evaluate Single Line",  command=self.root.single_line_evaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
-        codemenu.add_command(label="Re-sync text",          command=self.root.syncText)
+        codemenu.add_command(label="Re-sync text",          command=self.root.sync_text)
         codemenu.add_command(label="Font colour merge",     command=self.root.beginFontMerge)
         codemenu.add_separator()
 
@@ -74,22 +74,22 @@ class MenuBar(Menu):
 
         # Creative constraint menu
 
-        constraintmenu = Menu(self, tearoff=0)
+        # constraintmenu = Menu(self, tearoff=0)
 
-        # Get the names of constraints
+        # # Get the names of constraints
 
-        from . import constraints
-        constraints = vars(constraints)
+        # from . import constraints
+        # constraints = vars(constraints)
 
-        for name in constraints:
+        # for name in constraints:
 
-            if not name.startswith("_"):
+        #     if not name.startswith("_"):
 
-                constraintmenu.add_checkbutton(label=name.title(),
-                                           command  = partial(self.root.set_constraint, name),
-                                           variable = self.root.creative_constraints[name])
+        #         constraintmenu.add_checkbutton(label=name.title(),
+        #                                    command  = partial(self.root.set_constraint, name),
+        #                                    variable = self.root.creative_constraints[name])
 
-        self.add_cascade(label="Constraints", menu=constraintmenu)        
+        # self.add_cascade(label="Constraints", menu=constraintmenu)        
 
         # Help
 

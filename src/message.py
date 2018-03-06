@@ -14,7 +14,6 @@ from __future__ import absolute_import
 import re
 import inspect
 import json
-import ast
 
 class NetworkMessageReader:
     def __init__(self):
@@ -180,51 +179,58 @@ class MSG_CONNECT(MESSAGE):
 
 class MSG_INSERT(MESSAGE):
     type = 2
-    def __init__(self, src_id, char, row, col, reply=1):
+    def __init__(self, src_id, index, char, reply=1):
         MESSAGE.__init__(self, src_id)
+        self['index'] = int(index)
         self['char']  = str(char)
-        self['row']   = int(row)
-        self['col']   = int(col)
         self['reply'] = int(reply)
 
 class MSG_DELETE(MESSAGE):
     type = 3
-    def __init__(self, src_id, row, col, reply=1):
+    def __init__(self, src_id, index, value, reply=1):
         MESSAGE.__init__(self,  src_id)
-        self['row']=int(row)
-        self['col']=int(col)
-        self['reply']=int(reply)
+        self['index'] = int(index)
+        self['value'] = int(value)
+        self['reply'] = int(reply)
 
-class MSG_BACKSPACE(MESSAGE):
-    type = 4
-    def __init__(self, src_id, row, col, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['row']=int(row)
-        self['col']=int(col)
-        self['reply']=int(reply)
+# class MSG_OPERATION(MESSAGE):
+#     type = 2
+#     def __init__(self, src_id, index, operation):
+#         MESSAGE.__init__(self, src_id)
+#         self["index"] = index
+#         self["operation"] = operation
 
-class MSG_SELECT(MESSAGE):
-    type = 5
-    def __init__(self, src_id, start, end, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['start']=str(start)
-        self['end']=str(end)
-        self['reply']=int(reply)
 
-class MSG_EVALUATE_STRING(MESSAGE):
-    type = 6
-    def __init__(self, src_id, string, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['string']=str(string)
-        self['reply']=int(reply)
+# class MSG_BACKSPACE(MESSAGE):
+#     type = 4
+#     def __init__(self, src_id, row, col, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['row']=int(row)
+#         self['col']=int(col)
+#         self['reply']=int(reply)
 
-class MSG_EVALUATE_BLOCK(MESSAGE):
-    type = 7
-    def __init__(self, src_id, start_line, end_line, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['start_line']=int(start_line)
-        self['end_line']=int(end_line)
-        self['reply']=int(reply)
+# class MSG_SELECT(MESSAGE):
+#     type = 5
+#     def __init__(self, src_id, start, end, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['start']=str(start)
+#         self['end']=str(end)
+#         self['reply']=int(reply)
+
+# class MSG_EVALUATE_STRING(MESSAGE):
+#     type = 6
+#     def __init__(self, src_id, string, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['string']=str(string)
+#         self['reply']=int(reply)
+
+# class MSG_EVALUATE_BLOCK(MESSAGE):
+#     type = 7
+#     def __init__(self, src_id, start_line, end_line, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['start_line']=int(start_line)
+#         self['end_line']=int(end_line)
+#         self['reply']=int(reply)
 
 class MSG_GET_ALL(MESSAGE):
     type = 8
@@ -239,18 +245,17 @@ class MSG_SET_ALL(MESSAGE):
         self['data']=json.dumps(data) if type(data) is dict else data
         self['client_id']=int(client_id)
 
-class MSG_RESPONSE(MESSAGE):
-    type = 10
-    def __init__(self, src_id, string):
-        MESSAGE.__init__(self, src_id)
-        self['string']=str(string)
+# class MSG_RESPONSE(MESSAGE):
+#     type = 10
+#     def __init__(self, src_id, string):
+#         MESSAGE.__init__(self, src_id)
+#         self['string']=str(string)
 
 class MSG_SET_MARK(MESSAGE):
     type = 11
-    def __init__(self, src_id, row, col, reply=1):
+    def __init__(self, src_id, index, reply=1):
         MESSAGE.__init__(self, src_id)
-        self['row']=int(row)
-        self['col']=int(col)
+        self['index'] = int(index)
         self['reply']=int(reply)
 
 class MSG_REMOVE(MESSAGE):
@@ -264,50 +269,50 @@ class MSG_PASSWORD(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['password']=str(password)
 
-class MSG_SET_TIME(MESSAGE):
-    type = 14
-    def __init__(self, src_id, time, timestamp, client_id):
-        MESSAGE.__init__(self, src_id)
-        self['time']      = float(time)
-        self['timestamp'] = str(timestamp)
-        self['client_id'] = int(client_id)
+# class MSG_SET_TIME(MESSAGE):
+#     type = 14
+#     def __init__(self, src_id, time, timestamp, client_id):
+#         MESSAGE.__init__(self, src_id)
+#         self['time']      = float(time)
+#         self['timestamp'] = str(timestamp)
+#         self['client_id'] = int(client_id)
 
-class MSG_GET_TIME(MESSAGE):
-    type = 15
-    def __init__(self, src_id, client_id):
-        MESSAGE.__init__(self, src_id)
-        self['client_id'] = client_id
+# class MSG_GET_TIME(MESSAGE):
+#     type = 15
+#     def __init__(self, src_id, client_id):
+#         MESSAGE.__init__(self, src_id)
+#         self['client_id'] = client_id
 
-class MSG_BRACKET(MESSAGE):
-    type = 16
-    def __init__(self, src_id, row1, col1, row2, col2, reply=1):
-        MESSAGE.__init__(self, src_id)
+# class MSG_BRACKET(MESSAGE):
+#     type = 16
+#     def __init__(self, src_id, row1, col1, row2, col2, reply=1):
+#         MESSAGE.__init__(self, src_id)
 
-        self['row1'] = int(row1)
-        self['col1'] = int(col1)
+#         self['row1'] = int(row1)
+#         self['col1'] = int(col1)
         
-        self['row2'] = int(row2)
-        self['col2'] = int(col2)
+#         self['row2'] = int(row2)
+#         self['col2'] = int(col2)
 
-        self['reply'] = int(reply)
+#         self['reply'] = int(reply)
 
-class MSG_PING(MESSAGE):
-    type = 17
-    def __init__(self):
-        pass
+# class MSG_PING(MESSAGE):
+#     type = 17
+#     def __init__(self):
+#         pass
 
-class MSG_CONSTRAINT(MESSAGE):
-    type = 18
-    def __init__(self, src_id, name, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['name'] = str(name)
-        self['reply'] = int(reply)
+# class MSG_CONSTRAINT(MESSAGE):
+#     type = 18
+#     def __init__(self, src_id, name, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['name'] = str(name)
+#         self['reply'] = int(reply)
 
-class MSG_COMPARE(MESSAGE):
-    type = 19
-    def __init__(self, src_id, data):
-        MESSAGE.__init__(self, src_id)
-        self['data']=json.dumps(data) if type(data) != str else data     
+# class MSG_COMPARE(MESSAGE):
+#     type = 19
+#     def __init__(self, src_id, data):
+#         MESSAGE.__init__(self, src_id)
+#         self['data']=json.dumps(data) if type(data) != str else data     
 
 class MSG_KILL(MESSAGE):
     type = 20
@@ -315,45 +320,57 @@ class MSG_KILL(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['string']=str(string)
 
-class MSG_SYNC(MESSAGE):
-    type=21
-    def __init__(self, src_id, data, reply=1):
-        MESSAGE.__init__(self, src_id)
-        # If the json data is a dict, convert it. If not assume it is correctly formatted
-        self['data']=json.dumps(data) if type(data) is dict else data
-        self['reply'] = int(reply)
+# class MSG_SYNC(MESSAGE):
+#     type=21
+#     def __init__(self, src_id, data, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         # If the json data is a dict, convert it. If not assume it is correctly formatted
+#         self['data']=json.dumps(data) if type(data) is dict else data
+#         self['reply'] = int(reply)
 
-class MSG_UNDO(MESSAGE):
-    type = 22
-    def __init__(self, src_id, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['reply'] = int(reply)
+# class MSG_UNDO(MESSAGE):
+#     type = 22
+#     def __init__(self, src_id, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['reply'] = int(reply)
 
  
 # Create a dictionary of message type to message class 
 
-MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
-                                             MSG_INSERT,
-                                             MSG_DELETE,
-                                             MSG_BACKSPACE,
-                                             MSG_SELECT,
-                                             MSG_EVALUATE_STRING,
-                                             MSG_EVALUATE_BLOCK,
-                                             MSG_GET_ALL,
-                                             MSG_SET_ALL,
-                                             MSG_RESPONSE,
-                                             MSG_SET_MARK,
-                                             MSG_REMOVE,
-                                             MSG_PASSWORD,
-                                             MSG_SET_TIME,
-                                             MSG_GET_TIME,
-                                             MSG_BRACKET,
-                                             MSG_PING,
-                                             MSG_CONSTRAINT,
-                                             MSG_COMPARE,
-                                             MSG_KILL,
-                                             MSG_SYNC,
-                                             MSG_UNDO ] }
+MESSAGE_TYPE = {msg.type : msg for msg in [
+        MSG_CONNECT,
+        MSG_INSERT,
+        MSG_DELETE,
+        MSG_SET_ALL,
+        MSG_GET_ALL,
+        MSG_REMOVE,
+        MSG_PASSWORD,
+        MSG_KILL
+    ]
+}
+
+# MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
+#                                              MSG_INSERT,
+#                                              MSG_DELETE,
+#                                              MSG_BACKSPACE,
+#                                              MSG_SELECT,
+#                                              MSG_EVALUATE_STRING,
+#                                              MSG_EVALUATE_BLOCK,
+#                                              MSG_GET_ALL,
+#                                              MSG_SET_ALL,
+#                                              MSG_RESPONSE,
+#                                              MSG_SET_MARK,
+#                                              MSG_REMOVE,
+#                                              MSG_PASSWORD,
+#                                              MSG_SET_TIME,
+#                                              MSG_GET_TIME,
+#                                              MSG_BRACKET,
+#                                              MSG_PING,
+#                                              MSG_CONSTRAINT,
+#                                              MSG_COMPARE,
+#                                              MSG_KILL,
+#                                              MSG_SYNC,
+#                                              MSG_UNDO ] }
 
 # Exceptions
 
@@ -374,6 +391,3 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "Could not connect to {}".format(self.name)
-
-if __name__ == "__main__":
-    print(MSG_SYNC(1, {"Test": 0}, 1))

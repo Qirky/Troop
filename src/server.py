@@ -37,8 +37,9 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
+from  .ot.server import Server as OTServer, MemoryBackend
 
-class TroopServer:
+class TroopServer(OTServer):
     """
         This the master Server instance. Other peers on the
         network connect to it and send their keypress information
@@ -46,6 +47,8 @@ class TroopServer:
     """
     bytes  = 2048
     def __init__(self, port=57890, log=False, debug=False):
+
+        OTServer.__init__(self, "", MemoryBackend())
           
         # Address information
         self.hostname = str(socket.gethostname())
@@ -214,8 +217,6 @@ class TroopServer:
 
                 try:
 
-                    # Send a request to the lead client for the contents of their text
-
                     sleep(0.5)
 
                 except KeyboardInterrupt:
@@ -241,21 +242,14 @@ class TroopServer:
         return conf['host'], int(conf['port'])
 
     def update_send(self):
-        """ This continually sends any characters to clients
+        """ This continually sends any operations to clients
         """
-        # Attach the message with the ID of sender
 
         while self.running:
 
             try:
 
                 client_address, msg = self.char_queue.get_nowait()
-
-                # if debugging, add character to the gui
-
-                if self.debugging:
-
-                    self.gui.text.queue.put(msg)
 
                 # If there is no src_id, remove the client from the address book
 
@@ -276,6 +270,8 @@ class TroopServer:
                     self.log_file.write("%.4f" % time.clock() + " " + repr(str(msg)) + "\n")
 
                 # Store the response of the messages
+
+                print("HELLO", msg)
 
                 self.respond(msg)
 
