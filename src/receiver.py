@@ -100,7 +100,7 @@ class Receiver:
 
                 if isinstance(msg, MSG_CONNECT):
 
-                    self.nodes[msg['src_id']] = Node(**msg.dict())
+                    self.nodes[msg['src_id']] = Node(**msg.dict())                
 
                 self.update_text(msg)
                     

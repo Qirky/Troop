@@ -126,6 +126,8 @@ class TextOperation(object):
         i = 0
         parts = []
 
+        print("Doc is {!r}, op is {!r}".format(doc, self.ops))
+
         for op in self:
             if _is_retain(op):
                 if i + op > len(doc):

@@ -54,7 +54,7 @@ class MenuBar(Menu):
         codemenu = Menu(self, tearoff=0)
         codemenu.add_command(label="Evaluate Code",         command=self.root.evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Single Line",  command=self.root.single_line_evaluate,   accelerator="Alt+Return")
-        codemenu.add_command(label="Stop All Sound",        command=self.root.stopSound,       accelerator="Ctrl+.")
+        codemenu.add_command(label="Stop All Sound",        command=self.root.stop_sound,       accelerator="Ctrl+.")
         codemenu.add_command(label="Re-sync text",          command=self.root.sync_text)
         codemenu.add_command(label="Font colour merge",     command=self.root.beginFontMerge)
         codemenu.add_separator()

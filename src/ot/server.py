@@ -47,5 +47,7 @@ class Server(object):
             (operation, _) = Operation.transform(operation, concurrent_operation)
 
         self.document = operation(self.document)
+
         self.backend.save_operation(user_id, operation)
+        
         return operation

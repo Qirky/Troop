@@ -136,13 +136,11 @@ class Interpreter(DummyInterpreter):
 
         return self
 
-    @classmethod
-    def find_keyword(cls, string):
-        return [(match.start(), match.end()) for match in cls.keyword_regex.finditer(string)]
+    def find_keyword(self, string):
+        return [(match.start(), match.end()) for match in self.keyword_regex.finditer(string)]
 
-    @classmethod
-    def find_comment(cls, string):
-        return [(match.start(), match.end()) for match in cls.comment_regex.finditer(string)]
+    def find_comment(self, string):
+        return [(match.start(), match.end()) for match in self.comment_regex.finditer(string)]
 
     def write_stdout(self, string):
         self.lang.stdin.write(self.format(string))

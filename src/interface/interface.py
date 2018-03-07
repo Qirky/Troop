@@ -24,11 +24,6 @@ except ImportError:
     from tkinter import font as tkFont
     from tkinter.colorchooser import askcolor
 
-try:
-    import queue
-except ImportError:
-    import Queue as queue
-
 import os, os.path
 import time
 import sys
@@ -53,6 +48,9 @@ class BasicInterface:
         
     def run(self):
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
+        # Continually check for messages to be sent
+        self.client.update_send()
+        self.update_graphs()
         try:
             self.root.mainloop()
         except (KeyboardInterrupt, SystemExit):
@@ -108,11 +106,13 @@ class DummyInterface(BasicInterface):
         self.lang.start()
 
 class Interface(BasicInterface):
-    def __init__(self, title, language, logging=False):
+    def __init__(self, client, title, language, logging=False):
 
         # Inherit
 
         BasicInterface.__init__(self)
+
+        self.client = client
 
         # Set language -- TODO have knowledge of language and set boolean to True
 
@@ -189,7 +189,7 @@ class Interface(BasicInterface):
         # Statistics Graphs
         self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=450, bd=0, highlightthickness=0)
         self.graphs.grid(row=2, column=2, sticky="nsew")
-        self.graph_queue = queue.Queue()
+        # self.graph_queue = queue.Queue()
 
         # Console scroll bar
         self.c_scroll = Scrollbar(self.root)
@@ -220,7 +220,7 @@ class Interface(BasicInterface):
         # self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
         # self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
         # self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
-        # self.text.bind("<{}-period>".format(CtrlKey), self.stopSound)
+        # self.text.bind("<{}-period>".format(CtrlKey), self.stop_sound)
 
         self.text.bind("<{}-m>".format(CtrlKey), self.toggle_menu)
 
@@ -297,19 +297,10 @@ class Interface(BasicInterface):
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
-        # Listener
-        self.pull = lambda *x: None
-
-        # Sender
-        self.push = None
-        self.push_queue = queue.Queue()
-
         # Set the window focus
         self.text.focus_force()
 
-        # Continually check for messages to be sent
-        self.update_send()
-        self.update_graphs()
+        
         
     def kill(self):
         """ Close socket connections and terminate the application """
@@ -317,11 +308,11 @@ class Interface(BasicInterface):
 
             if len(self.text.peers) == 1:
                 from time import sleep
-                self.push(MSG_SET_ALL(self.text.marker.id, self.text.get_contents(), -1))
+                self.client.send(MSG_SET_ALL(self.text.marker.id, self.text.get_contents(), -1))
                 sleep(0.25)
                 
-            self.pull.kill()
-            self.push.kill()
+            self.client.recv.kill()
+            self.client.send.kill()
             self.lang.kill()
             if self.logfile:
                 self.logfile.stop()
@@ -330,6 +321,13 @@ class Interface(BasicInterface):
         except(Exception) as e:
             stdout(e)
         BasicInterface.kill(self)
+        return
+
+    def freeze_kill(self, err):
+        ''' Displays an error message and stops communicating to the server '''
+        self.console.write(err) 
+        self.client.send.kill()
+        self.client.recv.kill()
         return
 
     @staticmethod
@@ -348,9 +346,21 @@ class Interface(BasicInterface):
         
         return
 
-    def stopSound(self, event):
+    def add_new_user(self, user_id):
+        # Get peer's current location & name
+
+        name = self.root.client.recv(user_id, "name")
+        peer = self.peers[user_id] = Peer(user_id, self) 
+        peer.name.set(name)
+
+        # Create a bar on the graph
+        peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
+
+        return
+
+    def stop_sound(self, event):
         """ Sends a kill all sound message to the server based on the language """
-        self.push_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
+        self.client.send_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
 
     def setInsert(self, index):
@@ -458,31 +468,10 @@ class Interface(BasicInterface):
 
     def sync_text(self):
         """ Re-sends the information about this client to all connected peers """
-        self.push_queue_put(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
+        self.add_to_send_queue(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
         return
 
-    def update_send(self):
-        """ Sends any keypress information added to the queue to the server """
-        try:
-            while True:
-                if self.push is not None and self.push.connected:
-                    try:
-                        # print("hello")
-                        msg = self.push_queue.get_nowait()
-                        self.push( msg )
-                    except ConnectionError as e:
-                        return
-                    self.root.update_idletasks()
-                else:
-                    break
-        # Break when the queue is empty
-        except queue.Empty:
-            pass
-        # Recursive call
-        self.root.after(30, self.update_send)
-        return
-
-    def push_queue_put(self, messages, wait=False):
+    def add_to_send_queue(self, messages, wait=False):
         """ Sends message to server and evaluates them locally if not other markers
             are using the same line. Use the wait flag when you want to force the
             message to go to the server and wait for the response before continuing """
@@ -494,18 +483,12 @@ class Interface(BasicInterface):
             messages = [messages]
 
         # Messages such as mouse clicks need to wait to make sure they don't conflict with other messages
-
-        reply = 1
-
-        # Set reply flag and send
-
+        
         for msg in messages:
 
-            msg['reply'] = reply
+            print("adding to send queue {}".format(msg.info()))
 
-            # Add the list of messages to the send queue
-
-            self.push_queue.put(msg)
+            self.client.send_queue.put(msg)
         
         return
 
@@ -558,19 +541,13 @@ class Interface(BasicInterface):
 
         if event.keysym == "Delete":
             
-            # message = MSG_DELETE(self.text.marker.id, index, -1, self.text.revision)
-
-            # self.text.handle_delete(message)
-
-            message = MSG_OPERATION(self.text.marker.id, [index, -1, tail], self.text.revision)
+            operation = [index, -1, tail]
 
         elif event.keysym == "BackSpace":
 
-            # message = MSG_DELETE(self.text.marker.id, index - 1, -1, self.text.revision)
+            if index > 0:
 
-            # self.text.handle_delete(message)
-
-            message = MSG_OPERATION(self.text.marker.id, [index - 1, -1, tail], self.text.revision)
+                operation = [index - 1, -1, tail]
 
         else:
 
@@ -586,10 +563,6 @@ class Interface(BasicInterface):
                 
                 char = event.char
 
-            # message = MSG_INSERT(self.text.marker.id, index, char, self.text.revision) 
-
-            # self.text.handle_insert(message, server = False)
-
             if len(char) > 0:
 
                 operation = [index, char, tail]
@@ -598,7 +571,7 @@ class Interface(BasicInterface):
 
             # Use locally
 
-            self.text.handle_local_operation(operation)
+            self.text.apply_local_operation(operation)
 
             # Creat message and send
 
@@ -608,9 +581,9 @@ class Interface(BasicInterface):
 
             self.text.handle_operation(message, client=True)
 
-        # Push messages 
+        # Store last key press for Alt+F4 etc
 
-        # self.push_queue_put(message)
+        self.last_keypress  = event.keysym
         
         # Make sure the user sees their cursor
 
@@ -641,7 +614,7 @@ class Interface(BasicInterface):
         messages = [ MSG_SELECT(self.text.marker.id, start, end),
                      MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
 
-        self.push_queue_put( messages, wait_for_reply)
+        self.add_to_send_queue( messages, wait_for_reply)
                 
         return "break"
 
@@ -719,7 +692,7 @@ class Interface(BasicInterface):
         messages = [ MSG_SELECT(self.text.marker.id, start, end),
                      MSG_SET_MARK(self.text.marker.id, 1, 0) ]
 
-        self.push_queue_put( messages, wait=True )
+        self.add_to_send_queue( messages, wait=True )
                 
         return "break"
 
@@ -943,7 +916,7 @@ class Interface(BasicInterface):
 
             msg = MSG_EVALUATE_BLOCK(self.text.marker.id, row, row)
             
-            self.push_queue_put( msg )
+            self.add_to_send_queue( msg )
         
         return "break"
 
@@ -962,7 +935,7 @@ class Interface(BasicInterface):
 
             msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1])
             
-            self.push_queue_put( msg )
+            self.add_to_send_queue( msg )
                 
         return "break"
 
@@ -1049,7 +1022,7 @@ class Interface(BasicInterface):
 
     def Undo(self, event):
         ''' Triggers an undo event '''
-        self.push_queue_put(MSG_UNDO(self.text.marker.id))
+        self.add_to_send_queue(MSG_UNDO(self.text.marker.id))
         return "break"
 
     def Redo(self, event):
@@ -1072,14 +1045,14 @@ class Interface(BasicInterface):
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
             row, col = self.convert(self.text.index(self.text.marker.mark))
-            self.push_queue_put( MSG_BACKSPACE(self.text.marker.id, row, col), wait=True )
+            self.add_to_send_queue( MSG_BACKSPACE(self.text.marker.id, row, col), wait=True )
         return "break"
     
     def paste(self, event=None):
         """ Inserts text from the clipboard """
         text = self.root.clipboard_get()
         row, col = self.convert(self.text.index(self.text.marker.mark))
-        self.push_queue_put( MSG_INSERT(self.text.marker.id, text, row, col), wait=True )
+        self.add_to_send_queue( MSG_INSERT(self.text.marker.id, text, row, col), wait=True )
         return "break"
 
     def toggle_menu(self, event=None):

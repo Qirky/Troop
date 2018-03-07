@@ -11,11 +11,16 @@ from time import sleep, time
 from getpass import getpass
 from hashlib import md5
 
+try:
+    import queue
+except ImportError:
+    import Queue as queue
+
 import sys
 
 class Client:
 
-    version = '0.4'
+    version = '0.6'
     
     def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False, ipv6=False):
         
@@ -39,6 +44,8 @@ class Client:
                 self.id = self.send.conn_id
 
                 print("Password accepted")
+
+                self.send_queue = queue.Queue()
             
         except ConnectionError as e:
 
@@ -75,7 +82,9 @@ class Client:
 
         # Set up a user interface
 
-        self.ui = Interface("Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port), self.lang, logging)
+        title = "Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port)
+
+        self.ui = Interface(self, title, self.lang, logging)
 
         # If there was an error connecting then this method  does not create a local marker
 
@@ -84,11 +93,6 @@ class Client:
         # Send information about this client to the server
 
         self.send( MSG_CONNECT(self.id, self.name, self.send.hostname, self.send.port) )
-
-        # Give the IDE access to push/pull -> their __call__ methods
-        # make them act like methods of self.ui
-        self.ui.push = self.send
-        self.ui.pull = self.recv
 
         # Give the receiving server a reference to the user-interface
         self.recv.ui = self.ui
@@ -107,4 +111,26 @@ class Client:
                 except:
                     pass
         return conf['host'], int(conf['port'])
+
+    def update_send(self):
+        """ Continually polls the queue and sends any messages to the server """
+        try:
+            while True:
+                if self.send.connected:
+                    try:
+                        msg = self.send_queue.get_nowait()
+                        print("Sending {}".format(msg.info()))
+                        self.send( msg )
+                    except ConnectionError as e:
+                        print(e)
+                        return
+                    self.ui.root.update_idletasks()
+                else:
+                    break
+        # Break when the queue is empty
+        except queue.Empty:
+            pass
+        # Recursive call
+        self.ui.root.after(30, self.update_send)
+        return
             

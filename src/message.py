@@ -183,39 +183,12 @@ class MSG_CONNECT(MESSAGE):
         self['row']       = int(row)
         self['col']       = int(col)
 
-# class MSG_INSERT(MESSAGE):
-#     type = 2
-#     def __init__(self, src_id, head, value, tail, revision, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['index']    = int(index)
-#         self['value']    = str(value)
-#         self['revision'] = int(revision)
-#         self['reply']    = int(reply)
-
-# class MSG_DELETE(MESSAGE):
-#     type = 3
-#     def __init__(self, src_id, index, value, revision, reply=1):
-#         MESSAGE.__init__(self,  src_id)
-#         self['index']    = int(index)
-#         self['value']    = int(value)
-#         self['revision'] = int(revision)
-#         self['reply']    = int(reply)
-
 class MSG_OPERATION(MESSAGE):
     type = 2
     def __init__(self, src_id, operation, revision):
         MESSAGE.__init__(self, src_id)
         self["operation"] = operation
         self["revision"]  = revision
-
-
-# class MSG_BACKSPACE(MESSAGE):
-#     type = 4
-#     def __init__(self, src_id, row, col, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['row']=int(row)
-#         self['col']=int(col)
-#         self['reply']=int(reply)
 
 # class MSG_SELECT(MESSAGE):
 #     type = 5
@@ -253,12 +226,6 @@ class MSG_SET_ALL(MESSAGE):
         self['data']=json.dumps(data) if type(data) is dict else data
         self['client_id']=int(client_id)
 
-# class MSG_RESPONSE(MESSAGE):
-#     type = 10
-#     def __init__(self, src_id, string):
-#         MESSAGE.__init__(self, src_id)
-#         self['string']=str(string)
-
 class MSG_SET_MARK(MESSAGE):
     type = 11
     def __init__(self, src_id, index, reply=1):
@@ -275,72 +242,13 @@ class MSG_PASSWORD(MESSAGE):
     type = 13
     def __init__(self, src_id, password):
         MESSAGE.__init__(self, src_id)
-        self['password']=str(password)
-
-# class MSG_SET_TIME(MESSAGE):
-#     type = 14
-#     def __init__(self, src_id, time, timestamp, client_id):
-#         MESSAGE.__init__(self, src_id)
-#         self['time']      = float(time)
-#         self['timestamp'] = str(timestamp)
-#         self['client_id'] = int(client_id)
-
-# class MSG_GET_TIME(MESSAGE):
-#     type = 15
-#     def __init__(self, src_id, client_id):
-#         MESSAGE.__init__(self, src_id)
-#         self['client_id'] = client_id
-
-# class MSG_BRACKET(MESSAGE):
-#     type = 16
-#     def __init__(self, src_id, row1, col1, row2, col2, reply=1):
-#         MESSAGE.__init__(self, src_id)
-
-#         self['row1'] = int(row1)
-#         self['col1'] = int(col1)
-        
-#         self['row2'] = int(row2)
-#         self['col2'] = int(col2)
-
-#         self['reply'] = int(reply)
-
-# class MSG_PING(MESSAGE):
-#     type = 17
-#     def __init__(self):
-#         pass
-
-# class MSG_CONSTRAINT(MESSAGE):
-#     type = 18
-#     def __init__(self, src_id, name, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['name'] = str(name)
-#         self['reply'] = int(reply)
-
-# class MSG_COMPARE(MESSAGE):
-#     type = 19
-#     def __init__(self, src_id, data):
-#         MESSAGE.__init__(self, src_id)
-#         self['data']=json.dumps(data) if type(data) != str else data     
+        self['password']=str(password)   
 
 class MSG_KILL(MESSAGE):
     type = 20
     def __init__(self, src_id, string):
         MESSAGE.__init__(self, src_id)
         self['string']=str(string)
-
-# class MSG_SYNC(MESSAGE):
-#     type=21
-#     def __init__(self, src_id, data, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         # If the json data is a dict, convert it. If not assume it is correctly formatted
-#         self['data']=json.dumps(data) if type(data) is dict else data
-#         self['reply'] = int(reply)
-
-# class MSG_UNDO(MESSAGE):
-#     type = 22
-#     def __init__(self, src_id, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['reply'] = int(reply)
 
  
 # Create a dictionary of message type to message class 
@@ -356,28 +264,31 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
     ]
 }
 
-# MESSAGE_TYPE = { msg.type : msg for msg in [ MSG_CONNECT,
-#                                              MSG_INSERT,
-#                                              MSG_DELETE,
-#                                              MSG_BACKSPACE,
-#                                              MSG_SELECT,
-#                                              MSG_EVALUATE_STRING,
-#                                              MSG_EVALUATE_BLOCK,
-#                                              MSG_GET_ALL,
-#                                              MSG_SET_ALL,
-#                                              MSG_RESPONSE,
-#                                              MSG_SET_MARK,
-#                                              MSG_REMOVE,
-#                                              MSG_PASSWORD,
-#                                              MSG_SET_TIME,
-#                                              MSG_GET_TIME,
-#                                              MSG_BRACKET,
-#                                              MSG_PING,
-#                                              MSG_CONSTRAINT,
-#                                              MSG_COMPARE,
-#                                              MSG_KILL,
-#                                              MSG_SYNC,
-#                                              MSG_UNDO ] }
+def read_from_socket(sock):
+    """ Reads data from the socket """
+    # Get number single int that tells us how many digits to read
+    try:
+        bits = int(sock.recv(4))
+        if bits > 0:
+            # Read the remaining data (JSON)
+            data = sock.recv(bits)
+            # Convert back to Python data structure
+            return json.loads(data)
+    except (ConnectionAbortedError, ConnectionResetError):
+        return None
+
+def send_to_socket(sock, data):
+    """ Converts Python data structure to JSON message and
+        sends to a connected socket """
+    msg = Message(data)
+    # Get length and store as string
+    msg_len, msg_str = len(msg), msg.as_bytes()
+    # Continually send until we know all of the data has been sent
+    sent = 0
+    while sent < msg_len:
+        bits = sock.send(msg_str[sent:])
+        sent += bits
+    return
 
 # Exceptions
 
@@ -405,5 +316,10 @@ if __name__ == "__main__":
     test = MSG_OPERATION(1, [0, "s", 4], 1)
 
     print(test)
+
+    test["reply"] = 1
+
+    print(test)
+
     print(test.info())
     print(test.bytes())

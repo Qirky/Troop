@@ -57,9 +57,10 @@ class ThreadSafeText(Text, OTClient):
         #self.add_handle(MSG_INSERT,  self.handle_insert)
         #self.add_handle(MSG_DELETE,  self.handle_delete)
         self.add_handle(MSG_OPERATION, self.handle_operation)
-        self.add_handle(MSG_SET_ALL, self.handle_set_all)
-        self.add_handle(MSG_GET_ALL, self.handle_get_all)
-        self.add_handle(MSG_CONNECT, self.handle_connect)
+        self.add_handle(MSG_SET_ALL,   self.handle_set_all)
+        self.add_handle(MSG_GET_ALL,   self.handle_get_all)
+        self.add_handle(MSG_CONNECT,   self.handle_connect)
+        self.add_handle(MSG_KILL,      self.handle_kill)
         
         # Information about other connected users
         self.peers      = {}
@@ -87,29 +88,42 @@ class ThreadSafeText(Text, OTClient):
     # Override OTClient
     def send_operation(self, revision, operation):
         """Should send an operation and its revision number to the server."""
+
         message = MSG_OPERATION(self.marker.id, operation.ops, revision)
-        self.root.push( message )
-        # return self.root.push_queue.put(message)
+        
+        # Operations are sent directly to the server
+
+        return self.root.client.send( message )
 
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
-        print("applying {}".format(operation.ops))
+
         document = operation(self.read())
+
         self.set_text(document)
+
+        return
+
+    def apply_local_operation(self, ops):
+        
+        self.apply_operation(TextOperation(ops))
+        
         return
 
     def refresh_contents(self):
+
         self.set_text(self.document)
+
         return
 
     def put(self, msg):
-        """ Writes a network message to the queue """
+        """ Checks if a message from a new user then writes a network message to the queue """
 
         # msg must be a Troop message
 
         assert isinstance(msg, MESSAGE)
         
-        # Keep information about new peers
+        # Keep information about new peers -- is this a good place to do it?
 
         if 'src_id' in msg:
 
@@ -117,7 +131,7 @@ class ThreadSafeText(Text, OTClient):
 
             if sender_id not in self.peers and sender_id != -1:
 
-                self.add_new_user(sender_id)
+                self.root.add_new_user(sender_id)
 
         # Add message to queue
         self.queue.put(msg)
@@ -127,6 +141,9 @@ class ThreadSafeText(Text, OTClient):
     def add_handle(self, msg_cls, func):
         self.handles[msg_cls.type] = func
         return
+
+    def get_state(self):
+        return self.state.__class__.__name__
 
     # Handles
     # =======
@@ -149,59 +166,15 @@ class ThreadSafeText(Text, OTClient):
 
         else:
 
-            self.apply_server(TextOperation(message["operation"]))
+            # If we recieve a message from the server with our own id, acknowledge
 
-        return
+            if message["src_id"] == self.marker.id:
 
-    def handle_local_operation(self, ops):
-        self.apply_operation(TextOperation(ops))
+                self.server_ack()
 
+            else:
 
-    def handle_insert(self, message):
-        ''' Manual character insert for connected peer '''
-        # peer  = self.get_peer(message)
-        # index = self.root.number_index_to_tcl(message["index"])
-
-        # # Delete a selection if inputting a character
-
-        # if len(message["char"]) > 0 and peer.hasSelection():
-
-        #     peer.deleteSelection()
-
-        # Insert the character
-
-        # op = TextOperation()
-        # op.retain(message["head"])
-        # op.insert(message["value"])
-        # op.retain(message["tail"])
-
-        # if server:
-
-        #     self.apply_server(op)
-
-        # else:
-
-        #     self.apply_client(op)
-        
-        return
-
-    def handle_delete(self, message, server=True):
-        """ Responds to a MSG_DELETE by deleting the character in front of the peer """
-
-        # peer  = self.get_peer(message)
-        # index = self.root.number_index_to_tcl(message["index"])
-
-        # op = TextOperation().retain(message["index"]).delete(message["value"]).retain()
-
-        # self.apply_server(op)
-        
-        # if peer.hasSelection():
-            
-        #     peer.deleteSelection()
-            
-        # else:
-
-        #     self.delete(index)
+                self.apply_server(TextOperation(message["operation"]))
 
         return
 
@@ -232,45 +205,12 @@ class ThreadSafeText(Text, OTClient):
         ''' Creates a dictionary of data about the text editor and sends it to the server '''
         data = self.get_contents()
         reply = MSG_SET_ALL(-1, data, message['src_id'])
-        self.root.push_queue.put( reply )
+        self.root.add_to_send_queue( reply )
         return
 
-    # def handle_backspace(self, peer, row, col):
-    #     """ Responds to a MSG_BACKSPACE by deleting the character behind the peer """
-
-    #     # If the peer has selected text, delete that
-        
-    #     if peer.hasSelection():
-            
-    #         peer.deleteSelection()
-
-    #         # Treat as if 1 char was deleted
-
-    #         if peer is self.marker:
-            
-    #            self.root.last_col += 1
-
-    #     else:
-
-    #         # Move the cursor left one for a backspace
-
-    #         if row > 0 and col > 0:
-
-    #             index = "{}.{}".format(row, col-1)
-
-    #             self.delete(index)
-
-    #         elif row > 1 and col == 0:
-
-    #             index = "{}.end".format(row-1,)
-
-    #             self.delete(index)
-
-    #             col = int(self.index(index).split('.')[1])
-
-    #             # peer.move(row-1, col)
-
-    #     return
+    def handle_kill(self, message):
+        ''' Cleanly terminates the session '''
+        return self.root.freeze_kill(message['string'])
 
     def handle_undo(self):
         ''' Override for Ctrl+Z -- Not implemented '''
@@ -352,20 +292,6 @@ class ThreadSafeText(Text, OTClient):
         self.insert("1.0", string)
         return
 
-    # Other utils
-
-    def add_new_user(self, user_id):
-        # Get peer's current location & name
-
-        name = self.root.pull(user_id, "name")
-        peer = self.peers[user_id] = Peer(user_id, self) 
-        peer.name.set(name)
-
-        # Create a bar on the graph
-        peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
-
-        return
-
     def alone(self, peer, row=None):
         """ Returns True if there are no other peers editing the same line +- 1.
             Row can be specified. """
@@ -441,7 +367,13 @@ class ThreadSafeText(Text, OTClient):
 
                 # Get the handler method and call
 
-                self.handle(msg)
+                try:
+
+                    self.handle(msg)
+
+                except Exception as e:
+
+                    print(e)
 
                 # Update any other idle tasks
 

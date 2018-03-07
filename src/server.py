@@ -404,11 +404,8 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.authenticate(self.get_message()[0]['password']) < 0
 
     def get_message(self):
-        print("A")
-        data = self.request.recv(self.master.bytes) # client not sending
-        print("B")
+        data = self.request.recv(self.master.bytes) 
         data = self.reader.feed(data)
-        print("C")
         return data
 
 
