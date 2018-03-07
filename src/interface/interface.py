@@ -72,6 +72,10 @@ class BasicInterface:
     def colour_line(self, line):
         """ Embold keywords defined in `Interpreter.py` """
 
+        if 1:
+
+            return
+
         # Get contents of the line
 
         start, end = "{}.0".format(line), "{}.end".format(line)
@@ -463,8 +467,10 @@ class Interface(BasicInterface):
             while True:
                 if self.push is not None and self.push.connected:
                     try:
-                        self.push( self.push_queue.get_nowait() )
-                    except ConnectionError:
+                        # print("hello")
+                        msg = self.push_queue.get_nowait()
+                        self.push( msg )
+                    except ConnectionError as e:
                         return
                     self.root.update_idletasks()
                 else:
@@ -507,12 +513,12 @@ class Interface(BasicInterface):
         """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the 
             text contents were a single list """
         row, col = [int(val) for val in index.split(".")]
-        return sum([len(line) + 1 for line in self.text.get_all().split("\n")[:row-1]]) + col
+        return sum([len(line) + 1 for line in self.text.read().split("\n")[:row-1]]) + col
 
     def number_index_to_tcl(self, number):
         """ Takes an integer number and returns the tcl index in the from 'row.col' """
         count = 0; row = 0; col = 0
-        for line in self.text.get_all().split("\n"):
+        for line in self.text.read().split("\n"):
             tmp = count + len(line) + 1
             if tmp < number:
                 row += 1
@@ -540,6 +546,9 @@ class Interface(BasicInterface):
         # Get index
 
         index = self.tcl_index_to_number(self.text.index(self.text.marker.mark))
+        tail  = len(self.text.read()) - index
+
+        operation = []
 
         # Un-highlight any brackets
 
@@ -549,11 +558,19 @@ class Interface(BasicInterface):
 
         if event.keysym == "Delete":
             
-            message = MSG_DELETE(self.text.marker.id, index, -1)
+            # message = MSG_DELETE(self.text.marker.id, index, -1, self.text.revision)
+
+            # self.text.handle_delete(message)
+
+            message = MSG_OPERATION(self.text.marker.id, [index, -1, tail], self.text.revision)
 
         elif event.keysym == "BackSpace":
 
-            message = MSG_DELETE(self.text.marker.id, index - 1, -1)
+            # message = MSG_DELETE(self.text.marker.id, index - 1, -1, self.text.revision)
+
+            # self.text.handle_delete(message)
+
+            message = MSG_OPERATION(self.text.marker.id, [index - 1, -1, tail], self.text.revision)
 
         else:
 
@@ -569,11 +586,31 @@ class Interface(BasicInterface):
                 
                 char = event.char
 
-            message = MSG_INSERT(self.text.marker.id, index, char) 
+            # message = MSG_INSERT(self.text.marker.id, index, char, self.text.revision) 
 
-        # Push messages
+            # self.text.handle_insert(message, server = False)
 
-        self.push_queue_put(message)
+            if len(char) > 0:
+
+                operation = [index, char, tail]
+
+        if operation:
+
+            # Use locally
+
+            self.text.handle_local_operation(operation)
+
+            # Creat message and send
+
+            message = MSG_OPERATION(self.text.marker.id, operation, self.text.revision)
+
+            # Handle the operation on the client side
+
+            self.text.handle_operation(message, client=True)
+
+        # Push messages 
+
+        # self.push_queue_put(message)
         
         # Make sure the user sees their cursor
 

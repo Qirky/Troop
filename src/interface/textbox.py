@@ -4,7 +4,7 @@ from ..config import *
 from ..message import *
 from ..interpreter import *
 from ..ot.client import Client as OTClient
-from ..ot.text_operations import TextOperation
+from ..ot.text_operation import TextOperation
 
 from .peer import *
 
@@ -54,8 +54,9 @@ class ThreadSafeText(Text, OTClient):
         # Define message handlers
 
         self.handles = {}
-        self.add_handle(MSG_INSERT,  self.handle_insert)
-        self.add_handle(MSG_DELETE,  self.handle_delete)
+        #self.add_handle(MSG_INSERT,  self.handle_insert)
+        #self.add_handle(MSG_DELETE,  self.handle_delete)
+        self.add_handle(MSG_OPERATION, self.handle_operation)
         self.add_handle(MSG_SET_ALL, self.handle_set_all)
         self.add_handle(MSG_GET_ALL, self.handle_get_all)
         self.add_handle(MSG_CONNECT, self.handle_connect)
@@ -79,17 +80,27 @@ class ThreadSafeText(Text, OTClient):
 
         # Begin listening for messages
 
+        self.document = ""
+
         self.run()
 
     # Override OTClient
     def send_operation(self, revision, operation):
         """Should send an operation and its revision number to the server."""
-        raise NotImplementedError("You have to override 'send_operation' in your Client child class")
+        message = MSG_OPERATION(self.marker.id, operation.ops, revision)
+        self.root.push( message )
+        # return self.root.push_queue.put(message)
 
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
-        s = operation(self.get_all())
-        # raise NotImplementedError("You have to overrid 'apply_operation' in your Client child class")
+        print("applying {}".format(operation.ops))
+        document = operation(self.read())
+        self.set_text(document)
+        return
+
+    def refresh_contents(self):
+        self.set_text(self.document)
+        return
 
     def put(self, msg):
         """ Writes a network message to the queue """
@@ -130,33 +141,59 @@ class ThreadSafeText(Text, OTClient):
             print("Peer '{}' has joined the session".format(messsage['name']))  
         return
 
+    def handle_operation(self, message, client=False):
+
+        if client:
+
+            self.apply_client(TextOperation(message["operation"]))
+
+        else:
+
+            self.apply_server(TextOperation(message["operation"]))
+
+        return
+
+    def handle_local_operation(self, ops):
+        self.apply_operation(TextOperation(ops))
+
+
     def handle_insert(self, message):
         ''' Manual character insert for connected peer '''
+        # peer  = self.get_peer(message)
+        # index = self.root.number_index_to_tcl(message["index"])
 
-        peer  = self.get_peer(message)
-        index = self.root.number_index_to_tcl(message["index"])
+        # # Delete a selection if inputting a character
 
-        # Delete a selection if inputting a character
+        # if len(message["char"]) > 0 and peer.hasSelection():
 
-        if len(message["char"]) > 0 and peer.hasSelection():
-
-            peer.deleteSelection()
+        #     peer.deleteSelection()
 
         # Insert the character
 
-        # self.insert(peer.mark, message["char"], peer.text_tag)
+        # op = TextOperation()
+        # op.retain(message["head"])
+        # op.insert(message["value"])
+        # op.retain(message["tail"])
 
-        self.apply_operation(message["char"])
+        # if server:
+
+        #     self.apply_server(op)
+
+        # else:
+
+        #     self.apply_client(op)
         
         return
 
-    def handle_delete(self, message):
+    def handle_delete(self, message, server=True):
         """ Responds to a MSG_DELETE by deleting the character in front of the peer """
 
-        peer  = self.get_peer(message)
-        index = self.root.number_index_to_tcl(message["index"])
+        # peer  = self.get_peer(message)
+        # index = self.root.number_index_to_tcl(message["index"])
 
-        self.apply_operation(message["value"])
+        # op = TextOperation().retain(message["index"]).delete(message["value"]).retain()
+
+        # self.apply_server(op)
         
         # if peer.hasSelection():
             
@@ -251,6 +288,9 @@ class ThreadSafeText(Text, OTClient):
             pass
         return "break"
 
+    def clear(self):
+        return self.delete("1.0", END)
+
     def get_contents(self):
         """ Returns a dictionary containing with three pieces of information:
 
@@ -289,7 +329,7 @@ class ThreadSafeText(Text, OTClient):
 
         # Insert the text
         
-        self.delete("1.0", END)
+        self.clear()
         self.insert("1.0", data["contents"])
 
         # If a text tag is not used by a connected peer, format the colours anyway
@@ -305,6 +345,11 @@ class ThreadSafeText(Text, OTClient):
                 self.peers[peer_id].row = int(row)
                 self.peers[peer_id].col = int(col)
                 
+        return
+
+    def set_text(self, string):
+        self.clear()
+        self.insert("1.0", string)
         return
 
     # Other utils
@@ -338,7 +383,7 @@ class ThreadSafeText(Text, OTClient):
 
     def read(self):
         """ Returns the entire contents of the text box as a string """
-        return self.get("1.0", END)
+        return self.get("1.0", END)[:-1]
 
     def update_font_colours(self, recur_time=0):
         """ Updates the font colours of all the peers. Set a recur time
@@ -364,9 +409,6 @@ class ThreadSafeText(Text, OTClient):
                 self.after(recur_time, lambda: self.update_font_colours(recur_time = self.merge_recur_time))
 
         return
-
-    def get_all(self):
-        return self.get("1.0", "end")
 
     def get_peer_colour_merge_weight(self):
         return self.merge_weight

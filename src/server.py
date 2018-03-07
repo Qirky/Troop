@@ -37,7 +37,8 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
-from  .ot.server import Server as OTServer, MemoryBackend
+from .ot.server import Server as OTServer, MemoryBackend
+from .ot.text_operation import TextOperation
 
 class TroopServer(OTServer):
     """
@@ -105,8 +106,8 @@ class TroopServer(OTServer):
             sys.exit("Exited")
 
         # Set up a char queue
-        self.char_queue = queue.Queue()
-        self.char_queue_thread = Thread(target=self.update_send)
+        self.op_queue = queue.Queue()
+        self.op_queue_thread = Thread(target=self.update_send)
 
         # Set up log for logging a performance
 
@@ -162,38 +163,11 @@ class TroopServer(OTServer):
         self.contents = data
         return
 
-    def respond(self, msg):
-        """ Update all clients with a message. Only sends back messages to
-            a client if the `reply` flag is nonzero. """
-
-        for client in self.clients:
-
-            try:
-
-                if 'reply' in msg.data:
-
-                    if msg['reply'] == 1 or client.id != msg['src_id']:
-
-                        client.send(msg)
-
-                else:
-
-                    client.send(msg)
-
-            except DeadClientError as err:
-
-                # Remove client if no longer contactable
-
-                self.remove_client(client.address)
-
-                stdout(err)
-        return
-
     def start(self):
 
         self.running = True
         self.server_thread.start()
-        self.char_queue_thread.start()
+        self.op_queue_thread.start()
 
         stdout("Server running @ {} on port {}\n".format(self.ip_pub, self.port))
 
@@ -249,7 +223,7 @@ class TroopServer(OTServer):
 
             try:
 
-                client_address, msg = self.char_queue.get_nowait()
+                client_address, msg = self.op_queue.get_nowait()
 
                 # If there is no src_id, remove the client from the address book
 
@@ -270,14 +244,48 @@ class TroopServer(OTServer):
                     self.log_file.write("%.4f" % time.clock() + " " + repr(str(msg)) + "\n")
 
                 # Store the response of the messages
+                
+                if isinstance(msg, MSG_OPERATION):
 
-                print("HELLO", msg)
+                    operation = self.receive_operation(msg["src_id"], msg["revision"], TextOperation(msg["operation"]))
+
+                    msg["operation"] = operation.ops
 
                 self.respond(msg)
 
             except queue.Empty:
 
                 sleep(0.01)
+
+        return
+
+    def respond(self, msg):
+        """ Update all clients with a message. Only sends back messages to
+            a client if the `reply` flag is nonzero. """
+
+        for client in self.clients:
+
+            try:
+
+                # if 'reply' in msg.data:
+
+                #     if msg['reply'] == 1 or client.id != msg['src_id']:
+
+                #         client.send(msg)
+
+                # else:
+
+                #     client.send(msg)
+
+                client.send(msg)
+
+            except DeadClientError as err:
+
+                # Remove client if no longer contactable
+
+                self.remove_client(client.address)
+
+                stdout(err)
 
         return
 
@@ -396,7 +404,13 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.authenticate(self.get_message()[0]['password']) < 0
 
     def get_message(self):
-        return self.reader.feed(self.request.recv(self.master.bytes))
+        print("A")
+        data = self.request.recv(self.master.bytes) # client not sending
+        print("B")
+        data = self.reader.feed(data)
+        print("C")
+        return data
+
 
     def handle_client_lost(self):
         """ Terminates cleanly """
@@ -509,7 +523,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     # Add any other messages to the send queue
 
-                    self.master.char_queue.put((self.client_address, msg))
+                    self.master.op_queue.put((self.client_address, msg))
                         
         return
 
@@ -578,7 +592,7 @@ class Client:
     def send(self, message):
         try:
             self.source.sendall(message.bytes()) 
-        except:
+        except Exception as e:
             raise DeadClientError(self.hostname)
         return
 

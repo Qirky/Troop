@@ -521,7 +521,7 @@ class TidalInterpreter(Interpreter):
                     instring = True
                     instring_char = char
             elif char == "-":
-                if not instring and i < len(string) and string[i + 1] == "-":
+                if not instring and (i + 1) < len(string) and string[i + 1] == "-":
                     return [(i, len(string))]
         return []
     

@@ -7,6 +7,8 @@
 
     Use -1 as an ID when it doesn't matter
 
+    //TODO - just use JSON
+
 """
 
 from __future__ import absolute_import
@@ -61,7 +63,7 @@ class NetworkMessageReader:
 
                 # Collect the arguments
 
-                args = [data[n] for n in range(i+1, i+j)]
+                args = [json.loads(data[n]) for n in range(i+1, i+j)]
 
                 pkg.append(cls(*args))
 
@@ -104,7 +106,11 @@ class MESSAGE(object):
         self.keys = ['type', 'src_id']
 
     def __str__(self):
-        return "".join(["<{}>".format(item) for item in self])
+        return "".join([self.format(item) for item in self])
+
+    @staticmethod
+    def format(value):
+        return "<{}>".format(json.dumps(value))
 
     def bytes(self):
         return str(self).encode("utf-8")
@@ -153,7 +159,7 @@ class MESSAGE(object):
 
     @staticmethod
     def compile(*args):
-        return "".join(["<{}>".format(item) for item in args])
+        return "".join(["<{}>".format(json.dumps(item)) for item in args])
 
     @staticmethod
     def password(password):
@@ -177,28 +183,30 @@ class MSG_CONNECT(MESSAGE):
         self['row']       = int(row)
         self['col']       = int(col)
 
-class MSG_INSERT(MESSAGE):
-    type = 2
-    def __init__(self, src_id, index, char, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['index'] = int(index)
-        self['char']  = str(char)
-        self['reply'] = int(reply)
-
-class MSG_DELETE(MESSAGE):
-    type = 3
-    def __init__(self, src_id, index, value, reply=1):
-        MESSAGE.__init__(self,  src_id)
-        self['index'] = int(index)
-        self['value'] = int(value)
-        self['reply'] = int(reply)
-
-# class MSG_OPERATION(MESSAGE):
+# class MSG_INSERT(MESSAGE):
 #     type = 2
-#     def __init__(self, src_id, index, operation):
+#     def __init__(self, src_id, head, value, tail, revision, reply=1):
 #         MESSAGE.__init__(self, src_id)
-#         self["index"] = index
-#         self["operation"] = operation
+#         self['index']    = int(index)
+#         self['value']    = str(value)
+#         self['revision'] = int(revision)
+#         self['reply']    = int(reply)
+
+# class MSG_DELETE(MESSAGE):
+#     type = 3
+#     def __init__(self, src_id, index, value, revision, reply=1):
+#         MESSAGE.__init__(self,  src_id)
+#         self['index']    = int(index)
+#         self['value']    = int(value)
+#         self['revision'] = int(revision)
+#         self['reply']    = int(reply)
+
+class MSG_OPERATION(MESSAGE):
+    type = 2
+    def __init__(self, src_id, operation, revision):
+        MESSAGE.__init__(self, src_id)
+        self["operation"] = operation
+        self["revision"]  = revision
 
 
 # class MSG_BACKSPACE(MESSAGE):
@@ -339,8 +347,7 @@ class MSG_KILL(MESSAGE):
 
 MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_CONNECT,
-        MSG_INSERT,
-        MSG_DELETE,
+        MSG_OPERATION,
         MSG_SET_ALL,
         MSG_GET_ALL,
         MSG_REMOVE,
@@ -390,4 +397,13 @@ class DeadClientError(Exception):
     def __init__(self, name):
         self.name = name
     def __str__(self):
-        return "Could not connect to {}".format(self.name)
+        return "DeadClientError: Could not connect to {}".format(self.name)
+
+
+if __name__ == "__main__":
+
+    test = MSG_OPERATION(1, [0, "s", 4], 1)
+
+    print(test)
+    print(test.info())
+    print(test.bytes())
