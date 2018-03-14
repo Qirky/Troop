@@ -69,10 +69,6 @@ class TroopServer(OTServer):
         except socket.gaierror:
             pass            
 
-        # ID numbers
-        self.clientIDs = {}
-        self.last_id = -1
-
         # Look for an empty port
         port_found = False
         
@@ -92,6 +88,8 @@ class TroopServer(OTServer):
         
         # Clients (hostname, ip)
         self.clients = []
+        # ID numbers
+        self.last_id = -1
 
         # Give request handler information about this server
         TroopRequestHandler.master = self
@@ -106,8 +104,14 @@ class TroopServer(OTServer):
             sys.exit("Exited")
 
         # Set up a char queue
-        self.op_queue = queue.Queue()
-        self.op_queue_thread = Thread(target=self.update_send)
+        self.msg_queue = queue.Queue()
+        self.msg_queue_thread = Thread(target=self.update_send)
+
+        # Stores all the operations that have been made
+
+        self.operation_history = [] 
+
+        self.contents = {"ranges":{}, "document":"", "marks": []}
 
         # Set up log for logging a performance
 
@@ -134,8 +138,6 @@ class TroopServer(OTServer):
             self.is_logging = False
             self.log_file = None
 
-        self.contents = {"ranges":{}, "contents":"", "marks": []}
-
         # Debugging flag
 
         self.debugging = debug
@@ -157,54 +159,60 @@ class TroopServer(OTServer):
         return self.clients[0]
 
     def get_contents(self):
-        return self.contents
+        """ Returns a dictionary with three keys: ranges (a list of ranges of each users' text),
+            contents (the document as a string), and marks (...) """
+        #return self.contents
+        return { "ranges"   : self.contents["ranges"],
+                 "marks"    : self.contents["marks"] }
+
+    def store_operation(self, message):
+        """ Handles a new MSG_OPERATION by updating the document, performing operational transformation
+            (if necessary) on it and storing it. """
+        try:
+            op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
+            message["operation"] = op.ops
+        except:
+            return False
+        # self.operation_history.append(message)
+        return True
 
     def set_contents(self, data):
-        self.contents = data
+        """ Updates the document contents, including the location of user text ranges and marks """
+        for key, value in data.items():
+            self.contents[key] = value
         return
 
     def start(self):
 
         self.running = True
         self.server_thread.start()
-        self.op_queue_thread.start()
+        self.msg_queue_thread.start()
 
         stdout("Server running @ {} on port {}\n".format(self.ip_pub, self.port))
 
-        # if debugging, we can run a version on the server
+        while True:
 
-        if self.debugging:
+            try:
 
-            from interface import DummyInterface
+                sleep(0.5)
 
-            self.gui = DummyInterface()
-        
-            self.gui.run()
+            except KeyboardInterrupt:
 
-            stdout("\nStopping...\n")
+                stdout("\nStopping...\n")
 
-            self.kill()
+                self.kill()
 
-        else:
-
-            while True:
-
-                try:
-
-                    sleep(0.5)
-
-                except KeyboardInterrupt:
-    
-                    stdout("\nStopping...\n")
-
-                    self.kill()
-
-                    break
+                break
         return
 
     def get_next_id(self):
         self.last_id += 1
         return self.last_id
+
+    def clear_history(self):
+        """ Removes revision history -- potentially a stupid idea """
+        self.backend = MemoryBackend()
+        return
 
     @staticmethod
     def read_configuration_file(filename):
@@ -223,19 +231,7 @@ class TroopServer(OTServer):
 
             try:
 
-                client_address, msg = self.op_queue.get_nowait()
-
-                # If there is no src_id, remove the client from the address book
-
-                try:
-
-                    msg['src_id'] = self.clientIDs[client_address]
-
-                except KeyError as err:
-
-                    self.remove_client(client_address)
-
-                    stdout(err)
+                msg = self.msg_queue.get_nowait()
 
                 # If logging is set to true, store the message info
 
@@ -247,9 +243,7 @@ class TroopServer(OTServer):
                 
                 if isinstance(msg, MSG_OPERATION):
 
-                    operation = self.receive_operation(msg["src_id"], msg["revision"], TextOperation(msg["operation"]))
-
-                    msg["operation"] = operation.ops
+                    self.store_operation(msg)
 
                 self.respond(msg)
 
@@ -267,17 +261,11 @@ class TroopServer(OTServer):
 
             try:
 
-                # if 'reply' in msg.data:
+                # Send to all other clients and the sender if "reply" flag is true
 
-                #     if msg['reply'] == 1 or client.id != msg['src_id']:
+                if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
 
-                #         client.send(msg)
-
-                # else:
-
-                #     client.send(msg)
-
-                client.send(msg)
+                    client.send(msg)
 
             except DeadClientError as err:
 
@@ -310,10 +298,6 @@ class TroopServer(OTServer):
         if client_address in self.clients:
 
             self.clients.remove(client_address)
-
-        if client_address in self.clientIDs:
-    
-            del self.clientIDs[client_address]
 
         # Notify other clients
 
@@ -359,12 +343,9 @@ class TroopServer(OTServer):
 
 class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
-        
-    def client_id(self):
-        return self.master.clientIDs[self.client_address]
 
     def client(self):        
-        return self.get_client(self.client_id())
+        return self.get_client(self.get_client_id())
 
     def get_client(self, client_id):
         for client in self.master.clients:
@@ -372,17 +353,18 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 return client
         return
 
+    def get_client_id(self):
+        return self.client_id
+
     def authenticate(self, password):
         
         if password == self.master.password.hexdigest():
 
             # Reply with the client id
 
-            self.master.clientIDs[self.client_address] = self.master.get_next_id()
+            self.client_id = self.master.get_next_id()
 
             stdout("New Connection from {}".format(self.client_address[0]))
-
-            user_id = self.client_id()
 
         else:
 
@@ -390,15 +372,15 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             stdout("Failed login from {}".format(self.client_address[0]))
 
-            user_id = -1
+            self.client_id = -1
 
         # Send back the user_id as a 4 digit number
 
-        reply = "{:04d}".format( user_id ).encode()
+        reply = "{:04d}".format( self.client_id ).encode()
 
         self.request.send(reply)
 
-        return user_id
+        return self.client_id
 
     def not_authenticated(self):
         return self.authenticate(self.get_message()[0]['password']) < 0
@@ -419,7 +401,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         """ Stores information about the new client """
         assert isinstance(msg, MSG_CONNECT)
         if self.client_address not in self.master.clients:
-            new_client = Client(self.client_address, self.client_id(), self.request, name=msg['name'])
+            new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
             self.connect_clients(new_client) # Contacts other clients
         return new_client
 
@@ -440,7 +422,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 
                 if client.id == new_client_id:
 
-                    client.send( MSG_SET_ALL(self.client_id(), self.master.get_contents(), new_client_id) )
+                    client.send( MSG_SET_ALL(self.get_client_id(), self.master.get_contents(), new_client_id) )
 
                     break
             
@@ -480,7 +462,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     continue
 
-            except Exception as e:
+            except Exception as e: # TODO be more specific
 
                 # Handle the loss of a client
 
@@ -494,34 +476,32 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 if isinstance(msg, MSG_CONNECT):
 
+                    # Clear server history
+
+                    self.master.clear_history()
+
+                    # Add the new client
+
                     new_client = self.handle_connect(msg)
 
                     # Request the contents of Client lead and update the new client
 
-                    if len(self.master.clients) > 1:
-
-                        # Get the contents of the leader
-
-                        self.leader().send(MSG_GET_ALL(self.client_id()))
-
-                    else:
-
-                        # If this is now the leader, set the last contents
-
-                        self.leader().send(MSG_SET_ALL(-1, self.master.get_contents(), 0))
+                    self.update_client()
 
                 elif isinstance(msg, MSG_SET_ALL):
 
                     # Send the client *all* of the current code
 
-                    self.handle_set_all(msg)
+                    # self.handle_set_all(msg)
+
+                    pass
 
                 else:
 
                     # Add any other messages to the send queue
 
-                    self.master.op_queue.put((self.client_address, msg))
-                        
+                    self.master.msg_queue.put(msg)
+
         return
 
     def connect_clients(self, new_client):
@@ -530,13 +510,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         # Store the client
 
         self.master.clients.append(new_client)
-
-        # Add to the gui tracker -- test
-
-        if self.master.debugging:       
-
-            self.master.gui.text.peers[self.client_id()] = self.new_peer(self.client_id(), self.master.gui.text, 0, 0)
-            self.master.gui.text.peers[self.client_id()].name.set(new_client.name)
 
         # Connect each client
 
@@ -555,6 +528,14 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.row_tk(), client.col)
 
                 new_client.send(msg2)
+
+        return
+
+    def update_client(self):
+        """ Send all the previous operations to the client to keep it up to date """
+
+        client = self.client()
+        client.send(MSG_SET_ALL(-1, self.master.document, -1)) # TODO add information to this e.g. locations and ranges
 
         return
     

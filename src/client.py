@@ -80,21 +80,21 @@ class Client:
 
             self.lang = DummyInterpreter()
 
+        # Create address book
+
+        self.peers = {}
+
         # Set up a user interface
 
         title = "Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port)
-
         self.ui = Interface(self, title, self.lang, logging)
-
-        # If there was an error connecting then this method  does not create a local marker
-
-        self.ui.create_local_marker(self.id, self.name)
+        self.ui.init_local_user(self.id, self.name)
 
         # Send information about this client to the server
 
         self.send( MSG_CONNECT(self.id, self.name, self.send.hostname, self.send.port) )
 
-        # Give the receiving server a reference to the user-interface
+        # Give the recv / send a reference to the user-interface
         self.recv.ui = self.ui
         self.send.ui = self.ui
         
@@ -116,20 +116,28 @@ class Client:
         """ Continually polls the queue and sends any messages to the server """
         try:
             while True:
+                
                 if self.send.connected:
+                
                     try:
+                        
                         msg = self.send_queue.get_nowait()
-                        print("Sending {}".format(msg.info()))
+
                         self.send( msg )
+
                     except ConnectionError as e:
-                        print(e)
-                        return
+                        
+                        return print(e)
+                    
                     self.ui.root.update_idletasks()
+                
                 else:
+                
                     break
         # Break when the queue is empty
         except queue.Empty:
             pass
+            
         # Recursive call
         self.ui.root.after(30, self.update_send)
         return

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from .utils import *
 from ..config import *
 from ..message import *
 from ..interpreter import *
@@ -54,17 +55,18 @@ class ThreadSafeText(Text, OTClient):
         # Define message handlers
 
         self.handles = {}
-        #self.add_handle(MSG_INSERT,  self.handle_insert)
-        #self.add_handle(MSG_DELETE,  self.handle_delete)
+
         self.add_handle(MSG_OPERATION, self.handle_operation)
-        self.add_handle(MSG_SET_ALL,   self.handle_set_all)
-        self.add_handle(MSG_GET_ALL,   self.handle_get_all)
         self.add_handle(MSG_CONNECT,   self.handle_connect)
+        self.add_handle(MSG_REMOVE,    self.handle_remove)
         self.add_handle(MSG_KILL,      self.handle_kill)
+        self.add_handle(MSG_SET_MARK,  self.handle_set_mark)
+        self.add_handle(MSG_SET_ALL,   self.handle_set_all)
         
         # Information about other connected users
-        self.peers      = {}
+        self.peers      = self.root.client.peers
         self.peer_tags  = []
+        
         self.marker     = None
         self.local_peer = None
 
@@ -83,66 +85,38 @@ class ThreadSafeText(Text, OTClient):
 
         self.document = ""
 
-        self.run()
+        self.listen()
 
     # Override OTClient
     def send_operation(self, revision, operation):
         """Should send an operation and its revision number to the server."""
-
         message = MSG_OPERATION(self.marker.id, operation.ops, revision)
-        
-        # Operations are sent directly to the server
+        return self.root.add_to_send_queue(message)
 
-        return self.root.client.send( message )
-
+    # Override OT
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
-
-        document = operation(self.read())
-
-        self.set_text(document)
-
+        self.set_text(operation(self.read()))
         return
 
     def apply_local_operation(self, ops):
-        
+        """ Applies the operation directly after a keypress """
         self.apply_operation(TextOperation(ops))
-        
         return
 
-    def refresh_contents(self):
-
-        self.set_text(self.document)
-
-        return
-
-    def put(self, msg):
+    def put(self, message):
         """ Checks if a message from a new user then writes a network message to the queue """
-
-        # msg must be a Troop message
-
-        assert isinstance(msg, MESSAGE)
-        
-        # Keep information about new peers -- is this a good place to do it?
-
-        if 'src_id' in msg:
-
-            sender_id = msg['src_id']
-
-            if sender_id not in self.peers and sender_id != -1:
-
-                self.root.add_new_user(sender_id)
-
-        # Add message to queue
-        self.queue.put(msg)
-
+        assert isinstance(message, MESSAGE)
+        self.queue.put(message)
         return
 
     def add_handle(self, msg_cls, func):
+        """ Associates a received message class with a method or function """
         self.handles[msg_cls.type] = func
         return
 
     def get_state(self):
+        """ Returns the state of the OT mechanism as a string """
         return self.state.__class__.__name__
 
     # Handles
@@ -155,10 +129,16 @@ class ThreadSafeText(Text, OTClient):
     def handle_connect(self, message):
         ''' Prints to the console that new user has connected '''
         if self.marker.id != message['src_id']:
-            print("Peer '{}' has joined the session".format(messsage['name']))  
+
+            self.root.add_new_user(message['src_id'], message['name'])
+            
+            print("Peer '{}' has joined the session".format(message['name']))  
+
         return
 
     def handle_operation(self, message, client=False):
+        """ Forwards the operation message to the correct handler based on whether it 
+            was sent by the client or server """
 
         if client:
 
@@ -176,36 +156,37 @@ class ThreadSafeText(Text, OTClient):
 
                 self.apply_server(TextOperation(message["operation"]))
 
+                # If the operation is delete/insert, change the indexes of peers that are based after this one
+
+        return
+
+    def handle_set_mark(self, message):
+        """ Updates a peer's location """
+        peer = self.get_peer(message)
+        peer.move(message["index"])
+        return
+
+    def handle_remove(self, message):
+        """ Removes a Peer from the session based on the contents of message """
+        # TODO
         return
 
     def handle_set_all(self, message):
         ''' Sets the contents of the text box and updates the location of peer markers '''
 
-        # Set the contents of the text box
+        self.document = message["data"]
 
-        self.set_contents(message['data'])
+        self.refresh()
 
-        # Move the peers to their position
-
-        for _, peer in self.peers.items():
-            
-            peer.move(peer.row, peer.col)
-
-        # Format the lines
-
-        self.format_text()
-
-        # Move the local peer to the start
-
-        self.marker.move(1,0)
+        self.marker.move(0)
 
         return
 
     def handle_get_all(self, message):
         ''' Creates a dictionary of data about the text editor and sends it to the server '''
-        data = self.get_contents()
-        reply = MSG_SET_ALL(-1, data, message['src_id'])
-        self.root.add_to_send_queue( reply )
+        #data = self.get_contents()
+        #reply = MSG_SET_ALL(-1, data, message['src_id'])
+        #self.root.add_to_send_queue( reply )
         return
 
     def handle_kill(self, message):
@@ -228,88 +209,59 @@ class ThreadSafeText(Text, OTClient):
             pass
         return "break"
 
+    # Reading and writing to the text box
+    # ===================================
+
     def clear(self):
+        """ Deletes the contents of the string """
         return self.delete("1.0", END)
 
-    def get_contents(self):
-        """ Returns a dictionary containing with three pieces of information:
-
-        `ranges` - The TK text tags and the spans the cover withinthe text
-        `contents` - The text as a string
-        `marks` - The locations of the other client markers
-
-        """
-
-        message = {"ranges": {}}
-
-        for tag in self.tag_names(None):
-
-            if tag.startswith("text_"):
-
-                message["ranges"][tag] = []
-
-                ranges = self.tag_ranges(tag)
-
-                for i in range(0, len(ranges), 2):
-
-                    message["ranges"][tag].append( (str(ranges[i]), str(ranges[i+1])) )
-
-        message["contents"] = self.get("1.0", END)[:-1]
-
-        message["marks"] = [(peer_id, peer.row, peer.col) for peer_id, peer in self.peers.items()]
-
-        return message
-
-    def set_contents(self, data):
-        """ Sets the contents of the text box """
-
-        # unpack the json data
-
-        data = json.loads(data)
-
-        # Insert the text
-        
-        self.clear()
-        self.insert("1.0", data["contents"])
-
-        # If a text tag is not used by a connected peer, format the colours anyway
-
-        self.set_ranges(data["ranges"])
-
-        # Set the marks
-
-        for peer_id, row, col in data["marks"]:
-            
-            if peer_id in self.peers:
-
-                self.peers[peer_id].row = int(row)
-                self.peers[peer_id].col = int(col)
-                
-        return
-
     def set_text(self, string):
-        self.clear()
-        self.insert("1.0", string)
+        """ Sets the contents of the textbox to string"""
+        self.document = string
+        self.refresh()
         return
-
-    def alone(self, peer, row=None):
-        """ Returns True if there are no other peers editing the same line +- 1.
-            Row can be specified. """
-        row = peer.row if row is None else row
-        for other in self.peers.values():
-            #if peer != other and (other.row + 1) >= row >= (other.row - 1):
-            if peer != other and other.row == row:
-                return False
-        return True
-
-    def readlines(self):
-        """ Returns the text in a list of lines. The first row is empty
-            to accommodate TKinter's 1-indexing of rows and columns """
-        return [""] + self.get("1.0", END).split("\n")[:-1]
 
     def read(self):
         """ Returns the entire contents of the text box as a string """
-        return self.get("1.0", END)[:-1]
+        return self.document
+
+    # Updating / retrieving info from peers
+    # =====================================
+
+    def adjust_peer_locations(self, peer, operation):
+        """ When a peer performs an operation, adjust the location of peers following it """
+
+        #self.text.marker.shift(index_offset)
+        
+        shift  = get_operation_size(operation)
+
+        for other in self.peers.values():
+
+            if other.get_index_num() >= peer.get_index_num():
+
+                other.shift(shift)
+
+        return
+
+    def get_peer(self, message):
+        """ Retrieves the Peer instance using the "src_id" of message """
+
+        this_peer = None
+
+        if 'src_id' in message and message['src_id'] != -1:
+
+            this_peer = self.peers[message['src_id']]
+
+        return this_peer
+
+    def refresh_peer_labels(self):
+        ''' Updates the locations of the peers to their marks'''
+        for peer in self.peers.values():
+            pass #peer.move(peer.index_num) # TODO work out if it's raised
+        return
+
+    # Font colours -- TODO: Add to its own class
 
     def update_font_colours(self, recur_time=0):
         """ Updates the font colours of all the peers. Set a recur time
@@ -339,17 +291,10 @@ class ThreadSafeText(Text, OTClient):
     def get_peer_colour_merge_weight(self):
         return self.merge_weight
 
-    def get_peer(self, message):
-
-        this_peer = None
-
-        if 'src_id' in message and message['src_id'] != -1:
-
-            this_peer = self.peers[message['src_id']]
-
-        return this_peer
+    # Main loop
+    # =========
     
-    def run(self):
+    def listen(self):
         """ Continuously reads from the queue of messages read from the server
             and carries out the specified actions. """
         try:
@@ -373,67 +318,71 @@ class ThreadSafeText(Text, OTClient):
 
                 except Exception as e:
 
-                    print(e)
+                    print("Exception occurred in message handling: {}:{}".format(type(e), e))
 
                 # Update any other idle tasks
 
                 self.update_idletasks()
 
-                self.refresh_peer_labels()
-
         # Break when the queue is empty
         except queue.Empty:
-            
-            self.refresh_peer_labels()
+
+            pass
 
         # Recursive call
-        self.after(30, self.run)
+        self.after(30, self.listen)
         return
-    
-    def refresh_peer_labels(self):
-        ''' Updates the locations of the peers to their marks'''
-        loc = []
+
+    def refresh(self):
+        """ Clears the text box and loads the current document state, called after an operation """
+        self.clear()
+        self.insert("1.0", self.document)
+        # Apply locations of Peers
+        self.refresh_peer_labels()
+        return
+
+        # loc = []
         
-        for peer in self.peers.values():
+        # for peer in self.peers.values():
             
-            # Get the location of a peer
+        #     # Get the location of a peer
 
-            try:
+        #     try:
 
-                i = self.index(peer.mark)
+        #         i = self.index(peer.mark)
 
-            except TclError as e:
+        #     except TclError as e:
 
-                continue
+        #         continue
                 
-            row, col = (int(x) for x in i.split("."))
+        #     row, col = (int(x) for x in i.split("."))
 
-            # Find out if it is close to another peer
+        #     # Find out if it is close to another peer
 
-            raised = False
+        #     raised = False
 
-            for peer_row, peer_col in loc:
+        #     for peer_row, peer_col in loc:
 
-                if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
+        #         if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
 
-                    raised = True
+        #             raised = True
 
-                    break
+        #             break
 
-            # Move the peer
+        #     # Move the peer
 
-            try:
+        #     try:
     
-                peer.move(row, col, raised)
+        #         peer.move(row, col, raised)
 
-            except ValueError:
+        #     except ValueError:
 
-                pass
+        #         pass
 
-            # Store location
-            loc.append((row, col))
+        #     # Store location
+        #     loc.append((row, col))
             
-        return
+        # return
 
     # handling key events
 
@@ -479,6 +428,7 @@ class ThreadSafeText(Text, OTClient):
         """ Iterates over each line in the text and updates the correct colour / formatting """
         for line,  _ in enumerate(self.readlines()[:-1]):
             self.root.colour_line(line + 1)
+        return
 
     def sort_indices(self, list_of_indexes):
         """ Takes a list of Tkinter indices and returns them sorted by location """
@@ -515,3 +465,21 @@ class ThreadSafeText(Text, OTClient):
         self.configure(font="Font")
 
         return
+
+    def tcl_index_to_number(self, index):
+        """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the 
+            text contents were a single list """
+        row, col = [int(val) for val in index.split(".")]
+        return sum([len(line) + 1 for line in self.read().split("\n")[:row-1]]) + col
+
+    def number_index_to_tcl(self, number):
+        """ Takes an integer number and returns the tcl index in the from 'row.col' """
+        count = 0; row = 0; col = 0
+        for line in self.read().split("\n"):
+            tmp = count + len(line) + 1
+            if tmp < number:
+                row += 1
+                count = tmp
+            else:
+                col = number - count
+        return "{}.{}".format(row + 1, col)

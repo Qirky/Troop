@@ -222,8 +222,7 @@ class MSG_SET_ALL(MESSAGE):
     type = 9
     def __init__(self, src_id, data, client_id):
         MESSAGE.__init__(self, src_id)
-        # If the json data is a dict, convert it. If not assume it is correctly formatted
-        self['data']=json.dumps(data) if type(data) is dict else data
+        self['data']=data
         self['client_id']=int(client_id)
 
 class MSG_SET_MARK(MESSAGE):
@@ -231,7 +230,7 @@ class MSG_SET_MARK(MESSAGE):
     def __init__(self, src_id, index, reply=1):
         MESSAGE.__init__(self, src_id)
         self['index'] = int(index)
-        self['reply']=int(reply)
+        self['reply'] = int(reply)
 
 class MSG_REMOVE(MESSAGE):
     type = 12
@@ -258,6 +257,7 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_OPERATION,
         MSG_SET_ALL,
         MSG_GET_ALL,
+        MSG_SET_MARK,
         MSG_REMOVE,
         MSG_PASSWORD,
         MSG_KILL

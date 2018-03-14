@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+
 from ..config import *
 from ..message import *
 from ..logfile import Log
@@ -12,6 +13,7 @@ from .drag import Dragbar
 from .bracket import BracketHandler
 from .line_numbers import LineNumbers
 from .menu_bar import MenuBar
+from .utils import new_operation
 
 try:
     from Tkinter import *
@@ -214,7 +216,7 @@ class Interface(BasicInterface):
         
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
-        self.text.bind("<Key>", self.KeyPress)
+        self.text.bind("<Key>", self.key_press)
         # self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
         # self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
         # self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
@@ -283,9 +285,10 @@ class Interface(BasicInterface):
 
         self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
 
-        for key in self.directions:
-            
-            self.text.bind(key,  lambda e: None)
+        self.handle_direction = {}
+        self.handle_direction["Left"]  = self.key_left
+        self.handle_direction["Right"] = self.key_right
+
 
         # Information about brackets
 
@@ -306,10 +309,10 @@ class Interface(BasicInterface):
         """ Close socket connections and terminate the application """
         try:
 
-            if len(self.text.peers) == 1:
-                from time import sleep
-                self.client.send(MSG_SET_ALL(self.text.marker.id, self.text.get_contents(), -1))
-                sleep(0.25)
+            # if len(self.text.peers) == 1:
+            #     from time import sleep
+            #     self.client.send(MSG_SET_ALL(self.text.marker.id, self.text.get_contents(), -1))
+            #     sleep(0.25)
                 
             self.client.recv.kill()
             self.client.send.kill()
@@ -335,35 +338,33 @@ class Interface(BasicInterface):
         """ Converts a Tkinter index into a tuple of integers """
         return tuple(int(value) for value in str(index).split("."))
 
-    def create_local_marker(self, id_num, name):
-        """ Create the peer that is local to the client """
-        self.text.local_peer = id_num
-        self.text.marker=Peer(id_num, self.text)
-        self.text.marker.name.set(name)
-        self.text.marker.move(1,0)
-        self.text.marker.graph  = self.graphs.create_rectangle(0,0,0,0, fill=self.text.marker.bg)
-        self.text.peers[id_num] = self.text.marker
+    def init_local_user(self, id_num, name):
+        """ Create the peer that is local to the client (text.marker) """
+
+        self.text.marker = self.add_new_user(id_num, name)
         
         return
 
-    def add_new_user(self, user_id):
-        # Get peer's current location & name
+    def add_new_user(self, user_id, name):
+        """ Initialises a new Peer object """
 
-        name = self.root.client.recv(user_id, "name")
-        peer = self.peers[user_id] = Peer(user_id, self) 
-        peer.name.set(name)
+        peer = self.client.peers[user_id] = Peer(user_id, name, self.text) 
 
         # Create a bar on the graph
-        peer.graph = self.root.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
+        peer.graph = self.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
 
-        return
+        # Draw marker
+
+        peer.move(0)
+
+        return peer
 
     def stop_sound(self, event):
         """ Sends a kill all sound message to the server based on the language """
         self.client.send_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
 
-    def setInsert(self, index):
+    def set_insert(self, index):
         ''' sets the INSERT and peer mark '''
         self.text.mark_set(INSERT, index)
         self.text.mark_set(self.text.marker.mark, index)
@@ -468,49 +469,38 @@ class Interface(BasicInterface):
 
     def sync_text(self):
         """ Re-sends the information about this client to all connected peers """
-        self.add_to_send_queue(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
+        # self.add_to_send_queue(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
         return
 
-    def add_to_send_queue(self, messages, wait=False):
+    def add_to_send_queue(self, message, wait=False):
         """ Sends message to server and evaluates them locally if not other markers
             are using the same line. Use the wait flag when you want to force the
             message to go to the server and wait for the response before continuing """
 
-        # Put message in into a list
+        # Call multiple times if we have a list
 
-        if isinstance(messages, MESSAGE):
+        if isinstance(message, list):
 
-            messages = [messages]
+            for msg in messages:
 
-        # Messages such as mouse clicks need to wait to make sure they don't conflict with other messages
+                self.add_to_send_queue(msg)
+
+        elif isinstance(message, MESSAGE):
         
-        for msg in messages:
+            self.client.send_queue.put(message)
 
-            print("adding to send queue {}".format(msg.info()))
+        else:
 
-            self.client.send_queue.put(msg)
+            raise TypeError("Must be MESSAGE or list")
         
         return
 
-    def tcl_index_to_number(self, index):
-        """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the 
-            text contents were a single list """
-        row, col = [int(val) for val in index.split(".")]
-        return sum([len(line) + 1 for line in self.text.read().split("\n")[:row-1]]) + col
-
-    def number_index_to_tcl(self, number):
-        """ Takes an integer number and returns the tcl index in the from 'row.col' """
-        count = 0; row = 0; col = 0
-        for line in self.text.read().split("\n"):
-            tmp = count + len(line) + 1
-            if tmp < number:
-                row += 1
-                count = tmp
-            else:
-                col = number - count
-        return "{}.{}".format(row + 1, col)
+    def send_set_mark_msg(self):
+        """ Sends a message to server with the location of this peer """
+        self.add_to_send_queue(MSG_SET_MARK(self.text.marker.id, self.text.marker.get_index_num(), reply=0))
+        return
     
-    def KeyPress(self, event):
+    def key_press(self, event):
         """ 'Pushes' the key-press to the server.
         """
 
@@ -528,10 +518,11 @@ class Interface(BasicInterface):
 
         # Get index
 
-        index = self.tcl_index_to_number(self.text.index(self.text.marker.mark))
+        index = self.text.marker.get_index_num() # possibly just use .index_num
         tail  = len(self.text.read()) - index
 
         operation = []
+        index_offset = 0
 
         # Un-highlight any brackets
 
@@ -539,15 +530,23 @@ class Interface(BasicInterface):
 
         # If there is a change in the row number, then wait for a reply
 
-        if event.keysym == "Delete":
-            
-            operation = [index, -1, tail]
+        if event.keysym in self.directions:
+
+            return self.handle_direction.get(event.keysym, lambda: None).__call__()
+
+        elif event.keysym == "Delete":
+
+            if tail > 0:
+                
+                operation = new_operation(index, -1, tail - 1)
 
         elif event.keysym == "BackSpace":
 
             if index > 0:
 
-                operation = [index - 1, -1, tail]
+                operation = new_operation(index - 1, -1, tail)
+
+                index_offset = -1
 
         else:
 
@@ -565,21 +564,31 @@ class Interface(BasicInterface):
 
             if len(char) > 0:
 
-                operation = [index, char, tail]
+                operation = new_operation(index, char, tail)
+
+                index_offset = len(char)
 
         if operation:
 
-            # Use locally
+            # Apply locally
 
             self.text.apply_local_operation(operation)
 
-            # Creat message and send
+            self.text.marker.shift(index_offset)
+
+            # self.text.adjust_peer_locations(self.text.marker, operation)
+
+            # Create message to send
 
             message = MSG_OPERATION(self.text.marker.id, operation, self.text.revision)
 
             # Handle the operation on the client side
 
             self.text.handle_operation(message, client=True)
+
+            # send a set mark message
+
+            self.send_set_mark_msg()
 
         # Store last key press for Alt+F4 etc
 
@@ -589,6 +598,25 @@ class Interface(BasicInterface):
 
         self.text.see(self.text.marker.mark)
     
+        return "break"
+
+    # Directional keypresses
+
+    def key_left(self):
+        """ Called when the left arrow key is pressed; decreases the local peer index 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        self.text.marker.shift(-1)
+        self.send_set_mark_msg()
+        return "break"
+
+
+    def key_right(self):
+        """ Called when the right arrow key is pressed; increases the local peer index 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        self.text.marker.shift(1)
+        self.send_set_mark_msg()
         return "break"
 
     """ Handling changes in selected areas """

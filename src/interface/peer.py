@@ -58,13 +58,13 @@ class PeerColourTest:
 class Peer:
     """ Class representing the connected performers within the Tk Widget
     """
-    def __init__(self, id_num, widget, row=1, col=0):
+    def __init__(self, id_num, name, widget, row=1, col=0):
         self.id = id_num
         self.root = widget # Text
         self.root_parent = widget.root
 
         self.name = Tk.StringVar()
-        self.name.set("Peer")
+        self.name.set(name)
 
         self.update_colours()
         
@@ -99,6 +99,7 @@ class Peer:
         # Tracks a peer's selection amount and location
         self.row = row
         self.col = col
+        self.index_num = 0
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
@@ -139,16 +140,36 @@ class Peer:
             except TclError:
                 pass
         return
+
+    def shift(self, amount):
+        return self.move(self.index_num + amount)
         
-    def move(self, row, col, raised = False):
+    def move(self, loc, raised = False):
         """ Updates the location of the Peer's label """
 
         try:
 
-            row = int(row)
-            col = int(col)
+            document_length = len(self.root.read())
 
-            index = "{}.{}".format(row, col)
+            # Make sure the location is valid
+
+            if loc < 0:
+
+                self.index_num = 0
+
+            elif loc > document_length:
+
+                self.index_num = document_length
+
+            else:
+
+                self.index_num = loc
+
+            # Work with tcl indexing e.g. "1.0"
+            
+            index = self.root.number_index_to_tcl(loc)
+
+            row, col = [int(val) for val in index.split(".")]
 
             if index == self.root.index(Tk.END):
 
@@ -198,7 +219,7 @@ class Peer:
                 self.label.place(x=-100, y=-100)
                 self.insert.place(x=-100, y=-100)
 
-        except Tk.TclError:
+        except Tk.TclError as e:
 
             pass
             
@@ -261,13 +282,21 @@ class Peer:
         return
 
     def index(self):
-        a = "{}.{}".format(self.row, self.col)
-        b = self.root.index(self.mark)
-        if a != b:
-            stdout(a, b)
-        return b
+        return self.root.number_index_to_tcl(self.index_num)
+        #return self.root.index(self.mark)
+        #a = "{}.{}".format(self.row, self.col)
+        #b = self.root.index(self.mark)
+        #if a != b:
+        #    stdout(a, b)
+        #return b
+
+    def get_index_num(self):
+        """ Uses text.tcl_index_to_number to convert the tcl index to a single value """
+        # return self.root.tcl_index_to_number(self.index())
+        return self.index_num
     
     def __eq__(self, other):
-        return self.id == other
+        return self.id == other.id
+
     def __ne__(self, other):
-        return self.id != other
+        return self.id != other.id
