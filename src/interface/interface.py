@@ -288,7 +288,10 @@ class Interface(BasicInterface):
         self.handle_direction = {}
         self.handle_direction["Left"]  = self.key_left
         self.handle_direction["Right"] = self.key_right
-
+        self.handle_direction["Down"]  = self.key_down
+        self.handle_direction["Up"]    = self.key_up
+        self.handle_direction["Home"]  = self.key_home
+        self.handle_direction["End"]   = self.key_end
 
         # Information about brackets
 
@@ -572,11 +575,7 @@ class Interface(BasicInterface):
 
             # Apply locally
 
-            self.text.apply_local_operation(operation)
-
-            self.text.marker.shift(index_offset)
-
-            # self.text.adjust_peer_locations(self.text.marker, operation)
+            self.text.apply_local_operation(operation, index_offset)
 
             # Create message to send
 
@@ -617,6 +616,53 @@ class Interface(BasicInterface):
             with the new location """
         self.text.marker.shift(1)
         self.send_set_mark_msg()
+        return "break"
+
+    def key_down(self):
+        """ Called when the down arrow key is pressed; increases the local peer index 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        new_index = self.text.tcl_index_to_number( "{!s}+1lines".format(tcl_index) )
+
+        self.text.marker.move(new_index)
+        self.send_set_mark_msg()
+        return "break"
+
+    def key_up(self):
+        """ Called when the up arrow key is pressed; decrases the local peer index 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        new_index = self.text.tcl_index_to_number( "{!s}-1lines".format(tcl_index) )
+
+        self.text.marker.move(new_index)
+        self.send_set_mark_msg()
+        return "break"
+
+    def key_home(self):
+        """ Called when the home key is pressed; sets the local peer location to 0 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
+        index  = self.text.tcl_index_to_number( "{!r}.0".format(row) )
+        
+        self.text.marker.move(index)
+        self.send_set_mark_msg()
+        return "break"
+
+    def key_end(self):
+        """ Called when the home key is pressed; sets the local peer location to 0 
+            and updates the location of the label then sends a message to the server
+            with the new location """
+        
+        # Convert index to tcl to get row
+        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
+        index  = self.text.tcl_index_to_number( "{!r}.end".format(row) )
+
+        self.text.marker.move(index)
+        self.send_set_mark_msg()
+
         return "break"
 
     """ Handling changes in selected areas """

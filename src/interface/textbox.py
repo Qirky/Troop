@@ -87,6 +87,9 @@ class ThreadSafeText(Text, OTClient):
 
         self.listen()
 
+    # Operational Transformation
+    # ==========================
+
     # Override OTClient
     def send_operation(self, revision, operation):
         """Should send an operation and its revision number to the server."""
@@ -99,32 +102,31 @@ class ThreadSafeText(Text, OTClient):
         self.set_text(operation(self.read()))
         return
 
-    def apply_local_operation(self, ops):
+    def apply_local_operation(self, ops, shift_amount):
         """ Applies the operation directly after a keypress """
         self.apply_operation(TextOperation(ops))
-        return
-
-    def put(self, message):
-        """ Checks if a message from a new user then writes a network message to the queue """
-        assert isinstance(message, MESSAGE)
-        self.queue.put(message)
-        return
-
-    def add_handle(self, msg_cls, func):
-        """ Associates a received message class with a method or function """
-        self.handles[msg_cls.type] = func
+        self.adjust_peer_locations(self.marker, ops)
+        self.marker.shift(shift_amount)
         return
 
     def get_state(self):
         """ Returns the state of the OT mechanism as a string """
         return self.state.__class__.__name__
 
-    # Handles
-    # =======
+    # Top-level handling
+    # ==================
+
+    def add_handle(self, msg_cls, func):
+        """ Associates a received message class with a method or function """
+        self.handles[msg_cls.type] = func
+        return
 
     def handle(self, message):
         ''' Passes the message onto the correct handler '''
         return self.handles[message.type](message)
+
+    # Handle methods
+    # ==============
 
     def handle_connect(self, message):
         ''' Prints to the console that new user has connected '''
@@ -157,6 +159,8 @@ class ThreadSafeText(Text, OTClient):
                 self.apply_server(TextOperation(message["operation"]))
 
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
+
+                self.adjust_peer_locations(self.get_peer(message), message["operation"])
 
         return
 
@@ -238,7 +242,7 @@ class ThreadSafeText(Text, OTClient):
 
         for other in self.peers.values():
 
-            if other.get_index_num() >= peer.get_index_num():
+            if peer != other and other.get_index_num() >= peer.get_index_num():
 
                 other.shift(shift)
 
@@ -291,8 +295,14 @@ class ThreadSafeText(Text, OTClient):
     def get_peer_colour_merge_weight(self):
         return self.merge_weight
 
-    # Main loop
-    # =========
+    # Main loop actions
+    # =================
+
+    def put(self, message):
+        """ Checks if a message from a new user then writes a network message to the queue """
+        assert isinstance(message, MESSAGE)
+        self.queue.put(message)
+        return
     
     def listen(self):
         """ Continuously reads from the queue of messages read from the server
@@ -318,7 +328,7 @@ class ThreadSafeText(Text, OTClient):
 
                 except Exception as e:
 
-                    print("Exception occurred in message handling: {}:{}".format(type(e), e))
+                    print("Exception occurred in message handling: {}: {}".format(type(e), e))
 
                 # Update any other idle tasks
 
@@ -434,7 +444,11 @@ class ThreadSafeText(Text, OTClient):
         """ Takes a list of Tkinter indices and returns them sorted by location """
         return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
 
+    # Housekeeping
+    # ============
+
     def configure_font(self):
+        """ Sets up font for the editor """
 
         if SYSTEM == MAC_OS:
 
@@ -469,17 +483,29 @@ class ThreadSafeText(Text, OTClient):
     def tcl_index_to_number(self, index):
         """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the 
             text contents were a single list """
-        row, col = [int(val) for val in index.split(".")]
+        row, col = [int(val) for val in self.index(index).split(".")]
         return sum([len(line) + 1 for line in self.read().split("\n")[:row-1]]) + col
+
 
     def number_index_to_tcl(self, number):
         """ Takes an integer number and returns the tcl index in the from 'row.col' """
-        count = 0; row = 0; col = 0
-        for line in self.read().split("\n"):
-            tmp = count + len(line) + 1
-            if tmp < number:
+        if number <= 0:
+            return "1.0"
+        text = self.read()
+        # Count columns until a newline, then reset and add 1 to row
+        count = 0; row = 1; col = 0
+        for i in range(1, len(text)+1):
+            char = text[i-1]
+            if char == "\n":
                 row += 1
-                count = tmp
+                col = 0
             else:
-                col = number - count
-        return "{}.{}".format(row + 1, col)
+                col += 1
+            if i >= number:
+                break        
+        return "{}.{}".format(row, col)
+
+    def number_index_to_row_col(self, number):
+        """ Takes an integer number and returns the row and column as integers """
+        tcl_index = self.number_index_to_tcl(number)
+        return tuple(int(x) for x in tcl_index.split("."))

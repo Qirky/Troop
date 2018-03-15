@@ -185,6 +185,10 @@ class Peer:
 
             index = "{}.{}".format(self.row, self.col)
 
+            # Find out if this needs to be raised
+
+            # // TODO
+
             # Update the Tk text tag
 
             self.root.mark_set(self.mark, index)
@@ -221,9 +225,9 @@ class Peer:
 
         except Tk.TclError as e:
 
-            pass
+            print(e)
             
-        return
+        return self.index_num
 
     def select(self, start, end):
         """ Highlights text selected by this peer"""
@@ -281,18 +285,13 @@ class Peer:
         self.root.tag_remove(self.code_tag, "1.0", Tk.END)
         return
 
-    def index(self):
+    def get_tcl_index(self):
+        """ Returns the index number as a Tkinter index e.g. "1.0" """
         return self.root.number_index_to_tcl(self.index_num)
-        #return self.root.index(self.mark)
-        #a = "{}.{}".format(self.row, self.col)
-        #b = self.root.index(self.mark)
-        #if a != b:
-        #    stdout(a, b)
-        #return b
 
     def get_index_num(self):
-        """ Uses text.tcl_index_to_number to convert the tcl index to a single value """
-        # return self.root.tcl_index_to_number(self.index())
+        """ Returns the index (a single integer) of this peer, if it isn't valid, it 
+            will adjust the peer """
         return self.index_num
     
     def __eq__(self, other):
