@@ -14,6 +14,7 @@ from .bracket import BracketHandler
 from .line_numbers import LineNumbers
 from .menu_bar import MenuBar
 from .utils import new_operation
+from .mouse import Mouse
 
 try:
     from Tkinter import *
@@ -198,7 +199,7 @@ class Interface(BasicInterface):
         self.c_scroll.grid(row=2, column=3, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
 
-        # Creative constraints
+        # Creative constraints - PUT IN OWN CLASS
 
         from . import constraints
         constraints = vars(constraints)
@@ -217,12 +218,17 @@ class Interface(BasicInterface):
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
         self.text.bind("<Key>", self.key_press)
-        # self.text.bind("<{}-Return>".format(CtrlKey), self.Evaluate)
+
+        # Evaluating code
+
+        self.text.bind("<{}-Return>".format(CtrlKey), self.evaluate)
+        self.text.bind("<Alt-Return>", self.single_line_evaluate)
+
         # self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
         # self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
-        # self.text.bind("<{}-Home>".format(CtrlKey), self.CtrlHome)
-        # self.text.bind("<{}-End>".format(CtrlKey), self.CtrlEnd)
-        # self.text.bind("<{}-period>".format(CtrlKey), self.stop_sound)
+        self.text.bind("<{}-Home>".format(CtrlKey),     self.key_ctrl_home)
+        self.text.bind("<{}-End>".format(CtrlKey),      self.key_ctrl_end)
+        self.text.bind("<{}-period>".format(CtrlKey),   self.stop_sound)
 
         self.text.bind("<{}-m>".format(CtrlKey), self.toggle_menu)
 
@@ -233,7 +239,7 @@ class Interface(BasicInterface):
         # self.text.bind("<Shift-Down>",  self.SelectDown)
         # self.text.bind("<Shift-End>",   self.SelectEnd)
         # self.text.bind("<Shift-Home>",  self.SelectHome)
-        # self.text.bind("<{}-a>".format(CtrlKey), self.SelectAll)
+        self.text.bind("<{}-a>".format(CtrlKey), lambda e: None)
 
         # Copy and paste key bindings
 
@@ -246,21 +252,18 @@ class Interface(BasicInterface):
         # self.text.bind("<{}-y>".format(CtrlKey), self.Redo)    
 
         # Handling mouse events
+        self.left_mouse = Mouse(self)
         # self.leftMouse_isDown = False
         # self.leftMouseClickIndex = "0.0"
-        # self.text.bind("<Button-1>", self.leftMousePress)
+        self.text.bind("<Button-1>", self.mouse_press_left)
         # self.text.bind("<B1-Motion>", self.leftMouseDrag)
         # self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
-        
         # self.text.bind("<Button-2>", self.rightMousePress) # disabled
         
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
         # self.text.bind("<<Selection>>", self.Selection)
 
-        # Single line execution
-
-        # self.text.bind("<Alt-Return>", self.SingleLineEvaluate)
 
         # Disabled Key bindings (for now)
 
@@ -292,12 +295,6 @@ class Interface(BasicInterface):
         self.handle_direction["Up"]    = self.key_up
         self.handle_direction["Home"]  = self.key_home
         self.handle_direction["End"]   = self.key_end
-
-        # Information about brackets
-
-        # self.handle_bracket = BracketHandler(self)
-
-        # self.closing_bracket_types = [")", "]", "}"]
 
         # Selection indices
         self.sel_start = "0.0"
@@ -364,14 +361,14 @@ class Interface(BasicInterface):
 
     def stop_sound(self, event):
         """ Sends a kill all sound message to the server based on the language """
-        self.client.send_queue.put( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
+        self.add_to_send_queue( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
 
-    def set_insert(self, index):
-        ''' sets the INSERT and peer mark '''
-        self.text.mark_set(INSERT, index)
-        self.text.mark_set(self.text.marker.mark, index)
-        return
+    # def set_insert(self, index):
+    #     ''' sets the INSERT and peer mark '''
+    #     self.text.mark_set(INSERT, index)
+    #     self.text.mark_set(self.text.marker.mark, index)
+    #     return
 
     def reset_title(self):
         """ Resets any changes to the window's title """
@@ -665,7 +662,19 @@ class Interface(BasicInterface):
 
         return "break"
 
-    """ Handling changes in selected areas """
+    def key_ctrl_home(self, event):
+        """ Called when the user pressed Ctrl+Home. Sets the local peer index to 0 """
+        self.text.marker.move(0)
+        self.send_set_mark_msg()
+        return "break"
+
+    def key_ctrl_end(self, event):
+        self.text.marker.move(len(self.text.read()))
+        self.send_set_mark_msg()
+        return "break"
+
+    # Selection handling
+    # ==================
 
     def update_select(self, last_row, last_col, new_row, new_col):
         """ Updates the currently selected portion of text for the local peer """
@@ -775,229 +784,31 @@ class Interface(BasicInterface):
         self.text.tag_remove(SEL, "1.0", END)
         return
 
-    # """ Ctrl-Home and Ctrl-End Handling """
+    # Evaluating lines
+    # ================
 
-    # def CtrlHome(self, event):
-
-    #     msg = MSG_SET_MARK(self.text.marker.id, 1, 0)
-
-    #     self.push_queue_put( msg, wait=True)
-                
-    #     return "break"
-
-    # def CtrlEnd(self, event):
-    #     row, col = self.text.index(END).split(".")
-    #     row, col = self.text.index("{}.end".format(int(row)-1)).split(".")
-
-    #     msg = MSG_SET_MARK(self.text.marker.id, row, col)
-
-    #     self.push_queue_put( msg, wait=True )
-
-    #     self.last_keypress  = "End"
-    #     self.last_row       = row
-    #     self.last_col       = col
-        
-    #     return "break"
-
-    def findWordLeft(self, row, col):
-        # Go back until you find the next " "
-        #index = self.text.index(self.text.marker.mark)
-
-        if row == 1 and col == 0:
-
-            return row, col
-
-        while col == 0:
-
-            row, col = self.convert(self.text.index("{}.end".format(row-1)))
-
-        while self.text.get("{}.{}".format(row, col-1)) == " " and col > 0:
-
-            col -= 1
-
-        for col in range(col, 0, -1):
-
-            index="{}.{}".format(row, col - 1)
-
-            if self.text.get(index) == " ":
-
-                return row, col
-
-        return row, 0
-
-
-    # def CtrlLeft(self, event):
-
-    #     last_row, last_col = self.text.index(self.text.marker.mark).split(".")
-    #     last_row, last_col = int(last_row), int(last_col)
-
-    #     row, col = self.findWordLeft(last_row, last_col)
-
-    #     wait_for_reply = (row != last_row)
-
-    #     msg = MSG_SET_MARK(self.text.marker.id, row, col)
-
-    #     self.push_queue_put( msg, wait_for_reply )
-                    
-    #     return "break"
-
-    # def CtrlRight(self, event):
-
-    #     last_row, last_col = self.text.index(self.text.marker.mark).split(".")
-    #     last_row, last_col = int(last_row), int(last_col)
-
-    #     row, col = self.findWordRight(last_row, last_col)
-
-    #     wait_for_reply = (row != last_row)
-
-    #     msg = MSG_SET_MARK(self.text.marker.id, row, col)
-
-    #     self.push_queue_put( msg, wait_for_reply )
-                    
-    #     return "break"
-
-    def findWordRight(self, row, col):
-
-        _, end_col = self.convert(self.text.index("{}.end".format(row)))
-
-        while self.text.get("{}.{}".format(row, col)) == " " and col < end_col:
-
-            col += 1
-
-        end_row, end_col = self.convert(self.text.index(END))
-
-        for r in range(row, end_row + 1):
-            
-            if r == row:
-                start_col = col
-
-            else:
-                
-                start_col = 0
-
-            _, end_c = self.convert(self.text.index("{}.end".format(row)))
-
-            for c in range(start_col, end_c):
-
-                index="{}.{}".format(r, c)
-
-                if self.text.get(index) == " ":
-
-                    return r, c
-                    
-        return end_row, end_col
-
-    """ Directional key-presses """    
-
-    def Left(self, row, col):
-        if col > 0:
-            col -= 1
-        elif row > 1:
-            prev_line = self.text.index("{}.end".format(row-1)).split(".")
-            row = int(prev_line[0])
-            col = int(prev_line[1])        
-        return row, col
-    
-    def Right(self, row, col):
-        end_col = int(self.text.index("{}.end".format(row)).split(".")[1])          
-        if col == end_col:
-            if "{}.{}".format(row + 1, 0) != self.text.index(END):
-                col = 0
-                row += 1
-        else:
-            col += 1        
-        return row, col
-
-    def Down(self, row, col):
-        """ For up and down presses, find the index based on height """
-
-        index = "{}.{}".format(row, col)
-
-        try:
-
-            x,y,w,h = self.text.bbox(index)
-
-        except TypeError:
-
-            y, h = self.text.winfo_height(), self.text.pady
-
-        if y + h < self.text.winfo_height() - self.text.pady:
-
-            next_index = self.text.index("@{},{}".format(x, y + h))
-
-            row, col = [int(val) for val in next_index.split(".")]
-
-        else:
-
-            row += 1
-            next_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
-            col = min(col, next_end_col)
-            
-        return row, col
-    
-    def Up(self, row, col):
-        """ For up and down presses, find the index based on height """
-
-        if True:
-
-            index = "{}.{}".format(row, col)
-
-            try:
-
-                x,y,w,h = self.text.bbox(index)
-
-            except TypeError:
-
-                x, y, h = 0, 0, 1
-
-            if y >= h:
-
-                next_index = self.text.index("@{},{}".format(x, y - h))
-
-                row, col = [int(val) for val in next_index.split(".")]
-
-            elif row > 1:
-
-                row -= 1
-                prev_end_col = int(self.text.index("{}.end".format(row)).split(".")[1])
-                col = min(col, prev_end_col)
-        
-        return row, col
-
-    def currentBlock(self):
+    def get_current_block(self):
         """ Finds the 'block' of code that the local peer is currently in
             and returns a tuple of the start and end row """
-
-        index = self.text.index(self.text.marker.mark)
-        return self.lang.get_block_of_code(self.text, index)
+        return self.lang.get_block_of_code(self.text, self.text.marker.get_tcl_index())
 
 
     def single_line_evaluate(self, event=None):
+        """ Finds contents of the current line and sends a message to each user (inc. this one) to evaluate """
 
-        # Get this line
+        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
+        a, b   = "{}.0".format(row), "{}.end".format(row)
 
-        index = self.text.marker.index()
-
-        row   = int(index.split(".")[0])
-
-        a, b  = "{}.0".format(row), "{}.end".format(row)
-
-        string = self.text.get( a , b ).lstrip()
-
-        if string != "":
-
-            #  Send notification to other peers
-
-            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, row, row)
+        if self.text.get(a, b).lstrip() != "":
             
-            self.add_to_send_queue( msg )
+            self.add_to_send_queue( MSG_EVALUATE_BLOCK(self.text.marker.id, row, row) )
         
         return "break"
 
     def evaluate(self, event=None):
         """ Finds the current block of code to evaluate and tells the server """
         
-        lines = self.currentBlock()
+        lines = self.get_current_block()
         
         a, b = ("%d.0" % n for n in lines)
 
@@ -1012,6 +823,9 @@ class Interface(BasicInterface):
             self.add_to_send_queue( msg )
                 
         return "break"
+
+    # Font size
+    # =========
 
     def ChangeFontSize(self, amount):
         """ Updates the font sizes of the text based on `amount` which
@@ -1039,6 +853,29 @@ class Interface(BasicInterface):
         # self.text.refreshPeerLabels()
         return 'break'
 
+    # Mouse Clicks
+    # ============
+
+    def mouse_press_left(self, event):
+        """ Updates the server on where the local peer's marker is when the mouse release event is triggered.
+            Selected area is removed un-selected. """
+
+        index = self.left_mouse.click(event)
+
+        self.text.marker.move(index)
+
+        # TODO -- de-select selected text
+
+        message = MSG_SET_MARK(self.text.marker.id, index)
+
+        self.add_to_send_queue( message )
+
+        # Make sure the text box gets focus
+
+        self.text.focus_set()
+
+        return "break"
+
     # def leftMouseRelease(self, event=None):
     #     """ Updates the server on where the local peer's marker is when the mouse release event is triggered """
         
@@ -1065,41 +902,19 @@ class Interface(BasicInterface):
             
     #     return "break"
 
-    # def leftMousePress(self, event):
-    #     """ Updates the server on where the local peer's marker is when the mouse release event is triggered.
-    #         Selected area is removed un-selected. """
-
-    #     self.leftMouse_isDown = True
-
-    #     # Get text index of click location
-
-    #     self.leftMouseClickIndex = index = self.text.index("@{},{}".format( event.x, event.y ))
-
-    #     row, col = index.split(".")
-
-    #     # Set the mark and remove selected area
-
-    #     messages = [ MSG_SET_MARK(self.text.marker.id, row, col),
-    #                  MSG_SELECT(self.text.marker.id, "0.0", "0.0") ]
-
-    #     self.push_queue_put( messages, wait=True )
-
-    #     # Make sure the text box gets focus
-
-    #     self.text.focus_set()
-
-    #     return "break"
-
-    def rightMousePress(self, event):
+    def mouse_press_right(self, event):
         """ Disabled """
         return "break"
 
-    def Undo(self, event):
+    # Copy, paste, undo etc
+    # =====================
+
+    def undo(self, event):
         ''' Triggers an undo event '''
         self.add_to_send_queue(MSG_UNDO(self.text.marker.id))
         return "break"
 
-    def Redo(self, event):
+    def redo(self, event):
         ''' Override for Ctrl+Y -- Not currently implmented '''
         # self.push_queue_put(MSG_REDO(self.text.marker.id))
         return "break"
@@ -1128,6 +943,9 @@ class Interface(BasicInterface):
         row, col = self.convert(self.text.index(self.text.marker.mark))
         self.add_to_send_queue( MSG_INSERT(self.text.marker.id, text, row, col), wait=True )
         return "break"
+
+    # Interface toggles
+    # =================
 
     def toggle_menu(self, event=None):
         """ Hides or shows the menu bar """
@@ -1165,6 +983,9 @@ class Interface(BasicInterface):
                 self.root.wm_attributes("-alpha", 1)
         return
 
+    # Colour scheme changes
+    # =====================
+
     def edit_colours(self, event=None):
         """ Opens up the colour options dialog """
         from .colour_picker import ColourPicker
@@ -1188,17 +1009,12 @@ class Interface(BasicInterface):
             self.graphs.itemconfig(peer.graph, fill=peer.bg)
         return
 
+    # Misc.
+    # =====
+
     def OpenGitHub(self, event=None):
         """ Opens the Troop GitHub page in the default web browser """
         webbrowser.open("https://github.com/Qirky/Troop")
-        return
-
-    def ImportLog(self):
-        """ Imports a logfile generated by run-server.py --log and 'recreates' the performance """
-        logname = tkFileDialog.askopenfilename()        
-        self.logfile = Log(logname)
-        self.logfile.set_marker(self.text.marker)
-        self.logfile.recreate()
         return
 
     def set_interpreter(self, name):
@@ -1228,6 +1044,9 @@ class Interface(BasicInterface):
     #     self.push_queue_put(MSG_CONSTRAINT(self.text.marker.id, name))
     #     return
 
+    # Message logging
+    # ===============
+
     def set_up_logging(self):
         """ Checks if there is a logs folder, if not this creates it """
 
@@ -1249,6 +1068,17 @@ class Interface(BasicInterface):
         """ Logs a message to the widget's log_file with a timestamp """
         self.log_file.write("%.4f" % time.time() + " " + repr(str(message)) + "\n")
         return
+
+    def ImportLog(self):
+        """ Imports a logfile generated by run-server.py --log and 'recreates' the performance """
+        logname = tkFileDialog.askopenfilename()        
+        self.logfile = Log(logname)
+        self.logfile.set_marker(self.text.marker)
+        self.logfile.recreate()
+        return
+
+    # Merging font colours - PUT IN OWN CLASS
+    # ====================
 
     def beginFontMerge(self, event=None):
         """ Opens a basic text-entry window and starts the process of "merging fonts".

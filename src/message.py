@@ -190,28 +190,34 @@ class MSG_OPERATION(MESSAGE):
         self["operation"] = operation
         self["revision"]  = revision
 
-# class MSG_SELECT(MESSAGE):
-#     type = 5
-#     def __init__(self, src_id, start, end, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['start']=str(start)
-#         self['end']=str(end)
-#         self['reply']=int(reply)
+class MSG_SET_MARK(MESSAGE):
+    type = 3
+    def __init__(self, src_id, index, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['index'] = int(index)
+        self['reply'] = int(reply)
 
-# class MSG_EVALUATE_STRING(MESSAGE):
-#     type = 6
-#     def __init__(self, src_id, string, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['string']=str(string)
-#         self['reply']=int(reply)
 
-# class MSG_EVALUATE_BLOCK(MESSAGE):
-#     type = 7
-#     def __init__(self, src_id, start_line, end_line, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['start_line']=int(start_line)
-#         self['end_line']=int(end_line)
-#         self['reply']=int(reply)
+
+class MSG_REMOVE(MESSAGE):
+    type = 5
+    def __init__(self, src_id):
+        MESSAGE.__init__(self, src_id)
+
+class MSG_EVALUATE_STRING(MESSAGE):
+    type = 6
+    def __init__(self, src_id, string, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['string']=str(string)
+        self['reply']=int(reply)
+
+class MSG_EVALUATE_BLOCK(MESSAGE):
+    type = 7
+    def __init__(self, src_id, start, end, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['start']=int(start)
+        self['end']=int(end)
+        self['reply']=int(reply)
 
 class MSG_GET_ALL(MESSAGE):
     type = 8
@@ -225,17 +231,14 @@ class MSG_SET_ALL(MESSAGE):
         self['data']=data
         self['client_id']=int(client_id)
 
-class MSG_SET_MARK(MESSAGE):
-    type = 11
-    def __init__(self, src_id, index, reply=1):
-        MESSAGE.__init__(self, src_id)
-        self['index'] = int(index)
-        self['reply'] = int(reply)
+# class MSG_SELECT(MESSAGE):
+#     type = 10
+#     def __init__(self, src_id, start, end, reply=1):
+#         MESSAGE.__init__(self, src_id)
+#         self['start']=str(start)
+#         self['end']=str(end)
+#         self['reply']=int(reply)
 
-class MSG_REMOVE(MESSAGE):
-    type = 12
-    def __init__(self, src_id):
-        MESSAGE.__init__(self, src_id)
 
 class MSG_PASSWORD(MESSAGE):
     type = 13
@@ -260,7 +263,9 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_SET_MARK,
         MSG_REMOVE,
         MSG_PASSWORD,
-        MSG_KILL
+        MSG_KILL,
+        MSG_EVALUATE_BLOCK,
+        MSG_EVALUATE_STRING
     ]
 }
 

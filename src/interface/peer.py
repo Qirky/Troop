@@ -243,7 +243,8 @@ class Peer:
         self.label.destroy()
         self.insert.destroy()
         self.root.root.graphs.delete(self.graph)
-        return
+        del self.root.peers[self.id]
+        return self
     
     def hasSelection(self):
         return self.sel_start != self.sel_end != "0.0"
@@ -257,31 +258,37 @@ class Peer:
         self.sel_end   = "0.0"
         return
 
-    def highlightBlock(self, lines):
+    def highlight(self, start_line, end_line):
+        """ Highlights (and schedules de-highlight) of block of text. Returns contents
+            as a string """
 
-        a, b = (int(x) for x in lines)
+        code = []
 
-        if a == b: b += 1
+        if start_line == end_line: 
+            end_line += 1
 
-        for line in range(a, b):
+        for line in range(start_line, end_line):
+            
             start = "%d.0" % line
             end   = "%d.end" % line
 
             # Highlight text only to last character, not whole line
 
-            self.highlight(start, end)
+            self.__highlight_block(start, end)
+
+            code.append(self.root.get(start, end))
             
         # Unhighlight the line of text
 
-        self.root.master.after(200, self.unhighlight)
+        self.root.master.after(200, self.__unhighlight_block)
 
-        return
+        return "\n".join(code)
 
-    def highlight(self, start, end):
+    def __highlight_block(self, start, end):
         self.root.tag_add(self.code_tag, start, end)
         return
 
-    def unhighlight(self):
+    def __unhighlight_block(self):
         self.root.tag_remove(self.code_tag, "1.0", Tk.END)
         return
 

@@ -56,12 +56,14 @@ class ThreadSafeText(Text, OTClient):
 
         self.handles = {}
 
-        self.add_handle(MSG_OPERATION, self.handle_operation)
-        self.add_handle(MSG_CONNECT,   self.handle_connect)
-        self.add_handle(MSG_REMOVE,    self.handle_remove)
-        self.add_handle(MSG_KILL,      self.handle_kill)
-        self.add_handle(MSG_SET_MARK,  self.handle_set_mark)
-        self.add_handle(MSG_SET_ALL,   self.handle_set_all)
+        self.add_handle(MSG_CONNECT,            self.handle_connect)
+        self.add_handle(MSG_OPERATION,          self.handle_operation)
+        self.add_handle(MSG_SET_MARK,           self.handle_set_mark)
+        self.add_handle(MSG_EVALUATE_BLOCK,     self.handle_evaluate)
+        self.add_handle(MSG_EVALUATE_STRING,    self.handle_evaluate_str)
+        self.add_handle(MSG_REMOVE,             self.handle_remove)
+        self.add_handle(MSG_KILL,               self.handle_kill)
+        self.add_handle(MSG_SET_ALL,            self.handle_set_all)
         
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -170,9 +172,29 @@ class ThreadSafeText(Text, OTClient):
         peer.move(message["index"])
         return
 
+    def handle_evaluate(self, message):
+        """ Highlights text based on message contents and evaluates the string found """
+
+        peer = self.get_peer(message)
+
+        string = peer.highlight(message["start"], message["end"])
+
+        self.root.lang.evaluate(string, name=str(peer), colour=peer.bg)
+
+        return
+
+    def handle_evaluate_str(self, message):
+        """ Evaluates a string as code """
+
+        peer = self.get_peer(message)
+
+        self.root.lang.evaluate(message["string"], name=str(peer), colour=peer.bg)
+
+        return
+
     def handle_remove(self, message):
         """ Removes a Peer from the session based on the contents of message """
-        # TODO
+        print("Peer '{!s}' has disconnected".format(self.get_peer(message).remove()))
         return
 
     def handle_set_all(self, message):
@@ -328,7 +350,7 @@ class ThreadSafeText(Text, OTClient):
 
                 except Exception as e:
 
-                    print("Exception occurred in message handling: {}: {}".format(type(e), e))
+                    print("Exception occurred in message {!r}: {!r} {!r}".format(self.handles[msg.type].__name__, type(e), e))
 
                 # Update any other idle tasks
 
