@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
-
 from ..config import *
 from ..message import *
 from ..logfile import Log
+from ..utils import new_operation
 from ..interpreter import *
 
 from .textbox import ThreadSafeText
@@ -13,7 +13,6 @@ from .drag import Dragbar
 from .bracket import BracketHandler
 from .line_numbers import LineNumbers
 from .menu_bar import MenuBar
-from .utils import new_operation
 from .mouse import Mouse
 
 try:

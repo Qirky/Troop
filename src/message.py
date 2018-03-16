@@ -175,13 +175,11 @@ class MESSAGE(object):
         
 class MSG_CONNECT(MESSAGE):
     type = 1
-    def __init__(self, src_id, name, hostname, port, row=1, col=0):
+    def __init__(self, src_id, name, hostname, port):
         MESSAGE.__init__(self, src_id)
         self['name']      = str(name)
         self['hostname']  = str(hostname)
         self['port']      = int(port)
-        self['row']       = int(row)
-        self['col']       = int(col)
 
 class MSG_OPERATION(MESSAGE):
     type = 2
@@ -196,8 +194,6 @@ class MSG_SET_MARK(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['index'] = int(index)
         self['reply'] = int(reply)
-
-
 
 class MSG_REMOVE(MESSAGE):
     type = 5
@@ -226,10 +222,11 @@ class MSG_GET_ALL(MESSAGE):
 
 class MSG_SET_ALL(MESSAGE):
     type = 9
-    def __init__(self, src_id, data, client_id):
+    def __init__(self, src_id, document, peer_tag_loc, peer_loc):
         MESSAGE.__init__(self, src_id)
-        self['data']=data
-        self['client_id']=int(client_id)
+        self['document'] = document
+        self["peer_tag_loc"] = peer_tag_loc
+        self["peer_loc"] = peer_loc
 
 # class MSG_SELECT(MESSAGE):
 #     type = 10

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .utils import *
+from ..utils import *
 from ..config import *
 from ..message import *
 from ..interpreter import *
@@ -83,9 +83,12 @@ class ThreadSafeText(Text, OTClient):
 
             self.tag_config(tag_name, **kwargs)
 
-        # Begin listening for messages
+        # Create 2 docs - one with chars, one with peer ids
 
         self.document = ""
+        self.peer_tag_doc = ""
+
+        # Begin listening for messages
 
         self.listen()
 
@@ -101,6 +104,7 @@ class ThreadSafeText(Text, OTClient):
     # Override OT
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
+        # Apply to set
         self.set_text(operation(self.read()))
         return
 
@@ -200,11 +204,19 @@ class ThreadSafeText(Text, OTClient):
     def handle_set_all(self, message):
         ''' Sets the contents of the text box and updates the location of peer markers '''
 
-        self.document = message["data"]
+        self.document     = message["document"]
+
+        self.peer_tag_doc = self.create_peer_tag_doc(message["peer_tag_loc"])
 
         self.refresh()
 
-        self.marker.move(0)
+        for peer_id, index in message["peer_loc"].items():
+
+            peer_id = int(peer_id)
+
+            if peer_id in self.peers:
+
+                self.peers[peer_id].move(index)
 
         return
 
@@ -256,9 +268,10 @@ class ThreadSafeText(Text, OTClient):
     # =====================================
 
     def adjust_peer_locations(self, peer, operation):
-        """ When a peer performs an operation, adjust the location of peers following it """
+        """ When a peer performs an operation, adjust the location of peers following it and update
+            the location of peer tags """
 
-        #self.text.marker.shift(index_offset)
+        self.insert_peer_id(peer, operation)
         
         shift  = get_operation_size(operation)
 
@@ -268,6 +281,20 @@ class ThreadSafeText(Text, OTClient):
 
                 other.shift(shift)
 
+        return
+
+    def create_peer_tag_doc(self, locations):
+        """ Re-creates the document of peer_id markers """
+        s = []
+        for peer_id, length in locations:
+            s.append("{}".format(peer_id) * int(length))
+        return "".join(s)
+
+    def insert_peer_id(self, peer, op):
+        """ Applies a text operation to the  peer_tag_doc which contains information about which character relates to which peers """
+        operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
+        self.peer_tag_doc = operation(self.peer_tag_doc)
+        self.update_colours()
         return
 
     def get_peer(self, message):
@@ -283,8 +310,28 @@ class ThreadSafeText(Text, OTClient):
 
     def refresh_peer_labels(self):
         ''' Updates the locations of the peers to their marks'''
-        for peer in self.peers.values():
-            pass #peer.move(peer.index_num) # TODO work out if it's raised
+        # for peer, index in .items():
+
+        #     if peer_id in self.peers:
+
+        #         self.peers[peer_id].move(index)
+        return
+
+    def update_colours(self):
+        """ Sets the peer tags in the text document """
+
+        for p_id, peer in self.peers.items():
+
+            # Remove the peer_tag from the document
+
+            self.tag_remove(peer.text_tag, "1.0", END)
+
+            # One get locations of p_id in self.peer_tag_doc
+
+            for start, end in get_peer_locs(p_id, self.peer_tag_doc):
+                
+                self.tag_add(peer.text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
+
         return
 
     # Font colours -- TODO: Add to its own class
@@ -369,7 +416,7 @@ class ThreadSafeText(Text, OTClient):
         """ Clears the text box and loads the current document state, called after an operation """
         self.clear()
         self.insert("1.0", self.document)
-        # Apply locations of Peers
+        self.update_colours()
         self.refresh_peer_labels()
         return
 

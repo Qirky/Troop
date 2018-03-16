@@ -37,6 +37,7 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
+from .utils import get_marker_location, get_peer_locs
 from .ot.server import Server as OTServer, MemoryBackend
 from .ot.text_operation import TextOperation
 
@@ -49,7 +50,10 @@ class TroopServer(OTServer):
     bytes  = 2048
     def __init__(self, port=57890, log=False, debug=False):
 
+        # Operation al transform info
+
         OTServer.__init__(self, "", MemoryBackend())
+        self.peer_tag_doc = ""
           
         # Address information
         self.hostname = str(socket.gethostname())
@@ -86,8 +90,9 @@ class TroopServer(OTServer):
         # Reference to the thread that is listening for new connections
         self.server_thread = Thread(target=self.server.serve_forever)
         
-        # Clients (hostname, ip)
-        self.clients = []
+        # Dict of IDs to Client instances
+        self.clients = {}
+
         # ID numbers
         self.last_id = -1
 
@@ -106,12 +111,6 @@ class TroopServer(OTServer):
         # Set up a char queue
         self.msg_queue = queue.Queue()
         self.msg_queue_thread = Thread(target=self.update_send)
-
-        # Stores all the operations that have been made
-
-        self.operation_history = [] 
-
-        self.contents = {"ranges":{}, "document":"", "marks": []}
 
         # Set up log for logging a performance
 
@@ -138,43 +137,62 @@ class TroopServer(OTServer):
             self.is_logging = False
             self.log_file = None
 
-        # Debugging flag
-
-        self.debugging = debug
-
-        if self.debugging:
-
-            from interface.peer import Peer
-
-            self.new_peer = lambda *args, **kwargs: Peer(*args, **kwargs)
-
-    def get_client(self, client_address):
+    def get_client_from_addr(self, client_address):
         """ Returns the server-side representation of a client
             using the client address tuple """
-        for client in self.clients:
+        for client in self.clients.values():
             if client == client_address:
                 return client
 
-    def leader(self):
-        return self.clients[0]
+    def get_client(self, client_id):
+        """ Returns the client instance based on the id  """
+        return self.clients[client_id]
+
+    def get_client_locs(self):
+        return { int(client.id): int(client.index) for client in self.clients.values() }
+
+    def get_client_ranges(self):
+        """ Converts the peer_tag_doc into pairs of tuples to be reconstructed by the client """
+        if len(self.peer_tag_doc) == 0:
+            return []
+        else:
+            data = []
+            p_id = self.peer_tag_doc[0]
+            count = 0
+            for char in self.peer_tag_doc:
+                if char != p_id:
+                    data.append((int(p_id), int(count)))
+                    p_id = char
+                else:
+                    count += 1
+            if count > 0:
+                data.append((int(p_id), int(count)))
+            return data
+
 
     def get_contents(self):
-        """ Returns a dictionary with three keys: ranges (a list of ranges of each users' text),
-            contents (the document as a string), and marks (...) """
-        #return self.contents
-        return { "ranges"   : self.contents["ranges"],
-                 "marks"    : self.contents["marks"] }
+        return [self.document, self.get_client_ranges(), self.get_client_locs()]
 
-    def store_operation(self, message):
+    # Operation info
+    # ==============
+
+    def handle_operation(self, message):
         """ Handles a new MSG_OPERATION by updating the document, performing operational transformation
             (if necessary) on it and storing it. """
-        try:
-            op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
-            message["operation"] = op.ops
-        except:
-            return False
-        # self.operation_history.append(message)
-        return True
+        
+        # Apply to document
+        op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
+        message["operation"] = op.ops
+
+        # Apply to peer tags
+        peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
+        self.peer_tag_doc = peer_op(self.peer_tag_doc)
+
+        # Get location of peer
+        client = self.clients[message["src_id"]]
+        client.set_index(get_marker_location(message["operation"]))
+
+        return message
 
     def set_contents(self, data):
         """ Updates the document contents, including the location of user text ranges and marks """
@@ -243,7 +261,7 @@ class TroopServer(OTServer):
                 
                 if isinstance(msg, MSG_OPERATION):
 
-                    self.store_operation(msg)
+                    msg = self.handle_operation(msg)
 
                 self.respond(msg)
 
@@ -257,7 +275,7 @@ class TroopServer(OTServer):
         """ Update all clients with a message. Only sends back messages to
             a client if the `reply` flag is nonzero. """
 
-        for client in self.clients:
+        for client in self.clients.values():
 
             try:
 
@@ -271,41 +289,25 @@ class TroopServer(OTServer):
 
                 # Remove client if no longer contactable
 
-                self.remove_client(client.address)
+                self.remove_client(client.id)
 
                 stdout(err)
 
         return
 
-    def remove_client(self, client_address):
-
-        # Get the ID of the dead clienet
-
-        for client in self.clients:
-
-            if client == client_address:
-
-                dead_client = client
-
-                break
-
-        else:
-
-            dead_client = None
+    def remove_client(self, client_id):
 
         # Remove from list(s)
+            
+        if client_id in self.clients:
 
-        if client_address in self.clients:
-
-            self.clients.remove(client_address)
+            del self.clients[client_id]
 
         # Notify other clients
 
-        if dead_client is not None:
-
-            for client in self.clients:
+        for client in self.clients.values():
                 
-                client.send(MSG_REMOVE(dead_client.id))
+            client.send(MSG_REMOVE(client_id))
 
         return
         
@@ -315,7 +317,7 @@ class TroopServer(OTServer):
 
         outgoing = MSG_KILL(-1, "Warning: Server manually killed by keyboard interrupt. Please close the application")
 
-        for client in self.clients:
+        for client in self.clients.values():
 
             client.send(outgoing)
 
@@ -333,7 +335,7 @@ class TroopServer(OTServer):
 
             outgoing = MSG_RESPONSE(-1, string)
 
-            for client in self.clients:
+            for client in self.clients.values():
                 
                 client.send(outgoing)
                     
@@ -348,10 +350,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.get_client(self.get_client_id())
 
     def get_client(self, client_id):
-        for client in self.master.clients:
-            if client.id == client_id:
-                return client
-        return
+        return self.master.get_client(client_id)
 
     def get_client_id(self):
         return self.client_id
@@ -394,39 +393,39 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
     def handle_client_lost(self):
         """ Terminates cleanly """
         stdout("Client @ {} has disconnected".format(self.client_address))
-        self.master.remove_client(self.client_address)
+        self.master.remove_client(self.client_id)
         return
 
     def handle_connect(self, msg):
         """ Stores information about the new client """
         assert isinstance(msg, MSG_CONNECT)
-        if self.client_address not in self.master.clients:
+        if self.client_address not in self.master.clients.values():
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
             self.connect_clients(new_client) # Contacts other clients
         return new_client
 
-    def handle_set_all(self, msg):
-        """ Forwards the SET_ALL message to requesting client and stores
-            the data in self.master.contents """
-        assert isinstance(msg, MSG_SET_ALL)
+    # def handle_set_all(self, msg):
+    #     """ Forwards the SET_ALL message to requesting client and stores
+    #         the data in self.master.contents """
+    #     assert isinstance(msg, MSG_SET_ALL)
 
-        # Always store the last SET_ALL on the server
+    #     # Always store the last SET_ALL on the server
 
-        self.master.set_contents( msg["data"] )
+    #     self.master.set_contents( msg["data"] )
 
-        new_client_id = msg['client_id']
+    #     new_client_id = msg['client_id']
 
-        if new_client_id != -1:
+    #     if new_client_id != -1:
             
-            for client in self.master.clients:
+    #         for client in self.master.clients:
                 
-                if client.id == new_client_id:
+    #             if client.id == new_client_id:
 
-                    client.send( MSG_SET_ALL(self.get_client_id(), self.master.get_contents(), new_client_id) )
+    #                 client.send( MSG_SET_ALL(self.get_client_id(), self.master.get_contents(), new_client_id) )
 
-                    break
+    #                 break
             
-        return
+    #     return
 
     def leader(self):
         """ Returns the peer client that is "leading" """
@@ -488,14 +487,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.update_client()
 
-                elif isinstance(msg, MSG_SET_ALL):
-
-                    # Send the client *all* of the current code
-
-                    # self.handle_set_all(msg)
-
-                    pass
-
                 else:
 
                     # Add any other messages to the send queue
@@ -509,13 +500,13 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         # Store the client
 
-        self.master.clients.append(new_client)
+        self.master.clients[new_client.id] = new_client
 
         # Connect each client
 
         msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
 
-        for client in self.master.clients:
+        for client in self.master.clients.values():
 
             # Tell other clients about the new connection
 
@@ -525,7 +516,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             if client != self.client_address:
 
-                msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.row_tk(), client.col)
+                msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
                 new_client.send(msg2)
 
@@ -535,7 +526,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         """ Send all the previous operations to the client to keep it up to date """
 
         client = self.client()
-        client.send(MSG_SET_ALL(-1, self.master.document, -1)) # TODO add information to this e.g. locations and ranges
+        client.send(MSG_SET_ALL(-1, *self.master.get_contents()))
 
         return
     
@@ -551,18 +542,20 @@ class Client:
         
         self.source = request_handle
 
-        self.contents = None
-
         # For identification purposes
 
-        self.id   = id_num
+        self.id   = int(id_num)
         self.name = name
-        
-        self.row = 0
-        self.col = 0
 
-    def row_tk(self):
-        return self.row + 1
+        # Location
+
+        self.index = 0
+        
+    def get_index(self):
+        return self.index
+
+    def set_index(self, i):
+        self.index = i
 
     def __repr__(self):
         return repr(self.address)
@@ -576,6 +569,7 @@ class Client:
 
     def __eq__(self, other):
         return self.address == other
+
     def __ne__(self, other):
         return self.address != other
 
