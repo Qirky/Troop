@@ -185,8 +185,8 @@ class MSG_OPERATION(MESSAGE):
     type = 2
     def __init__(self, src_id, operation, revision):
         MESSAGE.__init__(self, src_id)
-        self["operation"] = operation
-        self["revision"]  = revision
+        self["operation"] = [str(item) if isinstance(item, unicode) else item for item in operation]
+        self["revision"]  = int(revision)
 
 class MSG_SET_MARK(MESSAGE):
     type = 3
@@ -224,9 +224,9 @@ class MSG_SET_ALL(MESSAGE):
     type = 9
     def __init__(self, src_id, document, peer_tag_loc, peer_loc):
         MESSAGE.__init__(self, src_id)
-        self['document'] = document
+        self['document']     = str(document)
         self["peer_tag_loc"] = peer_tag_loc
-        self["peer_loc"] = peer_loc
+        self["peer_loc"]     = peer_loc
 
 # class MSG_SELECT(MESSAGE):
 #     type = 10
@@ -311,17 +311,3 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "DeadClientError: Could not connect to {}".format(self.name)
-
-
-if __name__ == "__main__":
-
-    test = MSG_OPERATION(1, [0, "s", 4], 1)
-
-    print(test)
-
-    test["reply"] = 1
-
-    print(test)
-
-    print(test.info())
-    print(test.bytes())
