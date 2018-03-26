@@ -185,7 +185,7 @@ class MSG_OPERATION(MESSAGE):
     type = 2
     def __init__(self, src_id, operation, revision):
         MESSAGE.__init__(self, src_id)
-        self["operation"] = [str(item) if isinstance(item, unicode) else item for item in operation]
+        self["operation"] = [str(item) if not isinstance(item, int) else item for item in operation]
         self["revision"]  = int(revision)
 
 class MSG_SET_MARK(MESSAGE):
