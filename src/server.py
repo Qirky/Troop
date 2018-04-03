@@ -153,7 +153,8 @@ class TroopServer(OTServer):
 
     def get_client_ranges(self):
         """ Converts the peer_tag_doc into pairs of tuples to be reconstructed by the client """
-        if len(self.peer_tag_doc) == 0:
+        #if len(self.peer_tag_doc) == 0:
+        if True:
             return []
         else:
             data = []
@@ -185,8 +186,8 @@ class TroopServer(OTServer):
         message["operation"] = op.ops
 
         # Apply to peer tags
-        peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
-        self.peer_tag_doc = peer_op(self.peer_tag_doc)
+        #peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
+        #self.peer_tag_doc = peer_op(self.peer_tag_doc)
 
         # Get location of peer
         client = self.clients[message["src_id"]]
