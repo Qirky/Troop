@@ -38,7 +38,7 @@ class ThreadSafeText(Text, OTClient):
 
         self.config(undo=True, autoseparators=True, maxundo=50)
 
-        # If we are blending font colours
+        # If we are blending font colours -- needs to go in its own class
 
         self.merge_colour       = None
         self.merge_time         = 0
@@ -292,8 +292,8 @@ class ThreadSafeText(Text, OTClient):
 
     def insert_peer_id(self, peer, op):
         """ Applies a text operation to the  peer_tag_doc which contains information about which character relates to which peers """
-        operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
-        self.peer_tag_doc = operation(self.peer_tag_doc)
+        #operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
+        #self.peer_tag_doc = operation(self.peer_tag_doc)
         self.update_colours()
         return
 
