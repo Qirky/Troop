@@ -139,6 +139,8 @@ class ThreadSafeText(Text, OTClient):
         if self.marker.id != message['src_id']:
 
             self.root.add_new_user(message['src_id'], message['name'])
+
+            self.revision = 0
             
             print("Peer '{}' has joined the session".format(message['name']))  
 
