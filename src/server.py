@@ -185,7 +185,7 @@ class TroopServer(OTServer):
         try:
             op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
         except OTError as err:
-            print(repr(self.document), "\n", message["operation"])
+            print(self.document, message["operation"])
             raise err
         
         message["operation"] = op.ops
@@ -235,7 +235,7 @@ class TroopServer(OTServer):
 
     def clear_history(self):
         """ Removes revision history -- potentially a stupid idea """
-        self.backend = MemoryBackend()
+        # self.backend = MemoryBackend()
         return
 
     @staticmethod
