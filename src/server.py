@@ -153,8 +153,7 @@ class TroopServer(OTServer):
 
     def get_client_ranges(self):
         """ Converts the peer_tag_doc into pairs of tuples to be reconstructed by the client """
-        #if len(self.peer_tag_doc) == 0:
-        if True:
+        if len(self.peer_tag_doc) == 0:
             return []
         else:
             data = []

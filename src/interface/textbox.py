@@ -294,8 +294,8 @@ class ThreadSafeText(Text, OTClient):
 
     def insert_peer_id(self, peer, op):
         """ Applies a text operation to the  peer_tag_doc which contains information about which character relates to which peers """
-        #operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
-        #self.peer_tag_doc = operation(self.peer_tag_doc)
+        operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
+        self.peer_tag_doc = operation(self.peer_tag_doc)
         self.update_colours()
         return
 
