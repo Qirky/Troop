@@ -191,8 +191,8 @@ class TroopServer(OTServer):
         message["operation"] = op.ops
 
         # Apply to peer tags
-        #peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
-        #self.peer_tag_doc = peer_op(self.peer_tag_doc)
+        peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
+        self.peer_tag_doc = peer_op(self.peer_tag_doc)
 
         # Get location of peer
         client = self.clients[message["src_id"]]
@@ -234,9 +234,8 @@ class TroopServer(OTServer):
         return self.last_id
 
     def clear_history(self):
-        """ Removes revision history -- potentially a stupid idea """
+        """ Removes revision history - make sure clients' revision numbers reset """
         self.backend = MemoryBackend()
-        print(repr(self.document))
         return
 
     @staticmethod
