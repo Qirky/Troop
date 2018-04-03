@@ -235,7 +235,8 @@ class TroopServer(OTServer):
 
     def clear_history(self):
         """ Removes revision history -- potentially a stupid idea """
-        # self.backend = MemoryBackend()
+        self.backend = MemoryBackend()
+        print(repr(self.document))
         return
 
     @staticmethod
