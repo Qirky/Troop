@@ -39,7 +39,7 @@ from .interpreter import *
 from .config import *
 from .utils import get_marker_location, get_peer_locs
 from .ot.server import Server as OTServer, MemoryBackend
-from .ot.text_operation import TextOperation
+from .ot.text_operation import TextOperation, IncompatibleOperationError as OTError
 
 class TroopServer(OTServer):
     """
@@ -182,7 +182,12 @@ class TroopServer(OTServer):
             (if necessary) on it and storing it. """
         
         # Apply to document
-        op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
+        try:
+            op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
+        except OTError as err:
+            print(repr(self.document), "\n", message["operation"])
+            raise err
+        
         message["operation"] = op.ops
 
         # Apply to peer tags
@@ -389,7 +394,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         data = self.request.recv(self.master.bytes) 
         data = self.reader.feed(data)
         return data
-
 
     def handle_client_lost(self):
         """ Terminates cleanly """

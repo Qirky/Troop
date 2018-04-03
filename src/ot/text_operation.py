@@ -129,7 +129,7 @@ class TextOperation(object):
         for op in self:
             if _is_retain(op):
                 if i + op > len(doc):
-                    raise Exception("Cannot apply operation: operation is too long.")
+                    raise IncompatibleOperationError("Cannot apply operation: operation is too long.")
                 parts.append(doc[i:(i + op)])
                 i += op
             elif _is_insert(op):
