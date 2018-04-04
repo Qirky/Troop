@@ -104,13 +104,17 @@ class ThreadSafeText(Text, OTClient):
     # Override OT
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
-        # Apply to set
+        #print("{!r} {!r} {!r} {!r}".format("Applying server operation", self.document, self.peer_tag_doc, operation.ops))
         self.set_text(operation(self.read()))
+        self.insert_peer_id(self.active_peer, operation.ops)
         return
 
     def apply_local_operation(self, ops, shift_amount):
         """ Applies the operation directly after a keypress """
+        #print("{!r} {!r} {!r} {!r}".format("Applying local operation", self.document, self.peer_tag_doc, ops))
+        self.active_peer = self.marker
         self.apply_operation(TextOperation(ops))
+        
         self.adjust_peer_locations(self.marker, ops)
         self.marker.shift(shift_amount)
         return
@@ -150,7 +154,11 @@ class ThreadSafeText(Text, OTClient):
         """ Forwards the operation message to the correct handler based on whether it 
             was sent by the client or server """
 
+        self.active_peer = self.get_peer(message)
+
         if client:
+
+            # This *sends* the operation to the server - it does *not* apply it locally
 
             self.apply_client(TextOperation(message["operation"]))
 
@@ -163,6 +171,8 @@ class ThreadSafeText(Text, OTClient):
                 self.server_ack()
 
             else:
+
+                # Apply the operation received from the server
 
                 self.apply_server(TextOperation(message["operation"]))
 
@@ -273,9 +283,9 @@ class ThreadSafeText(Text, OTClient):
         """ When a peer performs an operation, adjust the location of peers following it and update
             the location of peer tags """
 
-        self.insert_peer_id(peer, operation)
+        #self.insert_peer_id(peer, operation)
         
-        shift  = get_operation_size(operation)
+        shift = get_operation_size(operation)
 
         for other in self.peers.values():
 
@@ -292,9 +302,15 @@ class ThreadSafeText(Text, OTClient):
             s.append("{}".format(peer_id) * int(length))
         return "".join(s)
 
-    def insert_peer_id(self, peer, op):
+    def get_peer_loc_ops(self, peer, ops):
+        return [str(peer.id) * len(val) if isinstance(val, str) else val for val in ops]
+
+    def insert_peer_id(self, peer, ops):
         """ Applies a text operation to the  peer_tag_doc which contains information about which character relates to which peers """
-        operation = TextOperation([str(peer.id) * len(val) if isinstance(val, str) else val for val in op])
+        #print("{!r} {!r} {!r} {!r}".format("Inserting peer id", self.peer_tag_doc, op, self.get_peer_loc_ops(peer, op)))
+        #print("---")
+
+        operation = TextOperation(self.get_peer_loc_ops(peer, ops))
         self.peer_tag_doc = operation(self.peer_tag_doc)
         self.update_colours()
         return
