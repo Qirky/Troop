@@ -59,6 +59,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_CONNECT,            self.handle_connect)
         self.add_handle(MSG_OPERATION,          self.handle_operation)
         self.add_handle(MSG_SET_MARK,           self.handle_set_mark)
+        self.add_handle(MSG_SELECT,             self.handle_select)
         self.add_handle(MSG_EVALUATE_BLOCK,     self.handle_evaluate)
         self.add_handle(MSG_EVALUATE_STRING,    self.handle_evaluate_str)
         self.add_handle(MSG_REMOVE,             self.handle_remove)
@@ -190,6 +191,13 @@ class ThreadSafeText(Text, OTClient):
         peer.move(message["index"])
         return
 
+    def handle_select(self, message):
+        """ Update's a peer's selection """
+        peer = self.get_peer(message)        
+        peer.select_set(message["start"], message["end"])
+        self.update_colours()
+        return
+
     def handle_evaluate(self, message):
         """ Highlights text based on message contents and evaluates the string found """
 
@@ -284,11 +292,17 @@ class ThreadSafeText(Text, OTClient):
         
         shift = get_operation_size(operation)
 
+        peer_loc = peer.get_index_num()
+
         for other in self.peers.values():
 
-            if peer != other and other.get_index_num() >= peer.get_index_num():
+            if peer != other and other.get_index_num() >= peer_loc:
 
                 other.shift(shift)
+
+                # Move any of a peer's selection
+
+                other.select_shift(peer_loc, shift)
 
         return
 
@@ -344,6 +358,10 @@ class ThreadSafeText(Text, OTClient):
             for start, end in get_peer_locs(p_id, self.peer_tag_doc):
                 
                 self.tag_add(peer.text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
+
+            # Re-add any highlighted text (eval or select)
+
+            peer.refresh_highlight()
 
         return
 

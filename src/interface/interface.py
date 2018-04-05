@@ -232,8 +232,8 @@ class Interface(BasicInterface):
         self.text.bind("<{}-m>".format(CtrlKey), self.toggle_menu)
 
         # Key bindings to handle select
-        # self.text.bind("<Shift-Left>",  self.SelectLeft)
-        # self.text.bind("<Shift-Right>", self.SelectRight)
+        self.text.bind("<Shift-Left>",  self.select_left)
+        self.text.bind("<Shift-Right>", self.select_right)
         # self.text.bind("<Shift-Up>",    self.SelectUp)
         # self.text.bind("<Shift-Down>",  self.SelectDown)
         # self.text.bind("<Shift-End>",   self.SelectEnd)
@@ -281,7 +281,7 @@ class Interface(BasicInterface):
         self.text.bind("<{}-o>".format(CtrlKey),  self.menu.open_file)
         self.text.bind("<{}-n>".format(CtrlKey),  self.menu.new_file)
 
-        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling")
+        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling", "Shift_L", "Shift_R")
 
         # Directional commands
 
@@ -498,6 +498,11 @@ class Interface(BasicInterface):
         """ Sends a message to server with the location of this peer """
         self.add_to_send_queue(MSG_SET_MARK(self.text.marker.id, self.text.marker.get_index_num(), reply=0))
         return
+
+    def send_select_msg(self):
+        """ Sends a message to server with the location of this peer """
+        self.add_to_send_queue(MSG_SELECT(self.text.marker.id, self.text.marker.select_start(), self.text.marker.select_end(), reply=0))
+        return
     
     def key_press(self, event):
         """ 'Pushes' the key-press to the server.
@@ -514,6 +519,10 @@ class Interface(BasicInterface):
             self.kill()
 
             return "break"
+
+        # Remove selection
+
+        self.de_select()
 
         # Get index
 
@@ -597,8 +606,9 @@ class Interface(BasicInterface):
         """ Called when the left arrow key is pressed; decreases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.text.marker.shift(-1)
+        self.move_marker_left()
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
 
@@ -606,8 +616,9 @@ class Interface(BasicInterface):
         """ Called when the right arrow key is pressed; increases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.text.marker.shift(1)
+        self.move_marker_right()
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
     def key_down(self):
@@ -619,6 +630,7 @@ class Interface(BasicInterface):
 
         self.text.marker.move(new_index)
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
     def key_up(self):
@@ -630,6 +642,7 @@ class Interface(BasicInterface):
 
         self.text.marker.move(new_index)
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
     def key_home(self):
@@ -641,6 +654,7 @@ class Interface(BasicInterface):
         
         self.text.marker.move(index)
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
     def key_end(self):
@@ -654,110 +668,143 @@ class Interface(BasicInterface):
 
         self.text.marker.move(index)
         self.send_set_mark_msg()
-
+        self.text.marker.de_select()
         return "break"
 
     def key_ctrl_home(self, event):
         """ Called when the user pressed Ctrl+Home. Sets the local peer index to 0 """
         self.text.marker.move(0)
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
 
     def key_ctrl_end(self, event):
         self.text.marker.move(len(self.text.read()))
         self.send_set_mark_msg()
+        self.text.marker.de_select()
         return "break"
+
+    def move_marker_left(self):
+        """ Move the cursor right 1 place """
+        self.text.marker.shift(-1)
+
+    def move_marker_right(self):
+        """ Move the cursor right 1 place """ 
+        self.text.marker.shift(+1)
 
     # Selection handling
     # ==================
 
-    def update_select(self, last_row, last_col, new_row, new_col):
-        """ Updates the currently selected portion of text for the local peer """
-        try:
-            start = self.text.index(self.text.marker.sel_tag + ".first")
-            end   = self.text.index(self.text.marker.sel_tag + ".last")
-            # Whchever (start or end) is equal to last_row/col combo, we update
-            old_index = "{}.{}".format(last_row, last_col)
-            new_index = "{}.{}".format(new_row, new_col)
-            if start == old_index:
-                start = new_index
-            elif end == "{}.{}".format(last_row, last_col):
-                end   = new_index
-        except TclError as e:
-            start = "{}.{}".format(last_row, last_col)
-            end   = "{}.{}".format(new_row, new_col)
+    def de_select(self):
+        """ If there is a selection, remove it and notify the server """
+        notify = self.text.marker.de_select()
+        if notify:
+            self.send_select_msg()
+        return
 
-        wait_for_reply = (new_row != last_row)
+    # def update_select(self, last_row, last_col, new_row, new_col):
+    #     """ Updates the currently selected portion of text for the local peer """
+    #     try:
+    #         start = self.text.index(self.text.marker.sel_tag + ".first")
+    #         end   = self.text.index(self.text.marker.sel_tag + ".last")
+    #         # Whchever (start or end) is equal to last_row/col combo, we update
+    #         old_index = "{}.{}".format(last_row, last_col)
+    #         new_index = "{}.{}".format(new_row, new_col)
+    #         if start == old_index:
+    #             start = new_index
+    #         elif end == "{}.{}".format(last_row, last_col):
+    #             end   = new_index
+    #     except TclError as e:
+    #         start = "{}.{}".format(last_row, last_col)
+    #         end   = "{}.{}".format(new_row, new_col)
 
-        messages = [ MSG_SELECT(self.text.marker.id, start, end),
-                     MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
+    #     wait_for_reply = (new_row != last_row)
 
-        self.add_to_send_queue( messages, wait_for_reply)
+    #     messages = [ MSG_SELECT(self.text.marker.id, start, end),
+    #                  MSG_SET_MARK(self.text.marker.id, new_row, new_col) ]
+
+    #     self.add_to_send_queue( messages, wait_for_reply)
                 
-        return "break"
+    #     return "break"
 
     def select_left(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = self.Left(row1, col1)
+
+        # Last value
+        start = self.text.marker.get_index_num()
+
+        # Move the cursor left 1 place
+        self.move_marker_left()
+
+        # Current value
+        end = self.text.marker.get_index_num()
+
+        # Update the selection
         
-        self.update_select(row1, col1, row2, col2)
+        self.text.marker.select(start, end)
+
+        # Send info to server
+
+        self.send_set_mark_msg()
+        self.send_select_msg()
+
+        # Update colours
+
+        self.text.update_colours()
         
         return "break"
 
     def select_right(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = self.Right(row1, col1)
         
-        self.update_slect(row1, col1, row2, col2)
+        # Last value
+        start = self.text.marker.get_index_num()
+
+        # Move the marker
+
+        self.move_marker_right()
+
+        # Current value
+        end = self.text.marker.get_index_num()
+
+        # Update the selection
+        
+        self.text.marker.select(start, end)
+
+        # Send info to server
+
+        self.send_set_mark_msg()
+        self.send_select_msg()
+
+        # Update colours
+
+        self.text.update_colours()
 
         return "break"
     
     def select_up(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = self.Up(row1, col1)
-        
-        self.update_elect(row1, col1, row2, col2)
 
         return "break"
     
     def select_down(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = self.Down(row1, col1)
         
-        self.update_select(row1, col1, row2, col2)
         return "break"
 
     def select_end(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = (int(i) for i in self.text.index("{}.end".format(row1)).split("."))
-        
-        self.update_select(row1, col1, row2, col2)
 
         return "break"
 
     def select_home(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        row1, col1 = self.text.index(self.text.marker.mark).split(".")
-        row1, col1 = int(row1), int(col1)
-        row2, col2 = (int(i) for i in self.text.index("{}.0".format(row1)).split("."))
-        
-        self.update_select(row1, col1, row2, col2)
 
         return "break"
 

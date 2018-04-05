@@ -38,6 +38,8 @@ def get_operation_index(ops):
     for op in ops:
         if isinstance(op, int):
             index += op
+            if op < 0:
+                index += 1
         elif isinstance(op, str):
             index += len(op)
     return index

@@ -228,14 +228,13 @@ class MSG_SET_ALL(MESSAGE):
         self["peer_tag_loc"] = peer_tag_loc
         self["peer_loc"]     = peer_loc
 
-# class MSG_SELECT(MESSAGE):
-#     type = 10
-#     def __init__(self, src_id, start, end, reply=1):
-#         MESSAGE.__init__(self, src_id)
-#         self['start']=str(start)
-#         self['end']=str(end)
-#         self['reply']=int(reply)
-
+class MSG_SELECT(MESSAGE):
+    type = 10
+    def __init__(self, src_id, start, end, reply=1):
+        MESSAGE.__init__(self, src_id)
+        self['start']=int(start)
+        self['end']=int(end)
+        self['reply']=int(reply)
 
 class MSG_PASSWORD(MESSAGE):
     type = 13
@@ -258,6 +257,7 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_SET_ALL,
         MSG_GET_ALL,
         MSG_SET_MARK,
+        MSG_SELECT,
         MSG_REMOVE,
         MSG_PASSWORD,
         MSG_KILL,

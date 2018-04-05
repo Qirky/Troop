@@ -53,7 +53,69 @@ class PeerColourTest:
             self.canvas.create_rectangle(m * w, n * h, (m + 1) * w,  (n + 1) * h, fill="Black")
         self.root.mainloop()
 
+class Highlight:
+    def __init__(self, text, tag):
+        self.text = text
+        self.tag  = tag
+        self.deactivate()
+    def __repr__(self):
+        return "<Selection: {} - {}>".format(self.start, self.end)
 
+    def __len__(self):
+        return (self.end - self.start)
+    
+    def set(self, start, end):
+        """ Set a relative index """
+        self.start  = min(start, end)
+        self.end    = max(start, end)
+        self.active = True
+    
+    def add(self, start, end):
+        """ Add a Tk index """
+        self.multiple.append((start, end))
+        return 
+    
+    def update(self, index):
+        if index < self.start:
+            self.start = index
+        elif index > self.end:
+            self.end = index
+        self.active = True
+        return
+    
+    def deactivate(self):
+        self.start    = 0
+        self.end      = 0
+        self.active   = False
+        self.multiple = []
+    
+    def shift(self, loc, amount):
+        if self.active:
+            if loc < self.start:
+                self.start += amount
+                self.end   += amount
+            elif loc < self.end:
+                self.end += amount
+        return
+    
+    def show(self):
+        """ Adds the highlight tag to the text """
+        if len(self.multiple) > 0:
+            for start, end in self.multiple:
+                self.text.tag_add(self.tag, start, end)
+        else:
+            self.text.tag_add(self.tag, self.text.number_index_to_tcl(self.start), self.text.number_index_to_tcl(self.end))
+        self.active = True
+        return
+    
+    def hide(self):
+        """ Removes the highlight tag from the text """
+        self.clear()
+        self.deactivate()
+        return
+
+    def clear(self):
+        self.text.tag_remove(self.tag, "1.0", Tk.END)
 
 class Peer:
     """ Class representing the connected performers within the Tk Widget
@@ -86,6 +148,10 @@ class Peer:
         self.sel_tag  = "sel_"  + str(self.id)
         self.str_tag  = "str_"  + str(self.id) 
         self.mark     = "mark_" + str(self.id)
+
+        # For refreshing the text
+        self.hl_eval    = Highlight(self.root, self.code_tag)
+        self.hl_select  = Highlight(self.root, self.sel_tag)
 
         self.root.peer_tags.append(self.text_tag)
 
@@ -142,7 +208,11 @@ class Peer:
         return
 
     def shift(self, amount):
+        """ Updates the peer's location relative to its current location by calling `move` """
         return self.move(self.index_num + amount)
+
+    def select_shift(self, loc, amount):
+        return self.hl_select.shift(loc, amount)
         
     def move(self, loc, raised = False):
         """ Updates the location of the Peer's label """
@@ -230,26 +300,63 @@ class Peer:
         return self.index_num
 
     def select(self, start, end):
-        """ Highlights text selected by this peer"""
-        self.root.tag_remove(self.sel_tag, "1.0", Tk.END)
-        start, end = self.root.sort_indices([start, end])
-        self.sel_start = start
-        self.sel_end   = end  
-        if start != end:
-            self.root.tag_add(self.sel_tag, self.sel_start, self.sel_end)
+        """ Updates the selected text area for a peer """
+
+        if start == end == 0: # start and end of 0 is a de-select
+
+            self.hl_select.hide()
+
+        elif self.hl_select.active:
+
+            self.hl_select.update(end)
+
+        else:
+
+            self.hl_select.set(start, end)
+
         return
 
+    def select_set(self, start, end):
+        """ Override a selection area instead of incrementing """
+
+        if start == end == 0: # start and end of 0 is a de-select
+
+            self.hl_select.hide()
+
+        self.hl_select.set(start, end)
+
+        return
+
+    def select_start(self):
+        """ Returns the index of the start of the selection """
+        return self.hl_select.start
+
+    def select_end(self):
+        """ Returns the index of the end of the selection """
+        return self.hl_select.end
+
+    def de_select(self):
+        """ Remove (not delete) the selection from the text """
+        if self.hl_select.active:
+            self.hl_select.hide()
+            return True
+        else:
+            return False
+
     def remove(self):
+        """ Destroys the Tk items associated with this peer and deletes it from the address book """
+        self.hl_select.hide()
         self.label.destroy()
         self.insert.destroy()
         self.root.root.graphs.delete(self.graph)
         del self.root.peers[self.id]
         return self
     
-    def hasSelection(self):
-        return self.sel_start != self.sel_end != "0.0"
+    def has_selection(self):
+        """ Returns True if this peer is selecting any text """
+        return self.hl.select.start != self.hl_select.end != 0
     
-    def deleteSelection(self):
+    def delete_selection(self):
         self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
         self.root.delete(self.sel_start, self.sel_end)
         row, col = self.sel_start.split(".")
@@ -257,6 +364,14 @@ class Peer:
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
         return
+
+    def __highlight_select(self):
+        """ Adds background highlighting to text being selected by this peer """
+        self.hl_select.clear()
+        if self.hl_select.start != self.hl_select.end:
+            self.hl_select.show()
+        return
+
 
     def highlight(self, start_line, end_line):
         """ Highlights (and schedules de-highlight) of block of text. Returns contents
@@ -274,9 +389,11 @@ class Peer:
 
             # Highlight text only to last character, not whole line
 
-            self.__highlight_block(start, end)
+            self.hl_eval.add(start, end)
 
             code.append(self.root.get(start, end))
+
+        self.__highlight_block()
             
         # Unhighlight the line of text
 
@@ -284,12 +401,22 @@ class Peer:
 
         return "\n".join(code)
 
-    def __highlight_block(self, start, end):
-        self.root.tag_add(self.code_tag, start, end)
+    def __highlight_block(self):
+        """ Adds background highlighting for code being evaluated"""
+        self.hl_eval.show()
         return
 
     def __unhighlight_block(self):
-        self.root.tag_remove(self.code_tag, "1.0", Tk.END)
+        """ Removes highlight formatting from evaluated text """
+        self.hl_eval.hide()
+        return
+
+    def refresh_highlight(self):
+        """ If the text is refreshed while code is being evaluated, re-apply it"""
+        if self.hl_eval.active:
+            self.__highlight_block()
+        if self.hl_select.active:
+            self.__highlight_select()
         return
 
     def get_tcl_index(self):
@@ -297,8 +424,7 @@ class Peer:
         return self.root.number_index_to_tcl(self.index_num)
 
     def get_index_num(self):
-        """ Returns the index (a single integer) of this peer, if it isn't valid, it 
-            will adjust the peer """
+        """ Returns the index (a single integer) of this peer """
         return self.index_num
     
     def __eq__(self, other):
