@@ -335,6 +335,19 @@ class Peer:
         """ Returns the index of the end of the selection """
         return self.hl_select.end
 
+    def selection_size(self):
+        return len(self.hl_select)
+
+    # def delete_selection(self):
+    #     """  """
+    #     self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
+    #     self.root.delete(self.sel_start, self.sel_end)
+    #     row, col = self.sel_start.split(".")
+    #     self.move(row, col)
+    #     self.sel_start = "0.0"
+    #     self.sel_end   = "0.0"
+    #     return
+
     def de_select(self):
         """ Remove (not delete) the selection from the text """
         if self.hl_select.active:
@@ -354,16 +367,7 @@ class Peer:
     
     def has_selection(self):
         """ Returns True if this peer is selecting any text """
-        return self.hl.select.start != self.hl_select.end != 0
-    
-    def delete_selection(self):
-        self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
-        self.root.delete(self.sel_start, self.sel_end)
-        row, col = self.sel_start.split(".")
-        self.move(row, col)
-        self.sel_start = "0.0"
-        self.sel_end   = "0.0"
-        return
+        return self.hl_select.active
 
     def __highlight_select(self):
         """ Adds background highlighting to text being selected by this peer """

@@ -1,11 +1,45 @@
-def new_operation(index, value, tail):
+# def new_operation(index, value, tail):
+#     """ Returns an operation as a list and removes index/tail if they are 0 """
+#     operation = []
+#     if index > 0:
+#         operation.append(index)
+#     operation.append(value)
+#     if tail > 0:
+#         operation.append(tail)
+#     return operation
+
+
+def new_operation(index, *args):
     """ Returns an operation as a list and removes index/tail if they are 0 """
+    values = args[:-1]
+    length = args[-1]
+
     operation = []
+
     if index > 0:
+    
         operation.append(index)
-    operation.append(value)
-    if tail > 0:
-        operation.append(tail)
+
+        length -= index
+
+    for value in values:
+       
+        operation.append(value)
+
+        if isinstance(value, int):
+
+            if value > 0:
+
+                length -= value
+
+            else:
+
+                length += value
+    
+    if length > 0:
+    
+        operation.append(length)
+    
     return operation
 
 def get_marker_location(ops):

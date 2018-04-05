@@ -296,13 +296,17 @@ class ThreadSafeText(Text, OTClient):
 
         for other in self.peers.values():
 
+            # Move any of a peer's selection
+
+            if other.has_selection():
+
+                other.select_shift(peer_loc, shift)
+
             if peer != other and other.get_index_num() >= peer_loc:
 
                 other.shift(shift)
 
-                # Move any of a peer's selection
-
-                other.select_shift(peer_loc, shift)
+        self.update_colours()
 
         return
 

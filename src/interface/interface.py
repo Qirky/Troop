@@ -520,14 +520,12 @@ class Interface(BasicInterface):
 
             return "break"
 
-        # Remove selection
-
-        self.de_select()
-
         # Get index
 
-        index = self.text.marker.get_index_num() # possibly just use .index_num
-        tail  = len(self.text.read()) - index
+        index     = self.text.marker.get_index_num() # possibly just use .index_num
+        doc_size  = len(self.text.read())
+        tail      = doc_size - index
+        selection = self.text.marker.selection_size()
 
         operation = []
         index_offset = 0
@@ -543,18 +541,30 @@ class Interface(BasicInterface):
             return self.handle_direction.get(event.keysym, lambda: None).__call__()
 
         elif event.keysym == "Delete":
+            
+            if selection:
 
-            if tail > 0:
-                
-                operation = new_operation(index, -1, tail - 1)
+                operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
+
+            else:
+
+                if tail > 0:
+
+                    operation = new_operation(index, -1, doc_size)
 
         elif event.keysym == "BackSpace":
 
             if index > 0:
 
-                operation = new_operation(index - 1, -1, tail)
+                if selection:
 
-                index_offset = -1
+                    operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
+
+                else:
+
+                    operation = new_operation(index - 1, -1, doc_size)
+
+                    index_offset = -1
 
         else:
 
@@ -572,7 +582,13 @@ class Interface(BasicInterface):
 
             if len(char) > 0:
 
-                operation = new_operation(index, char, tail)
+                if selection:
+
+                    operation = new_operation(self.text.marker.select_start(), -selection, char, doc_size)
+
+                else:
+
+                    operation = new_operation(index, char, doc_size)
 
                 index_offset = len(char)
 
@@ -590,6 +606,11 @@ class Interface(BasicInterface):
 
             self.text.handle_operation(message, client=True)
 
+
+        # Remove any selected text
+
+        self.de_select()
+
         # Store last key press for Alt+F4 etc
 
         self.last_keypress  = event.keysym
@@ -599,6 +620,9 @@ class Interface(BasicInterface):
         self.text.see(self.text.marker.mark)
     
         return "break"
+
+    def new_delete_select_operation(self):
+        return
 
     # Directional keypresses
 
