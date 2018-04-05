@@ -104,17 +104,15 @@ class ThreadSafeText(Text, OTClient):
     # Override OT
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
-        #print("{!r} {!r} {!r} {!r}".format("Applying server operation", self.document, self.peer_tag_doc, operation.ops))
         self.set_text(operation(self.read()))
         self.insert_peer_id(self.active_peer, operation.ops)
         return
 
     def apply_local_operation(self, ops, shift_amount):
         """ Applies the operation directly after a keypress """
-        #print("{!r} {!r} {!r} {!r}".format("Applying local operation", self.document, self.peer_tag_doc, ops))
         self.active_peer = self.marker
         self.apply_operation(TextOperation(ops))
-        
+
         self.adjust_peer_locations(self.marker, ops)
         self.marker.shift(shift_amount)
         return
@@ -176,9 +174,13 @@ class ThreadSafeText(Text, OTClient):
 
                 self.apply_server(TextOperation(message["operation"]))
 
+                # Move the peer marker
+
+                self.active_peer.move(get_operation_index(message["operation"]))
+
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
 
-                self.adjust_peer_locations(self.get_peer(message), message["operation"])
+                self.adjust_peer_locations(self.active_peer, message["operation"])
 
         return
 
@@ -233,10 +235,7 @@ class ThreadSafeText(Text, OTClient):
         return
 
     def handle_get_all(self, message):
-        ''' Creates a dictionary of data about the text editor and sends it to the server '''
-        #data = self.get_contents()
-        #reply = MSG_SET_ALL(-1, data, message['src_id'])
-        #self.root.add_to_send_queue( reply )
+        ''' Creates a dictionary of data about the text editor and sends it to the server - not used '''
         return
 
     def handle_kill(self, message):
@@ -282,8 +281,6 @@ class ThreadSafeText(Text, OTClient):
     def adjust_peer_locations(self, peer, operation):
         """ When a peer performs an operation, adjust the location of peers following it and update
             the location of peer tags """
-
-        #self.insert_peer_id(peer, operation)
         
         shift = get_operation_size(operation)
 
@@ -303,13 +300,11 @@ class ThreadSafeText(Text, OTClient):
         return "".join(s)
 
     def get_peer_loc_ops(self, peer, ops):
+        """ Converts a list of operations on the main document to inserting the peer ID """
         return [str(peer.id) * len(val) if isinstance(val, str) else val for val in ops]
 
     def insert_peer_id(self, peer, ops):
-        """ Applies a text operation to the  peer_tag_doc which contains information about which character relates to which peers """
-        #print("{!r} {!r} {!r} {!r}".format("Inserting peer id", self.peer_tag_doc, op, self.get_peer_loc_ops(peer, op)))
-        #print("---")
-
+        """ Applies a text operation to the `peer_tag_doc` which contains information about which character relates to which peers """
         operation = TextOperation(self.get_peer_loc_ops(peer, ops))
         self.peer_tag_doc = operation(self.peer_tag_doc)
         self.update_colours()
@@ -435,51 +430,7 @@ class ThreadSafeText(Text, OTClient):
         self.clear()
         self.insert("1.0", self.document)
         self.update_colours()
-        self.refresh_peer_labels()
         return
-
-        # loc = []
-        
-        # for peer in self.peers.values():
-            
-        #     # Get the location of a peer
-
-        #     try:
-
-        #         i = self.index(peer.mark)
-
-        #     except TclError as e:
-
-        #         continue
-                
-        #     row, col = (int(x) for x in i.split("."))
-
-        #     # Find out if it is close to another peer
-
-        #     raised = False
-
-        #     for peer_row, peer_col in loc:
-
-        #         if (row <= peer_row <= row + 1) and (col - 4 < peer_col < col + 4):
-
-        #             raised = True
-
-        #             break
-
-        #     # Move the peer
-
-        #     try:
-    
-        #         peer.move(row, col, raised)
-
-        #     except ValueError:
-
-        #         pass
-
-        #     # Store location
-        #     loc.append((row, col))
-            
-        # return
 
     # handling key events
 

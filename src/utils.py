@@ -29,6 +29,19 @@ def get_operation_size(ops):
         elif isinstance(op, int) and op < 0:
             return op
 
+def get_operation_index(ops):
+    """ Returns the index that a marker should be after an operation """
+    if isinstance(ops[-1], int) and ops[-1] > 0:
+        index = ops[-1] * -1
+    else:
+        index = 0
+    for op in ops:
+        if isinstance(op, int):
+            index += op
+        elif isinstance(op, str):
+            index += len(op)
+    return index
+
 import re
 def get_peer_locs(n, text):
     return ( (match.start(), match.end()) for match in re.finditer("{}+".format(n), text))

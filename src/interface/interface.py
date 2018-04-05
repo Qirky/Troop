@@ -581,10 +581,6 @@ class Interface(BasicInterface):
 
             self.text.handle_operation(message, client=True)
 
-            # send a set mark message
-
-            self.send_set_mark_msg()
-
         # Store last key press for Alt+F4 etc
 
         self.last_keypress  = event.keysym
