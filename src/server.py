@@ -140,7 +140,7 @@ class TroopServer(OTServer):
     def get_client_from_addr(self, client_address):
         """ Returns the server-side representation of a client
             using the client address tuple """
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
             if client == client_address:
                 return client
 
@@ -149,7 +149,7 @@ class TroopServer(OTServer):
         return self.clients[client_id]
 
     def get_client_locs(self):
-        return { int(client.id): int(client.index) for client in self.clients.values() }
+        return { int(client.id): int(client.index) for client in list(self.clients.values()) }
 
     def get_client_ranges(self):
         """ Converts the peer_tag_doc into pairs of tuples to be reconstructed by the client """
@@ -280,7 +280,7 @@ class TroopServer(OTServer):
         """ Update all clients with a message. Only sends back messages to
             a client if the `reply` flag is nonzero. """
 
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
 
             try:
 
@@ -310,7 +310,7 @@ class TroopServer(OTServer):
 
         # Notify other clients
 
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
                 
             client.send(MSG_REMOVE(client_id))
 
@@ -322,7 +322,7 @@ class TroopServer(OTServer):
 
         outgoing = MSG_KILL(-1, "Warning: Server manually killed by keyboard interrupt. Please close the application")
 
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
 
             client.send(outgoing)
 
@@ -340,7 +340,7 @@ class TroopServer(OTServer):
 
             outgoing = MSG_RESPONSE(-1, string)
 
-            for client in self.clients.values():
+            for client in list(self.clients.values()):
                 
                 client.send(outgoing)
                     
@@ -403,7 +403,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
     def handle_connect(self, msg):
         """ Stores information about the new client """
         assert isinstance(msg, MSG_CONNECT)
-        if self.client_address not in self.master.clients.values():
+        if self.client_address not in list(self.master.clients.values()):
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
             self.connect_clients(new_client) # Contacts other clients
         return new_client
@@ -510,7 +510,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
 
-        for client in self.master.clients.values():
+        for client in list(self.master.clients.values()):
 
             # Tell other clients about the new connection
 
