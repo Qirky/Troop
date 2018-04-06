@@ -562,7 +562,9 @@ class Interface(BasicInterface):
 
                 operation = new_operation(index - 1, -1, doc_size)
 
-                index_offset = -1
+                if tail > 0:
+
+                    index_offset = -1
 
         # Inserting character
 
@@ -594,8 +596,6 @@ class Interface(BasicInterface):
 
                     index_offset = len(char)
 
-                    # print("Inserting {!r} at index {}, marker index is {} / {}".format(char, index, self.text.marker.get_index_num(), self.text.index(self.text.marker.mark)))
-
         if operation:
 
             self.apply_operation(operation, index_offset)
@@ -610,7 +610,6 @@ class Interface(BasicInterface):
         
         # Make sure the user sees their cursor
 
-        # self.text.see(self.text.marker.mark)
         self.text.refresh_peer_labels()
     
         return "break"
@@ -637,7 +636,6 @@ class Interface(BasicInterface):
         self.send_set_mark_msg()
         self.text.marker.de_select()
         self.text.refresh_peer_labels()
-        #self.text.see(self.text.marker.mark)
         return "break"
 
     def key_left(self):
@@ -682,7 +680,7 @@ class Interface(BasicInterface):
 
     def key_ctrl_end(self, event):
         """ Called when the user pressed Ctrl+End. Sets the local peer index to the end of the document """
-        return self.key_direction(self.move_marker_ctrl_home)
+        return self.key_direction(self.move_marker_ctrl_end)
 
     # Moving the text marker
     # ======================
@@ -865,30 +863,36 @@ class Interface(BasicInterface):
     # Font size
     # =========
 
-    def ChangeFontSize(self, amount):
+    def change_font_size(self, amount):
         """ Updates the font sizes of the text based on `amount` which
             can be positive or negative """
         self.root.grid_propagate(False)
         for font in self.text.font_names:
             font = tkFont.nametofont(font)
-            size = max(8, font.actual()["size"] + amount)
-            font.configure(size=size)
-            self.text.char_w = self.text.font.measure(" ")
-            self.text.char_h = self.text.font.metrics("linespace")
+            size = font.actual()["size"] + amount
+            if size >= 8:
+                
+                font.configure(size=size)
+                
+                self.text.char_w = self.text.font.measure(" ")
+                self.text.char_h = self.text.font.metrics("linespace")
+
+                shift = 2 * (1 if amount > 0 else -1)
+
+                self.line_numbers.config(width=self.line_numbers.winfo_width() + shift)
+
+                self.text.refresh_peer_labels()
+
         return
 
     def decrease_font_size(self, event):
         """ Calls `self.ChangeFontSize(-1)` and then resizes the line numbers bar accordingly """
-        self.ChangeFontSize(-1)
-        self.line_numbers.config(width=self.line_numbers.winfo_width() - 2)
-        # self.text.refreshPeerLabels() # -- why this doesn't work?
+        self.change_font_size(-1)
         return 'break'
 
     def increase_font_size(self, event=None):
         """ Calls `self.ChangeFontSize(+1)` and then resizes the line numbers bar accordingly """
-        self.ChangeFontSize(+1)
-        self.line_numbers.config(width=self.line_numbers.winfo_width() + 2)
-        # self.text.refreshPeerLabels()
+        self.change_font_size(+1)
         return 'break'
 
     # Mouse Clicks
