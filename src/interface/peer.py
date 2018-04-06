@@ -246,17 +246,20 @@ class Peer:
 
             row, col = [int(val) for val in index.split(".")]
 
-            if index == self.root.index(Tk.END):
+            self.row = row
+            self.col = col
 
-                self.row = row - 1
-                end_index = self.root.index(str(self.row) + ".end")
+            # if index == self.root.index(Tk.END):
 
-                self.col = int(end_index.split(".")[1])
+            #     self.row = row - 1
+            #     end_index = self.root.index(str(self.row) + ".end")
 
-            else:
+            #     self.col = int(end_index.split(".")[1])
 
-                self.row = row
-                self.col = col
+            # else:
+
+            #     self.row = row
+            #     self.col = col
 
             index = "{}.{}".format(self.row, self.col)
 
@@ -271,6 +274,16 @@ class Peer:
             # Only move the cursor if we have a valid index
 
             bbox = self.root.bbox(index)
+
+            if bbox is None and self == self.root.marker:
+
+                # If this is the local peer, make sure it is seen          
+
+                self.root.see(self.mark) 
+
+                # Try again to get the bounding box
+
+                bbox = self.root.bbox(index)
 
             if bbox is not None:
 
@@ -297,6 +310,7 @@ class Peer:
                 
                 self.label.place(x=-100, y=-100)
                 self.insert.place(x=-100, y=-100)
+
 
         except Tk.TclError as e:
 
@@ -427,6 +441,10 @@ class Peer:
         if self.hl_select.active:
             self.__highlight_select()
         return
+
+    def refresh(self):
+        """ Don't move the marker but redraw it """
+        return self.shift(0)
 
     def get_tcl_index(self):
         """ Returns the index number as a Tkinter index e.g. "1.0" """

@@ -306,6 +306,10 @@ class ThreadSafeText(Text, OTClient):
 
                 other.shift(shift)
 
+            else:
+
+                other.refresh()
+
         self.update_colours()
 
         return
@@ -341,11 +345,8 @@ class ThreadSafeText(Text, OTClient):
 
     def refresh_peer_labels(self):
         ''' Updates the locations of the peers to their marks'''
-        # for peer, index in .items():
-
-        #     if peer_id in self.peers:
-
-        #         self.peers[peer_id].move(index)
+        for peer_id, peer in self.peers.items():
+             peer.refresh()
         return
 
     def update_colours(self):

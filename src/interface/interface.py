@@ -255,8 +255,8 @@ class Interface(BasicInterface):
         # self.leftMouse_isDown = False
         # self.leftMouseClickIndex = "0.0"
         self.text.bind("<Button-1>", self.mouse_press_left)
-        # self.text.bind("<B1-Motion>", self.leftMouseDrag)
-        # self.text.bind("<ButtonRelease-1>", self.leftMouseRelease)
+        self.text.bind("<B1-Motion>", self.mouse_left_drag)
+        self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
         # self.text.bind("<Button-2>", self.rightMousePress) # disabled
         
         # select_background
@@ -550,15 +550,19 @@ class Interface(BasicInterface):
 
         # Deletion
 
-        elif event.keysym == "Delete" and tail > 0:
+        elif event.keysym == "Delete":
+            
+            if tail > 0:
 
-            operation = new_operation(index, -1, doc_size)
+                operation = new_operation(index, -1, doc_size)
 
-        elif event.keysym == "BackSpace" and index > 0:
+        elif event.keysym == "BackSpace":
 
-            operation = new_operation(index - 1, -1, doc_size)
+            if index > 0:
 
-            index_offset = -1
+                operation = new_operation(index - 1, -1, doc_size)
+
+                index_offset = -1
 
         # Inserting character
 
@@ -590,6 +594,8 @@ class Interface(BasicInterface):
 
                     index_offset = len(char)
 
+                    # print("Inserting {!r} at index {}, marker index is {} / {}".format(char, index, self.text.marker.get_index_num(), self.text.index(self.text.marker.mark)))
+
         if operation:
 
             self.apply_operation(operation, index_offset)
@@ -604,7 +610,8 @@ class Interface(BasicInterface):
         
         # Make sure the user sees their cursor
 
-        self.text.see(self.text.marker.mark)
+        # self.text.see(self.text.marker.mark)
+        self.text.refresh_peer_labels()
     
         return "break"
 
@@ -624,72 +631,58 @@ class Interface(BasicInterface):
     # Directional keypress
     # ====================
 
+    def key_direction(self, move_func):
+        """ Calls the function that moves the user's cursor then does necessary updating e.g. for server """
+        move_func()
+        self.send_set_mark_msg()
+        self.text.marker.de_select()
+        self.text.refresh_peer_labels()
+        #self.text.see(self.text.marker.mark)
+        return "break"
+
     def key_left(self):
         """ Called when the left arrow key is pressed; decreases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_left()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_left)
 
     def key_right(self):
         """ Called when the right arrow key is pressed; increases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_right()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_right)
 
     def key_down(self):
         """ Called when the down arrow key is pressed; increases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_down()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_down)
 
     def key_up(self):
         """ Called when the up arrow key is pressed; decrases the local peer index 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_up()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_up)
 
     def key_home(self):
         """ Called when the home key is pressed; sets the local peer location to 0 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_home()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_home)
 
     def key_end(self):
         """ Called when the home key is pressed; sets the local peer location to 0 
             and updates the location of the label then sends a message to the server
             with the new location """
-        self.move_marker_end()
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_end)
 
     def key_ctrl_home(self, event):
         """ Called when the user pressed Ctrl+Home. Sets the local peer index to 0 """
-        self.text.marker.move(0)
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        return self.key_direction(self.move_marker_ctrl_home)
 
     def key_ctrl_end(self, event):
-        self.text.marker.move(len(self.text.read()))
-        self.send_set_mark_msg()
-        self.text.marker.de_select()
-        return "break"
+        """ Called when the user pressed Ctrl+End. Sets the local peer index to the end of the document """
+        return self.key_direction(self.move_marker_ctrl_home)
 
     # Moving the text marker
     # ======================
@@ -727,7 +720,14 @@ class Interface(BasicInterface):
         row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
         index  = self.text.tcl_index_to_number( "{!r}.end".format(row) )
         self.text.marker.move(index)
-        
+
+    def move_marker_ctrl_home(self):
+        """ Moves the cursor the beginning of the document """
+        self.text.marker.move(0)
+    
+    def move_marker_ctrl_end(self):
+        """ Moves the cursor to the end of the document """
+        self.text.marker.move(len(self.text.read()))
 
     # Selection handling
     # ==================
@@ -902,11 +902,9 @@ class Interface(BasicInterface):
 
         self.text.marker.move(index)
 
-        # TODO -- de-select selected text
+        self.de_select()
 
-        message = MSG_SET_MARK(self.text.marker.id, index)
-
-        self.add_to_send_queue( message )
+        self.add_to_send_queue( MSG_SET_MARK(self.text.marker.id, index) )
 
         # Make sure the text box gets focus
 
@@ -914,31 +912,33 @@ class Interface(BasicInterface):
 
         return "break"
 
-    # def leftMouseRelease(self, event=None):
-    #     """ Updates the server on where the local peer's marker is when the mouse release event is triggered """
+    def mouse_left_release(self, event=None):
+        """ Updates the server on where the local peer's marker is when the mouse release event is triggered """
+
+        index = self.left_mouse.release(event)
+
+        self.text.marker.move(index)
         
-    #     self.leftMouse_isDown = False
+        self.add_to_send_queue( MSG_SET_MARK(self.text.marker.id, index) )
 
-    #     index = self.text.index("@{},{}".format(event.x, event.y))
-    #     row, col = index.split(".")
-        
-    #     self.push_queue_put( MSG_SET_MARK(self.text.marker.id, int(row), int(col)), wait=True )
+        # Make sure the text box gets focus
 
-    #     #self.text.tag_remove(SEL, "1.0", END) # Remove any *actual* selection to stop scrolling
+        self.text.focus_set()
 
-    #     return "break"
+        #self.text.tag_remove(SEL, "1.0", END) # Remove any *actual* selection to stop scrolling
 
-    # def leftMouseDrag(self, event):
-    #     """ Updates the server with the portion of selected text """
-    #     if self.leftMouse_isDown:
-    #         sel_start = self.leftMouseClickIndex
-    #         sel_end   = self.text.index("@{},{}".format(event.x, event.y))
+        return "break"
 
-    #         start, end = self.text.sort_indices([sel_start, sel_end])
+    def mouse_left_drag(self, event):
+        """ Updates the server with the portion of selected text """
+        if self.left_mouse.is_pressed:
 
-    #         self.push_queue_put( MSG_SELECT(self.text.marker.id, start, end), wait=True )
+            start = self.left_mouse.anchor
+            end   = self.left_mouse.click(event)
+
+            self.update_select(start, end) # sends message to server
             
-    #     return "break"
+        return "break"
 
     def mouse_press_right(self, event):
         """ Disabled """
@@ -990,7 +990,7 @@ class Interface(BasicInterface):
         if len(text):
             operation = new_operation(self.text.marker.get_index_num(), text, len(self.text.read()))
             self.apply_operation(operation, index_offset=len(text))
-            self.text.see(self.text.marker.mark)
+            # self.text.see(self.text.marker.mark)
         return "break"
 
     # Interface toggles
