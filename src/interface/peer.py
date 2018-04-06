@@ -66,6 +66,7 @@ class Highlight:
     
     def set(self, start, end):
         """ Set a relative index """
+        self.anchor = start
         self.start  = min(start, end)
         self.end    = max(start, end)
         self.active = True
@@ -75,17 +76,21 @@ class Highlight:
         self.multiple.append((start, end))
         return 
     
-    def update(self, index):
-        if index < self.start:
-            self.start = index
-        elif index > self.end:
-            self.end = index
-        self.active = True
+    def update(self, old, new):
+        if new > self.anchor:
+            self.start = self.anchor
+            self.end   = new
+        elif new < self.anchor:
+            self.start = new
+            self.end = self.anchor
+        else:
+            self.hide()
         return
     
     def deactivate(self):
         self.start    = 0
         self.end      = 0
+        self.anchor   = 0
         self.active   = False
         self.multiple = []
     
@@ -308,7 +313,7 @@ class Peer:
 
         elif self.hl_select.active:
 
-            self.hl_select.update(end)
+            self.hl_select.update(start, end)
 
         else:
 
