@@ -242,9 +242,9 @@ class Interface(BasicInterface):
 
         # Copy and paste key bindings
 
-        # self.text.bind("<{}-c>".format(CtrlKey), self.Copy)
-        # self.text.bind("<{}-x>".format(CtrlKey), self.Cut)
-        # self.text.bind("<{}-v>".format(CtrlKey), self.Paste)
+        self.text.bind("<{}-c>".format(CtrlKey), self.copy)
+        self.text.bind("<{}-x>".format(CtrlKey), self.cut)
+        self.text.bind("<{}-v>".format(CtrlKey), self.paste)
 
         # # Undo -- not implemented
         # self.text.bind("<{}-z>".format(CtrlKey), self.Undo)    
@@ -534,37 +534,33 @@ class Interface(BasicInterface):
 
         self.text.tag_remove("tag_open_brackets", "1.0", END)
 
-        # If there is a change in the row number, then wait for a reply
+        # Key movement
 
         if event.keysym in self.directions:
 
             return self.handle_direction.get(event.keysym, lambda: None).__call__()
 
-        elif event.keysym == "Delete":
-            
-            if selection:
+        # Deleting a selected area
 
-                operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
+        elif selection and event.keysym in ("Delete", "BackSpace"):
 
-            else:
+            operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
 
-                if tail > 0:
+            index_offset = self.text.marker.select_start() - index
 
-                    operation = new_operation(index, -1, doc_size)
+        # Deletion
 
-        elif event.keysym == "BackSpace":
+        elif event.keysym == "Delete" and tail > 0:
 
-            if selection:
+            operation = new_operation(index, -1, doc_size)
 
-                operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
+        elif event.keysym == "BackSpace" and index > 0:
 
-            else:
+            operation = new_operation(index - 1, -1, doc_size)
 
-                if index > 0:
+            index_offset = -1
 
-                    operation = new_operation(index - 1, -1, doc_size)
-
-                    index_offset = -1
+        # Inserting character
 
         else:
 
@@ -586,26 +582,17 @@ class Interface(BasicInterface):
 
                     operation = new_operation(self.text.marker.select_start(), -selection, char, doc_size)
 
+                    index_offset = (self.text.marker.select_start() - index) + len(char)
+
                 else:
 
                     operation = new_operation(index, char, doc_size)
 
-                index_offset = len(char)
+                    index_offset = len(char)
 
         if operation:
 
-            # Apply locally
-
-            self.text.apply_local_operation(operation, index_offset)
-
-            # Create message to send
-
-            message = MSG_OPERATION(self.text.marker.id, operation, self.text.revision)
-
-            # Handle the operation on the client side
-
-            self.text.handle_operation(message, client=True)
-
+            self.apply_operation(operation, index_offset)
 
         # Remove any selected text
 
@@ -621,10 +608,21 @@ class Interface(BasicInterface):
     
         return "break"
 
-    def new_delete_select_operation(self):
+    def apply_operation(self, operation, index_offset=0):
+        """ Handles a text operation locally and sends to the server """        
+
+        # Apply locally
+
+        self.text.apply_local_operation(operation, index_offset)
+
+        # Handle the operation on the client side
+
+        self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
+
         return
 
-    # Directional keypresses
+    # Directional keypress
+    # ====================
 
     def key_left(self):
         """ Called when the left arrow key is pressed; decreases the local peer index 
@@ -742,7 +740,7 @@ class Interface(BasicInterface):
         return
 
     def get_movement_index(self, move_func):
-        """ Calls `f` and returns the index of the marker before and after the call """
+        """ Calls `move_func` and returns the index of the marker before and after the call """
         assert callable(move_func)
         start, _, end = self.text.marker.get_index_num(), move_func(), self.text.marker.get_index_num()
         return start, end
@@ -961,27 +959,38 @@ class Interface(BasicInterface):
 
     def copy(self, event=None):
         ''' Copies selected text to the clipboard '''
-        if self.text.marker.hasSelection():
-            text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
+        if self.text.marker.has_selection():
+            text = self.text.read()[self.text.marker.select_start():self.text.marker.select_end()]
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
         return "break"
 
     def cut(self, event=None):
         ''' Copies selected text to the clipboard and then deletes it'''
-        if self.text.marker.hasSelection():
-            text = self.text.get(self.text.marker.sel_start, self.text.marker.sel_end)
+        if self.text.marker.has_selection():
+            text = self.text.read()[self.text.marker.select_start():self.text.marker.select_end()]
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
-            row, col = self.convert(self.text.index(self.text.marker.mark))
-            self.add_to_send_queue( MSG_BACKSPACE(self.text.marker.id, row, col), wait=True )
+
+            start_point = self.text.marker.select_start()
+
+            operation = new_operation(start_point, -self.text.marker.selection_size(), len(self.text.read()))
+
+            self.apply_operation(operation)
+
+            self.de_select()
+
+            self.text.marker.move(start_point)
+
         return "break"
     
     def paste(self, event=None):
         """ Inserts text from the clipboard """
         text = self.root.clipboard_get()
-        row, col = self.convert(self.text.index(self.text.marker.mark))
-        self.add_to_send_queue( MSG_INSERT(self.text.marker.id, text, row, col), wait=True )
+        if len(text):
+            operation = new_operation(self.text.marker.get_index_num(), text, len(self.text.read()))
+            self.apply_operation(operation, index_offset=len(text))
+            self.text.see(self.text.marker.mark)
         return "break"
 
     # Interface toggles

@@ -70,10 +70,8 @@ def get_operation_index(ops):
     else:
         index = 0
     for op in ops:
-        if isinstance(op, int):
+        if isinstance(op, int) and op > 0:
             index += op
-            if op < 0:
-                index += 1
         elif isinstance(op, str):
             index += len(op)
     return index
