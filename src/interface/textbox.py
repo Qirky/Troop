@@ -457,27 +457,27 @@ class ThreadSafeText(Text, OTClient):
 
     # handling key events
 
-    def set_ranges(self, data):
-        """ Takes a dictionary of tag names and the ranges they cover
-            within the text. Sets and formats these ranges """
+    # def set_ranges(self, data):
+    #     """ Takes a dictionary of tag names and the ranges they cover
+    #         within the text. Sets and formats these ranges """
 
-        for tag, loc in data.items():
+    #     for tag, loc in data.items():
 
-            if tag not in self.peer_tags: # non-existent peers
+    #         if tag not in self.peer_tags: # non-existent peers
 
-                src_id = int(tag.split("_")[-1])
+    #             src_id = int(tag.split("_")[-1])
 
-                # configure the tag
+    #             # configure the tag
 
-                colour, _ = PeerFormatting(src_id)
+    #             colour, _ = PeerFormatting(src_id)
 
-                self.tag_config(tag, foreground=colour)
+    #             self.tag_config(tag, foreground=colour)
             
-            for start, stop in loc:
+    #         for start, stop in loc:
 
-                self.tag_add(tag, start, stop)
+    #             self.tag_add(tag, start, stop)
 
-        return
+    #     return
 
     def change_ranges(self, data):
         """ If resetting data, this updates existing ranges with new data """
