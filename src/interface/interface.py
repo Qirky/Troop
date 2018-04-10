@@ -711,19 +711,24 @@ class Interface(BasicInterface):
         """ Move the cursor right 1 place """ 
         self.text.marker.shift(+1)
 
-    # TODO // Make this more accruate vv
-
     def move_marker_up(self):
         """ Move the  cursor one line down """
-        tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
-        new_index = self.text.tcl_index_to_number( "{!s}-1lines".format(tcl_index) )
-        self.text.marker.move(new_index)
+        tcl_index  = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        # Use the bounding box to adjust the y-pos
+        x, y, w, h = self.text.bbox(tcl_index)
+        y = y - h
+        if y > 0:
+            new_index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(x, y)) )
+            self.text.marker.move(new_index)
         return
 
     def move_marker_down(self):
         """ Move the marker one line down """
         tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
-        new_index = self.text.tcl_index_to_number( "{!s}+1lines".format(tcl_index) )
+        # Use the bounding box to adjust the y-pos
+        x, y, w, h = self.text.bbox(tcl_index)
+        y = y + h
+        new_index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(x, y)) )
         self.text.marker.move(new_index)
         return
 

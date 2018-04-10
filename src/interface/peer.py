@@ -238,6 +238,9 @@ class Peer:
 
     def select_shift(self, loc, amount):
         return self.hl_select.shift(loc, amount)
+
+    def find_overlapping_peers(self):
+        return False
         
     def move(self, loc, raised = False):
         """ Updates the location of the Peer's label """
@@ -269,23 +272,11 @@ class Peer:
             self.row = row
             self.col = col
 
-            # if index == self.root.index(Tk.END):
-
-            #     self.row = row - 1
-            #     end_index = self.root.index(str(self.row) + ".end")
-
-            #     self.col = int(end_index.split(".")[1])
-
-            # else:
-
-            #     self.row = row
-            #     self.col = col
-
             index = "{}.{}".format(self.row, self.col)
 
             # Find out if this needs to be raised
 
-            # // TODO
+            raised = self.find_overlapping_peers()
 
             # Update the Tk text tag
 
