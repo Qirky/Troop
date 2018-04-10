@@ -223,8 +223,8 @@ class Interface(BasicInterface):
         self.text.bind("<{}-Return>".format(CtrlKey), self.evaluate)
         self.text.bind("<Alt-Return>", self.single_line_evaluate)
 
-        # self.text.bind("<{}-Right>".format(CtrlKey), self.CtrlRight)
-        # self.text.bind("<{}-Left>".format(CtrlKey), self.CtrlLeft)
+        self.text.bind("<{}-Right>".format(CtrlKey),    self.key_ctrl_right)
+        self.text.bind("<{}-Left>".format(CtrlKey),     self.key_ctrl_left)
         self.text.bind("<{}-Home>".format(CtrlKey),     self.key_ctrl_home)
         self.text.bind("<{}-End>".format(CtrlKey),      self.key_ctrl_end)
         self.text.bind("<{}-period>".format(CtrlKey),   self.stop_sound)
@@ -692,6 +692,14 @@ class Interface(BasicInterface):
         """ Called when the user pressed Ctrl+End. Sets the local peer index to the end of the document """
         return self.key_direction(self.move_marker_ctrl_end)
 
+    def key_ctrl_left(self, event):
+        """ Called when the user pressed Ctrl+Left. Sets the local peer index to left of the previous word """
+        return self.key_direction(self.move_marker_ctrl_left)
+
+    def key_ctrl_right(self, event):
+        """ Called when the user pressed Ctrl+Left. Sets the local peer index to right of the next word """
+        return self.key_direction(self.move_marker_ctrl_right)
+
     # Moving the text marker
     # ======================
 
@@ -710,32 +718,68 @@ class Interface(BasicInterface):
         tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
         new_index = self.text.tcl_index_to_number( "{!s}-1lines".format(tcl_index) )
         self.text.marker.move(new_index)
+        return
 
     def move_marker_down(self):
         """ Move the marker one line down """
         tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
         new_index = self.text.tcl_index_to_number( "{!s}+1lines".format(tcl_index) )
         self.text.marker.move(new_index)
+        return
 
     def move_marker_home(self):
         """ Moves the cursor to the beginning of a line """
         row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
         index  = self.text.tcl_index_to_number( "{!r}.0".format(row) )
         self.text.marker.move(index)
+        return
 
     def move_marker_end(self):
         """ Moves the cursor to the end of a line """
         row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
         index  = self.text.tcl_index_to_number( "{!r}.end".format(row) )
         self.text.marker.move(index)
+        return
 
     def move_marker_ctrl_home(self):
         """ Moves the cursor the beginning of the document """
         self.text.marker.move(0)
+        return
     
     def move_marker_ctrl_end(self):
         """ Moves the cursor to the end of the document """
         self.text.marker.move(len(self.text.read()))
+        return
+
+    def move_marker_ctrl_left(self):
+        """ Moves the cursor to the start of the current word"""
+        index = self.text.marker.get_index_num()
+        text  = self.text.read()
+        # Don't look at the character before if it's a space
+        if index > 0 and text[index - 1] in (" ", "\n"):
+            index -= 1
+        for i in range(index, 0, -1):
+            if text[i - 1] in (" ", "\n") and text[i] not in (" ", "\n"):
+                break
+        else:
+            i = 0
+        self.text.marker.move(i)
+        return
+
+    def move_marker_ctrl_right(self):
+        """ Moves the cursor to the end of the current word, or next word if we are at the end.
+            Left must be non-space, and right must be space"""
+        index = self.text.marker.get_index_num()
+        text  = self.text.read()
+        if index < len(text) and text[index] in (" ", "\n"):
+            index += 1
+        for i in range(index, len(text) - 1):
+            if text[i - 1] not in (" ", "\n") and text[i] in (" ", "\n"):
+                break
+        else:
+            i = len(text)
+        self.text.marker.move(i)
+        return
 
     # Selection handling
     # ==================

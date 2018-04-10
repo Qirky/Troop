@@ -483,45 +483,23 @@ class ThreadSafeText(Text, OTClient):
 
     # handling key events
 
-    # def set_ranges(self, data):
-    #     """ Takes a dictionary of tag names and the ranges they cover
-    #         within the text. Sets and formats these ranges """
-
-    #     for tag, loc in data.items():
-
-    #         if tag not in self.peer_tags: # non-existent peers
-
-    #             src_id = int(tag.split("_")[-1])
-
-    #             # configure the tag
-
-    #             colour, _ = PeerFormatting(src_id)
-
-    #             self.tag_config(tag, foreground=colour)
-            
-    #         for start, stop in loc:
-
-    #             self.tag_add(tag, start, stop)
-
+    # def move_peers(self, data):
+    #     """ Updates the locations of all the peers based on a list of tuples
+    #         containing peer id's, row, and column """
+    #     for peer_id, row, col in data:
+    #         if peer_id in self.peers:
+    #             self.peers[peer_id].move(row, col)
     #     return
 
-    def move_peers(self, data):
-        """ Updates the locations of all the peers based on a list of tuples
-            containing peer id's, row, and column """
-        for peer_id, row, col in data:
-            if peer_id in self.peers:
-                self.peers[peer_id].move(row, col)
-        return
+    # def format_text(self):
+    #     """ Iterates over each line in the text and updates the correct colour / formatting """
+    #     for line,  _ in enumerate(self.readlines()[:-1]):
+    #         self.root.colour_line(line + 1)
+    #     return
 
-    def format_text(self):
-        """ Iterates over each line in the text and updates the correct colour / formatting """
-        for line,  _ in enumerate(self.readlines()[:-1]):
-            self.root.colour_line(line + 1)
-        return
-
-    def sort_indices(self, list_of_indexes):
-        """ Takes a list of Tkinter indices and returns them sorted by location """
-        return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
+    # def sort_indices(self, list_of_indexes):
+    #     """ Takes a list of Tkinter indices and returns them sorted by location """
+    #     return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
 
     # Housekeeping
     # ============
