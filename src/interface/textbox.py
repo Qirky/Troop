@@ -352,22 +352,48 @@ class ThreadSafeText(Text, OTClient):
     def update_colours(self):
         """ Sets the peer tags in the text document """
 
+        processed = []
+
+        # Go through connected peers
+
         for p_id, peer in self.peers.items():
 
-            # Remove the peer_tag from the document
+            processed.append(str(p_id))
 
-            self.tag_remove(peer.text_tag, "1.0", END)
-
-            # One get locations of p_id in self.peer_tag_doc
-
-            for start, end in get_peer_locs(p_id, self.peer_tag_doc):
-                
-                self.tag_add(peer.text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
-
-            # Re-add any highlighted text (eval or select)
+            self.update_peer_tag(p_id)
 
             peer.refresh_highlight()
 
+        # If there are any other left over peers, keep their colours
+
+        for p_id in set(self.peer_tag_doc):
+
+            if str(p_id) not in processed:
+
+                self.update_peer_tag(p_id)                
+
+        return
+
+    def update_peer_tag(self, p_id):
+        """ Refreshes a peer's text_tag colours """
+        text_tag = Peer.get_text_tag(p_id)
+
+        # Make sure we include peers no longer connected
+
+        if text_tag not in self.peer_tags:
+
+            self.peer_tags.append(text_tag)
+
+            fg, _ = PeerFormatting(int(p_id))
+
+            self.tag_config(text_tag, foreground=fg)
+
+        self.tag_remove(text_tag, "1.0", END)
+        
+        for start, end in get_peer_locs(p_id, self.peer_tag_doc):    
+        
+            self.tag_add(text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
+        
         return
 
     # Font colours -- TODO: Add to its own class
@@ -478,14 +504,6 @@ class ThreadSafeText(Text, OTClient):
     #             self.tag_add(tag, start, stop)
 
     #     return
-
-    def change_ranges(self, data):
-        """ If resetting data, this updates existing ranges with new data """
-        for tag, loc in data.items():
-            self.tag_remove(tag, "1.0", END)
-            for start, stop in loc:
-                self.tag_add(tag, start, stop)
-        return
 
     def move_peers(self, data):
         """ Updates the locations of all the peers based on a list of tuples

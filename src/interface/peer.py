@@ -148,11 +148,11 @@ class Peer:
                             height=2,
                             text="", font="Font" )
 
-        self.text_tag = "text_" + str(self.id)
-        self.code_tag = "code_" + str(self.id)
-        self.sel_tag  = "sel_"  + str(self.id)
-        self.str_tag  = "str_"  + str(self.id) 
-        self.mark     = "mark_" + str(self.id)
+        self.text_tag = self.get_text_tag(self.id)
+        self.code_tag = self.get_code_tag(self.id)
+        self.sel_tag  = self.get_select_tag(self.id)
+        self.str_tag  = self.get_string_tag(self.id)
+        self.mark     = self.get_mark_tag(self.id)
 
         # For refreshing the text
         self.hl_eval    = Highlight(self.root, self.code_tag)
@@ -178,6 +178,26 @@ class Peer:
 
     def __str__(self):
         return str(self.name.get())
+
+    @staticmethod
+    def get_text_tag(p_id):
+        return "text_{}".format(p_id)
+
+    @staticmethod
+    def get_code_tag(p_id):
+        return "code_{}".format(p_id)
+
+    @staticmethod
+    def get_select_tag(p_id):
+        return "sel_{}".format(p_id)
+
+    @staticmethod
+    def get_string_tag(p_id):
+        return "str_{}".format(p_id)
+
+    @staticmethod
+    def get_mark_tag(p_id):
+        return "mark_{}".format(p_id)
 
     def get_peer_formatting(self, index):
 
