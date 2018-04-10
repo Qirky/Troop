@@ -471,6 +471,9 @@ class Interface(BasicInterface):
         # self.add_to_send_queue(MSG_SYNC(self.text.marker.id, self.text.handle_getall()))
         return
 
+    # Sending messages to the server
+    # ==============================
+
     def add_to_send_queue(self, message, wait=False):
         """ Sends message to server and evaluates them locally if not other markers
             are using the same line. Use the wait flag when you want to force the
@@ -503,6 +506,9 @@ class Interface(BasicInterface):
         """ Sends a message to server with the location of this peer """
         self.add_to_send_queue(MSG_SELECT(self.text.marker.id, self.text.marker.select_start(), self.text.marker.select_end(), reply=0))
         return
+
+    # Key press and operations
+    # ========================
     
     def key_press(self, event):
         """ 'Pushes' the key-press to the server.
@@ -544,7 +550,7 @@ class Interface(BasicInterface):
 
         elif selection and event.keysym in ("Delete", "BackSpace"):
 
-            operation = new_operation(self.text.marker.select_start(), -selection, doc_size)
+            operation = self.new_operation(self.text.marker.select_start(), -selection)
 
             index_offset = self.text.marker.select_start() - index
 
@@ -554,13 +560,13 @@ class Interface(BasicInterface):
             
             if tail > 0:
 
-                operation = new_operation(index, -1, doc_size)
+                operation = self.new_operation(index, -1)
 
         elif event.keysym == "BackSpace":
 
             if index > 0:
 
-                operation = new_operation(index - 1, -1, doc_size)
+                operation = self.new_operation(index - 1, -1)
 
                 if tail > 0:
 
@@ -586,13 +592,13 @@ class Interface(BasicInterface):
 
                 if selection:
 
-                    operation = new_operation(self.text.marker.select_start(), -selection, char, doc_size)
+                    operation = self.new_operation(self.text.marker.select_start(), -selection, char)
 
                     index_offset = (self.text.marker.select_start() - index) + len(char)
 
                 else:
 
-                    operation = new_operation(index, char, doc_size)
+                    operation = self.new_operation(index, char)
 
                     index_offset = len(char)
 
@@ -614,6 +620,10 @@ class Interface(BasicInterface):
     
         return "break"
 
+    def new_operation(self, *ops):
+        """ Returns a list of operations to apply to the document """
+        return new_operation(*ops, len(self.text.read()))
+
     def apply_operation(self, operation, index_offset=0):
         """ Handles a text operation locally and sends to the server """        
 
@@ -634,7 +644,7 @@ class Interface(BasicInterface):
         """ Calls the function that moves the user's cursor then does necessary updating e.g. for server """
         move_func()
         self.send_set_mark_msg()
-        self.text.marker.de_select()
+        self.de_select()
         self.text.refresh_peer_labels()
         return "break"
 

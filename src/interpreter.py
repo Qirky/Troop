@@ -338,6 +338,10 @@ class SuperColliderInterpreter(Interpreter):
     def __repr__(self):
         return "SuperCollider"
 
+    # Overload
+    def start(self):
+        return self
+
     @classmethod
     def find_comment(cls, string):        
         instring, instring_char = False, ""
