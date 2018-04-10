@@ -283,6 +283,10 @@ class ThreadSafeText(Text, OTClient):
         """ Returns the entire contents of the text box as a string """
         return self.document
 
+    def readlines(self):
+        """ Returns the entire document as a list in which each element is a line from the text"""
+        return self.read().split("\n")
+
     # Updating / retrieving info from peers
     # =====================================
 
@@ -370,7 +374,7 @@ class ThreadSafeText(Text, OTClient):
 
             if str(p_id) not in processed:
 
-                self.update_peer_tag(p_id)                
+                self.update_peer_tag(p_id)
 
         return
 
@@ -479,6 +483,7 @@ class ThreadSafeText(Text, OTClient):
         self.clear()
         self.insert("1.0", self.document)
         self.update_colours()
+        self.apply_language_formatting()
         return
 
     # handling key events
@@ -491,11 +496,35 @@ class ThreadSafeText(Text, OTClient):
     #             self.peers[peer_id].move(row, col)
     #     return
 
-    # def format_text(self):
-    #     """ Iterates over each line in the text and updates the correct colour / formatting """
-    #     for line,  _ in enumerate(self.readlines()[:-1]):
-    #         self.root.colour_line(line + 1)
-    #     return
+    def apply_language_formatting(self):
+         """ Iterates over each line in the text and updates the correct colour / formatting """
+         for line,  _ in enumerate(self.readlines()):
+             self.colour_line(line + 1)
+         return
+
+    def colour_line(self, line):
+        """ Embold keywords defined in `Interpreter.py` """
+
+        # Get contents of the line
+
+        start, end = "{}.0".format(line), "{}.end".format(line)
+        
+        string = self.get(start, end)
+
+        # Go through the possible tags
+
+        for tag_name, tag_finding_func in self.root.lang.re.items():
+
+            self.tag_remove(tag_name, start, end)
+            
+            for match_start, match_end in tag_finding_func(string):
+                
+                tag_start = "{}.{}".format(line, match_start)
+                tag_end   = "{}.{}".format(line, match_end)
+
+                self.tag_add(tag_name, tag_start, tag_end)
+                
+        return
 
     # def sort_indices(self, list_of_indexes):
     #     """ Takes a list of Tkinter indices and returns them sorted by location """
