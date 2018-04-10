@@ -141,6 +141,8 @@ class Peer:
                            fg=self.fg,
                            font="Font")
 
+        self.raised = False
+
         self.insert = Tk.Label(self.root,
                             bg=self.bg,
                             fg=self.fg,
@@ -240,7 +242,34 @@ class Peer:
         return self.hl_select.shift(loc, amount)
 
     def find_overlapping_peers(self):
-        return False
+        """ Returns True if this peer overlaps another peer's label """
+
+        for peer in self.root.peers.values():
+
+            # If the indices are in overlapping position, on the same row, and the other peer is not already raised
+
+            if peer != self:
+
+                peer_index = peer.get_index_num()
+                this_index = self.get_index_num()
+
+                if (peer_index >= this_index) and (peer_index - this_index < len(str(self))):
+
+                    if not peer.raised and self.is_on_same_row(peer):
+
+                        self.raised = True
+
+                        break
+
+        else:
+
+            self.raised = False
+
+        return self.raised
+
+    def is_on_same_row(self, other):
+        """ Returns true if this peer and other peer have the first same value for their tcl index """
+        return self.get_row() == other.get_row()
         
     def move(self, loc, raised = False):
         """ Updates the location of the Peer's label """
@@ -368,16 +397,6 @@ class Peer:
     def selection_size(self):
         return len(self.hl_select)
 
-    # def delete_selection(self):
-    #     """  """
-    #     self.root.tag_remove(self.sel_tag, self.sel_start, self.sel_end)
-    #     self.root.delete(self.sel_start, self.sel_end)
-    #     row, col = self.sel_start.split(".")
-    #     self.move(row, col)
-    #     self.sel_start = "0.0"
-    #     self.sel_end   = "0.0"
-    #     return
-
     def de_select(self):
         """ Remove (not delete) the selection from the text """
         if self.hl_select.active:
@@ -460,6 +479,12 @@ class Peer:
     def get_tcl_index(self):
         """ Returns the index number as a Tkinter index e.g. "1.0" """
         return self.root.number_index_to_tcl(self.index_num)
+
+    def get_row(self):
+        return int(self.get_tcl_index().split(".")[0])
+
+    def get_col(self):
+        return int(self.get_tcl_index().split(".")[1])
 
     def get_index_num(self):
         """ Returns the index (a single integer) of this peer """
