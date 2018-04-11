@@ -37,6 +37,9 @@ class BasicInterface:
     def __init__(self):
         self.root=Tk()
         self.root.configure(background=COLOURS["Background"])
+
+        self.whitespace = (" ", "\n")
+        self.delimeters = (".", ",", "(", ")", "[","]","{", "}", "=")
         
         self.is_logging = False
         self.logfile = None
@@ -201,6 +204,9 @@ class Interface(BasicInterface):
         self.text.bind("<{}-End>".format(CtrlKey),      self.key_ctrl_end)
         self.text.bind("<{}-period>".format(CtrlKey),   self.stop_sound)
 
+        self.text.bind("<{}-BackSpace>".format(CtrlKey),   self.key_ctrl_backspace)
+        self.text.bind("<{}-Delete>".format(CtrlKey),      self.key_ctrl_delete)
+
         self.text.bind("<{}-m>".format(CtrlKey), self.toggle_menu)
 
         # Key bindings to handle select
@@ -219,13 +225,11 @@ class Interface(BasicInterface):
         self.text.bind("<{}-v>".format(CtrlKey), self.paste)
 
         # # Undo -- not implemented
-        # self.text.bind("<{}-z>".format(CtrlKey), self.Undo)    
-        # self.text.bind("<{}-y>".format(CtrlKey), self.Redo)    
+        self.text.bind("<{}-z>".format(CtrlKey), lambda e: "break")
+        self.text.bind("<{}-y>".format(CtrlKey), lambda e: "break")
 
         # Handling mouse events
         self.left_mouse = Mouse(self)
-        # self.leftMouse_isDown = False
-        # self.leftMouseClickIndex = "0.0"
         self.text.bind("<Button-1>", self.mouse_press_left)
         self.text.bind("<B1-Motion>", self.mouse_left_drag)
         self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
@@ -334,12 +338,6 @@ class Interface(BasicInterface):
         """ Sends a kill all sound message to the server based on the language """
         self.add_to_send_queue( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
-
-    # def set_insert(self, index):
-    #     ''' sets the INSERT and peer mark '''
-    #     self.text.mark_set(INSERT, index)
-    #     self.text.mark_set(self.text.marker.mark, index)
-    #     return
 
     def reset_title(self):
         """ Resets any changes to the window's title """
@@ -523,9 +521,7 @@ class Interface(BasicInterface):
 
         elif selection and event.keysym in ("Delete", "BackSpace"):
 
-            operation = self.new_operation(self.text.marker.select_start(), -selection)
-
-            index_offset = self.text.marker.select_start() - index
+            operation, index_offset = self.get_delete_selection_operation()
 
         # Deletion
 
@@ -603,6 +599,12 @@ class Interface(BasicInterface):
         """ Returns a list of operations to apply to the document """
         return new_operation(*ops, len(self.text.read()))
 
+    def get_delete_selection_operation(self):
+        """ Returns an operation that deletes the selected area """
+        op = self.new_operation(self.text.marker.select_start(), -self.text.marker.selection_size())
+        offset = self.text.marker.select_start() - self.text.marker.get_index_num()
+        return op, offset
+
     def apply_operation(self, operation, index_offset=0):
         """ Handles a text operation locally and sends to the server """        
 
@@ -679,6 +681,35 @@ class Interface(BasicInterface):
         """ Called when the user pressed Ctrl+Left. Sets the local peer index to right of the next word """
         return self.key_direction(self.move_marker_ctrl_right)
 
+    # Deleting multiple characters
+
+    def key_ctrl_backspace(self, event):
+        """ Uses Ctrl+Left to move marker and delete the characters between """
+        if self.text.marker.has_selection():
+            op, offset = self.get_delete_selection_operation()
+            self.de_select()
+        else:
+            index, _, new = self.text.marker.get_index_num(), self.move_marker_ctrl_left(), self.text.marker.get_index_num()
+            op, offset = self.new_operation(new, new - index), 0
+        self.apply_operation(op, offset)
+        return "break"
+
+    def key_ctrl_delete(self, event):
+        """ Uses Ctrl+Right to move marker and then delete the characters between """
+        if self.text.marker.has_selection():
+            op, offset = self.get_delete_selection_operation()
+            self.de_select()
+        else:
+            index, _, new = self.text.marker.get_index_num(), self.move_marker_ctrl_right(), self.text.marker.get_index_num()
+            op = self.new_operation(index, index - new)
+            if new == len(self.text.read()):
+                offset = 0
+            else:
+                offset = index - new
+        self.apply_operation(op, offset)
+        return "break"
+
+
     # Moving the text marker
     # ======================
 
@@ -739,11 +770,13 @@ class Interface(BasicInterface):
         """ Moves the cursor to the start of the current word"""
         index = self.text.marker.get_index_num()
         text  = self.text.read()
-        # Don't look at the character before if it's a space
-        if index > 0 and text[index - 1] in (" ", "\n"):
+        # Don't look at the character before if it's a delimeter
+        if index > 0 and text[index - 1] in (self.delimeters + self.whitespace):
             index -= 1
         for i in range(index, 0, -1):
-            if text[i - 1] in (" ", "\n") and text[i] not in (" ", "\n"):
+            if text[i - 1] in self.delimeters and text[i] in self.delimeters:
+                break
+            elif text[i - 1] in (self.delimeters + self.whitespace) and text[i] not in (self.delimeters + self.whitespace):
                 break
         else:
             i = 0
@@ -755,10 +788,12 @@ class Interface(BasicInterface):
             Left must be non-space, and right must be space"""
         index = self.text.marker.get_index_num()
         text  = self.text.read()
-        if index < len(text) and text[index] in (" ", "\n"):
+        if index < len(text) and text[index] in (self.delimeters + self.whitespace):
             index += 1
         for i in range(index, len(text) - 1):
-            if text[i - 1] not in (" ", "\n") and text[i] in (" ", "\n"):
+            if text[i - 1] in self.delimeters and text[i] in self.delimeters:
+                break
+            elif text[i - 1] not in (self.delimeters + self.whitespace) and text[i] in (self.delimeters + self.whitespace):
                 break
         else:
             i = len(text)
