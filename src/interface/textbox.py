@@ -78,6 +78,14 @@ class ThreadSafeText(Text, OTClient):
         self.char_w = self.font.measure(" ")
         self.char_h = self.font.metrics("linespace")
 
+        # Brackets
+
+        left_b  = list("([{")
+        right_b = list(")]}")
+
+        self.left_brackets  = dict(zip(left_b, right_b))
+        self.right_brackets = dict(zip(right_b, left_b))
+
         # Set formatting tags
         
         for tag_name, kwargs in tag_descriptions.items():
@@ -526,9 +534,35 @@ class ThreadSafeText(Text, OTClient):
                 
         return
 
-    # def sort_indices(self, list_of_indexes):
-    #     """ Takes a list of Tkinter indices and returns them sorted by location """
-    #     return sorted(list_of_indexes, key=lambda index: tuple(int(i) for i in index.split(".")))
+    def highlight_brackets(self, bracket):
+        """ Call this with a bracket """
+        
+        index = self.marker.get_index_num() - 1
+        assert self.read()[index] == bracket
+
+        start = self.find_starting_bracket(index - 1, self.right_brackets[bracket], bracket)
+        
+        if start is not None:
+        
+            self.tag_add(self.bracket_tag, self.number_index_to_tcl(start))
+            self.tag_add(self.bracket_tag, self.number_index_to_tcl(index))
+        
+        return
+
+    def find_starting_bracket(self, index, left_bracket, right_bracket):
+        """ Finds the opening bracket to the closing bracket at line, column co-ords.
+            Returns None if not found. """
+        text = self.read()
+        nests = 0
+        for i in range(index, -1, -1):
+            if text[i] == left_bracket:
+                if nests > 0:
+                    nests -= 1
+                else:
+                    return i
+            elif text[i] == right_bracket:
+                nests += 1        
+        return
 
     # Housekeeping
     # ============
@@ -563,6 +597,10 @@ class ThreadSafeText(Text, OTClient):
         self.font_names.append("ItalicFont")
         
         self.configure(font="Font")
+
+        self.bracket_style = {'borderwidth': 2, 'relief' : 'groove'}
+        self.bracket_tag = "tag_open_brackets"
+        self.tag_config(self.bracket_tag, **self.bracket_style)
 
         return
 

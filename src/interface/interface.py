@@ -505,8 +505,9 @@ class Interface(BasicInterface):
         tail      = doc_size - index
         selection = self.text.marker.selection_size()
 
-        operation = []
+        operation    = []
         index_offset = 0
+        char         = None
 
         # Un-highlight any brackets
 
@@ -577,6 +578,12 @@ class Interface(BasicInterface):
         if operation:
 
             self.apply_operation(operation, index_offset)
+
+            # If the character is a closing bracket, do some highlighting
+
+            if char in self.text.right_brackets:
+
+                self.text.highlight_brackets(char)
 
         # Remove any selected text
 
