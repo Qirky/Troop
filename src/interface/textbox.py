@@ -331,9 +331,93 @@ class ThreadSafeText(Text, OTClient):
 
             if other.has_selection():
 
-                other.select_shift(peer_loc, shift)
+                if peer.has_selection():
 
-            if peer != other and other.get_index_num() >= peer_loc:
+                    other.select_remove(peer.select_start(), peer.select_end())
+
+                else:
+
+                    other.select_shift(peer_loc, shift)
+
+            if peer != other and peer.has_selection() and peer.select_contains( other.get_index_num() ):
+
+                other.move(peer.select_start())
+
+            elif peer != other and other.get_index_num() >= peer_loc:
+
+                other.shift(shift)
+
+            else:
+
+                other.refresh()
+
+        self.update_colours()
+
+        return
+
+    def adjust_peer_locations_test(self, peer, operation):
+        """ rubbish """
+        
+        shift = get_operation_size(operation)
+
+        moved = False
+
+        peer_loc = peer.get_index_num()
+
+        for other in self.peers.values():
+
+            # Adjust selections
+
+            if peer != other:
+
+                if peer.has_selection() and other.has_selection() and peer.select_overlap(other):
+
+                    s_in = peer.select_contains(other.select_start())
+                    e_in = peer.select_contains(other.select_end())
+
+                    at_end = other.get_index_num() == other.select_end()
+
+                    if s_in and e_in:
+
+                        other.select_set(0, 0) # delete
+
+                        other.move(peer.select_start())
+
+                        moved = True
+
+                    elif s_in:
+
+                        other.select_shift(peer_loc, shift)
+
+                        other.select_set(peer.select_start(), other.select_end())  # Move start
+
+                        other.move(peer.select_end() if at_end else peer.select_start())
+
+                        moved = True
+
+                    elif e_in:
+
+                        other.select_shift(peer_loc, shift)
+
+                        other.select_set(other.select_start(), peer.select_start()) # Move end
+
+                        other.move(peer.select_start() if at_end else other.select_start())
+
+                        moved = True
+
+                elif peer.has_selection() and peer.select_contains( other.get_index_num() ):
+
+                    other.move(peer.select_start())
+
+                    moved = True
+
+                elif other.has_selection():
+
+                    other.select_shift(peer_loc, shift)
+
+            # Adjust the label
+
+            if (peer != other) and not moved and other.get_index_num() >= peer_loc:
 
                 other.shift(shift)
 

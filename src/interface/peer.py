@@ -69,7 +69,7 @@ class Highlight:
         self.anchor = start
         self.start  = min(start, end)
         self.end    = max(start, end)
-        self.active = True
+        self.active = self.start != self.end
     
     def add(self, start, end):
         """ Add a Tk index """
@@ -86,6 +86,9 @@ class Highlight:
         else:
             self.hide()
         return
+
+    def is_active(self):
+        return self.active
     
     def deactivate(self):
         self.start    = 0
@@ -119,8 +122,26 @@ class Highlight:
         self.deactivate()
         return
 
+    def remove(self, start, end):
+        """ Removes a portion of the highlight """
+        if self.active:
+            start, end = sorted((start, end))
+            size = end - start
+            # If the area falls outside of this highlight, do nothing
+            if start > self.end or end < self.start:
+                return
+            elif start < self.start and end < self.end:
+                self.end   = self.end + (end - self.start) - size
+                self.start = start
+            elif start > self.start and end > self.end:
+                self.end = start
+            elif start > self.start and end < self.end:
+                self.end = self.end - size
+        return
+
     def clear(self):
         self.text.tag_remove(self.tag, "1.0", Tk.END)
+        return
 
 class Peer:
     """ Class representing the connected performers within the Tk Widget
@@ -240,6 +261,10 @@ class Peer:
 
     def select_shift(self, loc, amount):
         return self.hl_select.shift(loc, amount)
+
+    def select_remove(self, start, end):
+        """ Removes an area from the select highlight """
+        return self.hl_select.remove(start, end)
 
     def find_overlapping_peers(self):
         """ Returns True if this peer overlaps another peer's label """
@@ -397,6 +422,16 @@ class Peer:
     def selection_size(self):
         return len(self.hl_select)
 
+    def select_overlap(self, other):
+        """ Returns True if this peer and other have selected areas that overlap """
+        a1, b1 = self.select_start(), self.select_end()
+        a2, b2 = other.select_start(), other.select_end()
+        return (a1 < a2 < b1) or (a1 < b2 < b1)
+
+    def select_contains(self, index):
+        """ Returns True if the index is between the start and end of this peer's selection """
+        return self.select_start() < index < self.select_end()
+
     def de_select(self):
         """ Remove (not delete) the selection from the text """
         if self.hl_select.active:
@@ -416,7 +451,7 @@ class Peer:
     
     def has_selection(self):
         """ Returns True if this peer is selecting any text """
-        return self.hl_select.active
+        return self.hl_select.is_active()
 
     def __highlight_select(self):
         """ Adds background highlighting to text being selected by this peer """

@@ -57,11 +57,14 @@ def get_marker_location(ops):
     return n
 
 def get_operation_size(ops):
+    """ Returns the number of characters added by an operation (can be negative) """
+    count = 0
     for op in ops:
         if isinstance(op, str):
-            return len(op)
+            count += len(op)
         elif isinstance(op, int) and op < 0:
-            return op
+            count += op
+    return count
 
 def get_operation_index(ops):
     """ Returns the index that a marker should be after an operation """
