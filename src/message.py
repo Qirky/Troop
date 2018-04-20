@@ -237,7 +237,7 @@ class MSG_SELECT(MESSAGE):
         self['reply']=int(reply)
 
 class MSG_RESET(MSG_SET_ALL):
-    type = 10
+    type = 11
 
 class MSG_PASSWORD(MESSAGE):
     type = 13

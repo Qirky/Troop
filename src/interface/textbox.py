@@ -117,7 +117,9 @@ class ThreadSafeText(Text, OTClient):
         try:
             assert len(self.read()) == len(self.peer_tag_doc)
         except AssertionError:
-            raise ValueError("Document length mismatch, please restart the Troop server.")
+            print("{} {}".format( len(self.read()) , len(self.peer_tag_doc)))
+            print("Document length mismatch, please restart the Troop server.")
+            return
         self.set_text(operation(self.read()))
         self.insert_peer_id(self.active_peer, operation.ops)
         return
