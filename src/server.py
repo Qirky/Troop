@@ -158,11 +158,12 @@ class TroopServer(OTServer):
         else:
             data = []
             p_id = self.peer_tag_doc[0]
-            count = 0
-            for char in self.peer_tag_doc:
+            count = 1
+            for char in self.peer_tag_doc[1:]:
                 if char != p_id:
                     data.append((int(p_id), int(count)))
-                    p_id = char
+                    p_id  = char
+                    count = 1
                 else:
                     count += 1
             if count > 0:

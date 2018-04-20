@@ -114,6 +114,10 @@ class ThreadSafeText(Text, OTClient):
     # Override OT
     def apply_operation(self, operation):
         """Should apply an operation from the server to the current document."""
+        try:
+            assert len(self.read()) == len(self.peer_tag_doc)
+        except AssertionError:
+            raise ValueError("Document length mismatch, please restart the Troop server.")
         self.set_text(operation(self.read()))
         self.insert_peer_id(self.active_peer, operation.ops)
         return
@@ -125,6 +129,13 @@ class ThreadSafeText(Text, OTClient):
 
         self.adjust_peer_locations(self.marker, ops)
         self.marker.shift(shift_amount)
+        return
+
+    def insert_peer_id(self, peer, ops):
+        """ Applies a text operation to the `peer_tag_doc` which contains information about which character relates to which peers """
+        operation = TextOperation(self.get_peer_loc_ops(peer, ops))
+        self.peer_tag_doc = operation(self.peer_tag_doc)
+        self.update_colours()
         return
 
     def get_state(self):
@@ -342,13 +353,6 @@ class ThreadSafeText(Text, OTClient):
     def get_peer_loc_ops(self, peer, ops):
         """ Converts a list of operations on the main document to inserting the peer ID """
         return [str(peer.id) * len(val) if isinstance(val, str) else val for val in ops]
-
-    def insert_peer_id(self, peer, ops):
-        """ Applies a text operation to the `peer_tag_doc` which contains information about which character relates to which peers """
-        operation = TextOperation(self.get_peer_loc_ops(peer, ops))
-        self.peer_tag_doc = operation(self.peer_tag_doc)
-        self.update_colours()
-        return
 
     def get_peer(self, message):
         """ Retrieves the Peer instance using the "src_id" of message """
