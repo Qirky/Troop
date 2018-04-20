@@ -236,6 +236,9 @@ class MSG_SELECT(MESSAGE):
         self['end']=int(end)
         self['reply']=int(reply)
 
+class MSG_RESET(MSG_SET_ALL):
+    type = 10
+
 class MSG_PASSWORD(MESSAGE):
     type = 13
     def __init__(self, src_id, password):
@@ -262,7 +265,8 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_PASSWORD,
         MSG_KILL,
         MSG_EVALUATE_BLOCK,
-        MSG_EVALUATE_STRING
+        MSG_EVALUATE_STRING,
+        MSG_RESET,
     ]
 }
 

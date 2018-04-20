@@ -479,17 +479,19 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 if isinstance(msg, MSG_CONNECT):
 
-                    # Clear server history
-
-                    self.master.clear_history()
-
                     # Add the new client
 
                     new_client = self.handle_connect(msg)
 
-                    # Request the contents of Client lead and update the new client
+                    # Send the contents to the all clients
 
-                    self.update_client()
+                    # self.update_client()
+
+                    self.update_all_clients()
+
+                    # Clear server history
+
+                    self.master.clear_history()
 
                 else:
 
@@ -531,6 +533,19 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         client = self.client()
         client.send(MSG_SET_ALL(-1, *self.master.get_contents()))
+
+        return
+
+    def update_all_clients(self):
+        """ Sends a reset message with the contents from the server to make sure new user starts the  same  """
+
+        msg = MSG_RESET(-1, *self.master.get_contents())
+
+        for client in list(self.master.clients.values()):
+
+            # Tell other clients about the new connection
+
+            client.send(msg)
 
         return
     

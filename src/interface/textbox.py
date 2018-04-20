@@ -65,6 +65,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_REMOVE,             self.handle_remove)
         self.add_handle(MSG_KILL,               self.handle_kill)
         self.add_handle(MSG_SET_ALL,            self.handle_set_all)
+        self.add_handle(MSG_RESET,              self.handle_soft_reset)
         
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -149,9 +150,9 @@ class ThreadSafeText(Text, OTClient):
         ''' Prints to the console that new user has connected '''
         if self.marker.id != message['src_id']:
 
-            self.root.add_new_user(message['src_id'], message['name'])
+            # self.revision = 0
 
-            self.revision = 0
+            self.root.add_new_user(message['src_id'], message['name'])
             
             print("Peer '{}' has joined the session".format(message['name']))  
 
@@ -249,6 +250,11 @@ class ThreadSafeText(Text, OTClient):
                 self.peers[peer_id].move(index)
 
         return
+
+    def handle_soft_reset(self, message):
+        """ Sets the revision number to 0 and sets the document contents """
+        self.revision = 0
+        return self.handle_set_all(message)
 
     def handle_get_all(self, message):
         ''' Creates a dictionary of data about the text editor and sends it to the server - not used '''
