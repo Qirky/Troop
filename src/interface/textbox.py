@@ -26,6 +26,8 @@ import time
 import sys
 import json
 
+from .colour_merge import ColourMerge
+
 from . import constraints
 constraints = vars(constraints)
 
@@ -38,13 +40,11 @@ class ThreadSafeText(Text, OTClient):
 
         self.config(undo=True, autoseparators=True, maxundo=50)
 
-        # If we are blending font colours -- needs to go in its own class
+        # If we are blending font colours
 
-        self.merge_colour       = None
-        self.merge_time         = 0
-        self.merge_time_elapsed = 0
-        self.merge_recur_time   = 0
-        self.merge_weight       = 0
+        self.merge = ColourMerge(self)
+
+        # Queue for reading messages
 
         self.queue = queue.Queue()
         self.root = root
@@ -329,7 +329,7 @@ class ThreadSafeText(Text, OTClient):
 
             # Move any of a peer's selection
 
-            if other.has_selection():
+            if other != peer and other.has_selection():
 
                 if peer.has_selection():
 
@@ -347,7 +347,7 @@ class ThreadSafeText(Text, OTClient):
 
                 other.shift(shift)
 
-            else:
+            elif peer != other:
 
                 other.refresh()
 
@@ -503,36 +503,6 @@ class ThreadSafeText(Text, OTClient):
             self.tag_add(text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
         
         return
-
-    # Font colours -- TODO: Add to its own class
-
-    def update_font_colours(self, recur_time=0):
-        """ Updates the font colours of all the peers. Set a recur time
-            to update reguarly. 
-        """
-
-        for peer in self.peers.values():
-
-            peer.update_colours()
-            
-            peer.configure_tags()
-            
-            self.root.graphs.itemconfig(peer.graph, fill=peer.bg)
-
-        if recur_time > 0:
-
-            self.merge_time_elapsed += recur_time
-
-            self.merge_weight = min(self.merge_weight + 0.01, 1)
-
-            if self.merge_weight < 1:
-
-                self.after(recur_time, lambda: self.update_font_colours(recur_time = self.merge_recur_time))
-
-        return
-
-    def get_peer_colour_merge_weight(self):
-        return self.merge_weight
 
     # Main loop actions
     # =================

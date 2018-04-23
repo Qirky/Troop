@@ -226,11 +226,11 @@ class Peer:
 
         fg, bg = PeerFormatting(index)
 
-        if self.root.merge_colour is not None:
+        if self.root.merge.colour is not None:
             
-            w = self.root.get_peer_colour_merge_weight()
+            w = self.root.merge.get_weight()
 
-            fg = avg_colour(fg, self.root.merge_colour, w)
+            fg = avg_colour(fg, self.root.merge.colour, w)
 
         return fg, bg
 
@@ -256,7 +256,7 @@ class Peer:
         return
 
     def shift(self, amount):
-        """ Updates the peer's location relative to its current location by calling `move` """
+        """ Updates the peer's location relative to its current location by calling `move` """        
         return self.move(self.index_num + amount)
 
     def select_shift(self, loc, amount):

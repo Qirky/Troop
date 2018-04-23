@@ -282,13 +282,7 @@ class Interface(BasicInterface):
         
     def kill(self):
         """ Close socket connections and terminate the application """
-        try:
-
-            # if len(self.text.peers) == 1:
-            #     from time import sleep
-            #     self.client.send(MSG_SET_ALL(self.text.marker.id, self.text.get_contents(), -1))
-            #     sleep(0.25)
-                
+        try:                
             self.client.recv.kill()
             self.client.send.kill()
             self.lang.kill()
@@ -572,6 +566,8 @@ class Interface(BasicInterface):
                     index_offset = len(char)
 
         if operation:
+
+            # Index offset is how much to *move* the label after the operation
 
             self.apply_operation(operation, index_offset)
 
@@ -1201,72 +1197,4 @@ class Interface(BasicInterface):
         self.logfile = Log(logname)
         self.logfile.set_marker(self.text.marker)
         self.logfile.recreate()
-        return
-
-    # Merging font colours - PUT IN OWN CLASS
-    # ====================
-
-    def beginFontMerge(self, event=None):
-        """ Opens a basic text-entry window and starts the process of "merging fonts".
-            This is the slow process of converging all the font colours to the same
-            colour. 
-        """
-
-        # TODO get values from a window
-
-        _, self.text.merge_colour = askcolor()
-        self.text.merge_time = self.ask_duration()
-
-        self.text.merge_recur_time = int( (60000 * self.text.merge_time) / 100)
-
-        self.text.update_font_colours(recur_time = self.text.merge_recur_time )
-
-        return
-
-
-    def ask_duration(self):
-        """ Opens a small window that asks the user to enter a duration """
-        popup = popup_window(self.root, title="Set duration")
-        
-        popup.text.focus_set()
-
-        # Put the popup on top
-        
-        self.root.wait_window(popup.top)
-
-        return float(popup.value)
-
-
-class popup_window:
-    def __init__(self, master, title=""):
-        self.top=Toplevel(master)
-        self.top.title(title)
-        # Text entry
-        lbl = Label(self.top, text="Duration:")
-        lbl.grid(row=0, column=0, sticky=W)
-        self.text=Entry(self.top)
-        self.text.grid(row=0, column=1, sticky=NSEW)
-        self.value = None
-        # Ok button
-        self.button=Button(self.top,text='Ok',command=self.cleanup)
-        self.button.grid(row=1, column=0, columnspan=2, sticky=NSEW)
-        # Enter shortcut
-        self.top.bind("<Return>", self.cleanup)
-        # Start
-        self.center()
-
-    def cleanup(self, event=None):
-        """ Stores the data in the entry fields then closes the window """
-        self.value = float(self.text.get())
-        self.top.destroy()
-
-    def center(self):
-        """ Centers the popup in the middle of the screen """
-        self.top.update_idletasks()
-        w = self.top.winfo_screenwidth()
-        h = self.top.winfo_screenheight()
-        size = tuple(int(_) for _ in self.top.geometry().split('+')[0].split('x'))
-        x = w/2 - size[0]/2
-        y = h/2 - size[1]/2
-        self.top.geometry("%dx%d+%d+%d" % (size + (x, y)))
         return
