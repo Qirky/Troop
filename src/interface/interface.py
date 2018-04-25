@@ -207,7 +207,7 @@ class Interface(BasicInterface):
         self.text.bind("<{}-BackSpace>".format(CtrlKey),   self.key_ctrl_backspace)
         self.text.bind("<{}-Delete>".format(CtrlKey),      self.key_ctrl_delete)
 
-        self.text.bind("<{}-m>".format(CtrlKey), self.toggle_menu)
+        self.text.bind("<{}-m>".format(CtrlKey), self.menu.toggle)
 
         # Key bindings to handle select
         self.text.bind("<Shift-Left>",  self.select_left)
@@ -239,12 +239,11 @@ class Interface(BasicInterface):
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
         self.text.bind("<<Selection>>", self.selection)
 
-
         # Disabled Key bindings (for now)
 
         disable = lambda e: "break"
 
-        for key in list("qwertyuipdfghjklbm") + ["slash"]:
+        for key in list("qwertyuipdfghjklb") + ["slash"]:
 
             self.text.bind("<{}-{}>".format(CtrlKey, key), disable)
 
@@ -276,9 +275,7 @@ class Interface(BasicInterface):
         self.sel_end   = "0.0"
 
         # Set the window focus
-        self.text.focus_force()
-
-        
+        self.text.focus_force()       
         
     def kill(self):
         """ Close socket connections and terminate the application """
@@ -328,7 +325,7 @@ class Interface(BasicInterface):
 
         return peer
 
-    def stop_sound(self, event):
+    def stop_sound(self, *event):
         """ Sends a kill all sound message to the server based on the language """
         self.add_to_send_queue( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )
         return "break"
@@ -600,6 +597,10 @@ class Interface(BasicInterface):
         op = self.new_operation(self.text.marker.select_start(), -self.text.marker.selection_size())
         offset = self.text.marker.select_start() - self.text.marker.get_index_num()
         return op, offset
+
+    def get_set_all_operation(self, text):
+        """ Returns a new operation that deletes the contents then inserts the text """
+        return [-len(self.text.read()), text]
 
     def apply_operation(self, operation, index_offset=0):
         """ Handles a text operation locally and sends to the server """        
@@ -1069,12 +1070,7 @@ class Interface(BasicInterface):
     # Interface toggles
     # =================
 
-    def toggle_menu(self, event=None):
-        """ Hides or shows the menu bar """
-        self.menu.toggle()
-        return "break"
-
-    def ToggleTransparency(self, event=None):
+    def toggle_transparency(self, event=None):
         """ Sets the text and console background to black and then removes all black pixels from the GUI """
         setting_transparent = self.transparent.get()
         if setting_transparent:

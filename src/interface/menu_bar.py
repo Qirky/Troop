@@ -43,10 +43,10 @@ class MenuBar(Menu):
         editmenu.add_command(label="Increase Font Size",      command=self.root.increase_font_size, accelerator="Ctrl+=")
         editmenu.add_command(label="Decrease Font Size",      command=self.root.decrease_font_size, accelerator="Ctrl+-")
         editmenu.add_separator()
-        editmenu.add_command(label="Toggle Menu", command=self.root.toggle_menu, accelerator="Ctrl+M")
+        editmenu.add_command(label="Toggle Menu", command=self.toggle, accelerator="Ctrl+M")
         editmenu.add_separator()
         editmenu.add_command(label="Edit Colours", command=self.root.edit_colours)
-        editmenu.add_checkbutton(label="Toggle Window Transparency",  command=self.root.ToggleTransparency, variable=self.root.transparent)
+        editmenu.add_checkbutton(label="Toggle Window Transparency",  command=self.root.toggle_transparency, variable=self.root.transparent)
         self.add_cascade(label="Edit", menu=editmenu)
 
         # Code menu
@@ -55,7 +55,6 @@ class MenuBar(Menu):
         codemenu.add_command(label="Evaluate Code",         command=self.root.evaluate,        accelerator="Ctrl+Return")
         codemenu.add_command(label="Evaluate Single Line",  command=self.root.single_line_evaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stop_sound,       accelerator="Ctrl+.")
-        #codemenu.add_command(label="Re-sync text",          command=self.root.sync_text)
         codemenu.add_command(label="Font colour merge",     command=self.root.text.merge.start)
         codemenu.add_separator()
 
@@ -105,10 +104,10 @@ class MenuBar(Menu):
             
             master.root.config(menu=self)
 
-    def toggle(self):
+    def toggle(self, *args, **kwargs):
         self.root.root.config(menu=self if not self.visible else 0)
         self.visible = not self.visible
-        return
+        return "break"
 
     def save_file(self, event=None):
         """ Opens a save file dialog """
@@ -136,13 +135,6 @@ class MenuBar(Menu):
             with open(fn) as f:
                 contents = f.read()
 
-            this_peer = self.root.text.marker.id
-
-            messages = [ MSG_SELECT(this_peer, "1.0", self.root.text.index("end")),
-                         MSG_SET_MARK(this_peer, 1, 0),
-                         MSG_BACKSPACE(this_peer, 1, 0),
-                         MSG_INSERT(this_peer, contents, 1, 0) ]
-
-            self.root.push_queue_put( messages, wait=True)
+            self.root.apply_operation( self.root.get_set_all_operation(contents) )
 
         return

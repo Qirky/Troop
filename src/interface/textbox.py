@@ -163,8 +163,6 @@ class ThreadSafeText(Text, OTClient):
         ''' Prints to the console that new user has connected '''
         if self.marker.id != message['src_id']:
 
-            # self.revision = 0
-
             self.root.add_new_user(message['src_id'], message['name'])
             
             print("Peer '{}' has joined the session".format(message['name']))  
