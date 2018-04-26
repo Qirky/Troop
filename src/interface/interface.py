@@ -721,9 +721,15 @@ class Interface(BasicInterface):
     def move_marker_up(self):
         """ Move the  cursor one line down """
         tcl_index  = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        line_num   = int(tcl_index.split(".")[0])
         # Use the bounding box to adjust the y-pos
         x, y, w, h = self.text.bbox(tcl_index)
         y = y - h
+        # If the new index is off the canvas, try and see the line
+        if y < 0:
+            self.text.see(tcl_index + "-1lines")
+            x, y, w, h = self.text.bbox(tcl_index)
+            y = y - h
         if y > 0:
             new_index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(x, y)) )
             self.text.marker.move(new_index)
@@ -734,22 +740,35 @@ class Interface(BasicInterface):
         tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
         # Use the bounding box to adjust the y-pos
         x, y, w, h = self.text.bbox(tcl_index)
-        y = y + h
-        new_index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(x, y)) )
-        self.text.marker.move(new_index)
+        # If the line down is off screen, make sure we can see it
+        if y >= self.text.winfo_height():
+            self.text.see(tcl_index + "+1lines") # View lines we can't see
+        # Calculate new index and check bbox
+        new_tcl_index = self.text.index("@{},{}".format(x, y + h))
+        _, y1, _, _ = self.text.bbox(new_tcl_index)
+        # Only move if the new line is different
+        if y != y1:
+            new_index = self.text.tcl_index_to_number( new_tcl_index )
+            self.text.marker.move(new_index)
         return
 
     def move_marker_home(self):
         """ Moves the cursor to the beginning of a line """
-        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
-        index  = self.text.tcl_index_to_number( "{!r}.0".format(row) )
+        tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        x, y, w, h = self.text.bbox(tcl_index)
+        index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(1, y)) )
         self.text.marker.move(index)
         return
 
     def move_marker_end(self):
         """ Moves the cursor to the end of a line """
-        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
-        index  = self.text.tcl_index_to_number( "{!r}.end".format(row) )
+        #row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
+        #index  = self.text.tcl_index_to_number( "{!r}.end".format(row) ) # TODO
+
+        tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
+        x, y, w, h = self.text.bbox(tcl_index)
+        new_x = self.text.winfo_width()
+        index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(new_x, y)) ) # TODO: This goes one char short?
         self.text.marker.move(index)
         return
 
@@ -1043,12 +1062,13 @@ class Interface(BasicInterface):
         ''' Copies selected text to the clipboard and then deletes it'''
         if self.text.marker.has_selection():
             text = self.text.read()[self.text.marker.select_start():self.text.marker.select_end()]
+            
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
 
             start_point = self.text.marker.select_start()
 
-            operation = new_operation(start_point, -self.text.marker.selection_size(), len(self.text.read()))
+            operation = self.new_operation(start_point, -self.text.marker.selection_size())
 
             self.apply_operation(operation)
 
@@ -1062,9 +1082,26 @@ class Interface(BasicInterface):
         """ Inserts text from the clipboard """
         text = self.root.clipboard_get()
         if len(text):
-            operation = new_operation(self.text.marker.get_index_num(), text, len(self.text.read()))
-            self.apply_operation(operation, index_offset=len(text))
-            # self.text.see(self.text.marker.mark)
+
+            # If selected, delete that first
+            if self.text.marker.has_selection():
+            
+                selection = self.text.marker.selection_size()
+        
+                operation = self.new_operation(self.text.marker.select_start(), -selection, text)
+        
+                offset = len(text) - ( selection - (self.text.marker.select_end() - self.text.marker.get_index_num()) )
+
+                self.apply_operation(operation, index_offset=offset)
+
+                self.de_select()
+
+            else:
+            
+                operation = self.new_operation(self.text.marker.get_index_num(), text)
+                
+                self.apply_operation(operation, index_offset=len(text))
+        
         return "break"
 
     # Interface toggles
