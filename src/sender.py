@@ -69,7 +69,7 @@ class Sender:
 
             self.send( self.conn_msg )
 
-            self.conn_id   = int(self.conn.recv(4))
+            self.conn_id   = int(self.conn.recv(4)) # careful here
             self.connected = bool(self.conn_id >= 0)
             
         return self
@@ -79,8 +79,10 @@ class Sender:
 
     def __call__(self, message):
         try:
-            self.conn.sendall(message.bytes())
+            #self.conn.sendall(message.bytes())
+            send_to_socket(self.conn, message)
         except Exception as e:
+            print(e)
             raise ConnectionError("Can't connect to server")
         return
 

@@ -388,12 +388,13 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.client_id
 
     def not_authenticated(self):
-        return self.authenticate(self.get_message()[0]['password']) < 0
+        return self.authenticate(self.get_message()['password']) < 0
 
     def get_message(self):
-        data = self.request.recv(self.master.bytes) 
-        data = self.reader.feed(data)
-        return data
+        #data = self.request.recv(self.master.bytes) 
+        #data = self.reader.feed(data)
+        #return data
+        return read_from_socket(self.request)
 
     def handle_client_lost(self):
         """ Terminates cleanly """
@@ -442,10 +443,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
             self.client_address = (address, port)
         """
 
-        # This takes strings read from the socket and returns json objects
-
-        self.reader = NetworkMessageReader()
-
         # Password test
 
         if self.not_authenticated():
@@ -458,13 +455,15 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             try:
 
-                network_msg = self.get_message()
+                msg = self.get_message()
 
                 # If we get none, just read in again
 
-                if network_msg is None:
+                if msg is None:
 
-                    continue
+                    self.handle_client_lost()
+
+                    break
 
             except Exception as e: # TODO be more specific
 
@@ -474,31 +473,25 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 break
 
-            for msg in network_msg:
+            if isinstance(msg, MSG_CONNECT):
 
-                # Some messages need to be handled here
+                # Add the new client
 
-                if isinstance(msg, MSG_CONNECT):
+                new_client = self.handle_connect(msg)
 
-                    # Add the new client
+                # Send the contents to the all clients
 
-                    new_client = self.handle_connect(msg)
+                self.update_all_clients()
 
-                    # Send the contents to the all clients
+                # Clear server history
 
-                    # self.update_client()
+                self.master.clear_history()
 
-                    self.update_all_clients()
+            else:
 
-                    # Clear server history
+                # Add any other messages to the send queue
 
-                    self.master.clear_history()
-
-                else:
-
-                    # Add any other messages to the send queue
-
-                    self.master.msg_queue.put(msg)
+                self.master.msg_queue.put(msg)
 
         return
 
@@ -582,8 +575,9 @@ class Client:
 
     def send(self, message):
         try:
-            self.source.sendall(message.bytes()) 
+            send_to_socket(self.source, message)
         except Exception as e:
+            print(e)
             raise DeadClientError(self.hostname)
         return
 
