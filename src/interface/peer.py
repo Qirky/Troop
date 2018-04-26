@@ -386,13 +386,15 @@ class Peer:
     def select(self, start, end):
         """ Updates the selected text area for a peer """
 
-        if start == end == 0: # start and end of 0 is a de-select
+        if self.hl_select.active:
 
-            self.hl_select.hide()
+            if (start == end == 0) and (self.hl_select.start != 0): # start and end of 0 is a de-select
 
-        elif self.hl_select.active:
+                self.hl_select.hide()
 
-            self.hl_select.update(start, end)
+            else:
+
+                self.hl_select.update(start, end)
 
         else:
 
