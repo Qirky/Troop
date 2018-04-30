@@ -31,6 +31,8 @@ class Receiver:
         self.running = False
         self.bytes = 2048
 
+        self.reader = NetworkMessageReader()
+
         # Information about other clients
 
         self.nodes = {}
@@ -62,25 +64,47 @@ class Receiver:
         
         while self.running:
 
-            network_msg = read_from_socket(self.sock)
+            try:
 
-            # We get None if there was a socket error
+                packet = self.reader.feed(self.sock.recv(self.bytes))
 
-            if network_msg is None:
+                # We get None if there was a socket error
+
+                if packet is None:
+
+                    continue
+
+            except(OSError, socket.error) as e:
+
+                print(e)
 
                 self.kill()
 
                 break
 
-            # Create a new client node if it is a connect message
+            # Ignore empty message errors if we are no longer running
 
-            elif isinstance(network_msg, MSG_CONNECT):
+            except EmptyMessageError as e:
 
-                self.nodes[network_msg['src_id']] = Node(**network_msg.dict())
+                if self.running:
 
-            # Update the interface based on the message
+                    raise(e)
 
-            self.update_text(network_msg)
+                else:
+
+                    pass
+
+            for msg in packet:
+
+                # Create a new client node if it is a connect message
+
+                if isinstance(msg, MSG_CONNECT):
+
+                    self.nodes[msg['src_id']] = Node(**msg.dict())
+
+                # Update the interface based on the message
+
+                self.update_text(msg)
 
         return
 
