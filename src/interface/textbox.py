@@ -39,6 +39,9 @@ class ThreadSafeText(Text, OTClient):
         self.operation = TextOperation()
 
         self.config(undo=True, autoseparators=True, maxundo=50)
+        self.undo_stack = []
+        self.redo_stack = []
+        self.max_undo_size = 50
 
         # If we are blending font colours
 
@@ -112,25 +115,43 @@ class ThreadSafeText(Text, OTClient):
         return self.root.add_to_send_queue(message)
 
     # Override OT
-    def apply_operation(self, operation):
+    def apply_operation(self, operation, undo=False):
         """Should apply an operation from the server to the current document."""
-        try:
-            assert len(self.read()) == len(self.peer_tag_doc)
-        except AssertionError:
+        
+        if len(self.read()) != len(self.peer_tag_doc):
+        
             print("{} {}".format( len(self.read()) , len(self.peer_tag_doc)))
             print("Document length mismatch, please restart the Troop server.")
             return
+
+        # If other peers have added/deleted chars - transform the undo stack
+
+        if self.active_peer != self.marker:
+
+            self.transform_undo_stacks(operation)
+
+        # Apply op
         self.set_text(operation(self.read()))
         self.insert_peer_id(self.active_peer, operation.ops)
+
         return
 
-    def apply_local_operation(self, ops, shift_amount):
+    def apply_local_operation(self, ops, shift_amount, undo=False, redo=False):
         """ Applies the operation directly after a keypress """
-        self.active_peer = self.marker
-        self.apply_operation(TextOperation(ops))
 
+        operation = TextOperation(ops)
+        text = self.read()
+
+        # Set the active peer to the local marker and apply operation
+        self.active_peer = self.marker
+        self.apply_operation(operation, undo=undo)
+
+        self.add_to_undo_stacks(operation, text, undo, redo)
+
+        # Adjust locations of all peers inc. the local one
         self.adjust_peer_locations(self.marker, ops)
         self.marker.shift(shift_amount)
+
         return
 
     def insert_peer_id(self, peer, ops):
@@ -143,6 +164,40 @@ class ThreadSafeText(Text, OTClient):
     def get_state(self):
         """ Returns the state of the OT mechanism as a string """
         return self.state.__class__.__name__
+
+    def transform(self, op1, op2):
+        """ Transforms two TextOperations and adjusts the first for the length of the document"""
+        try:
+            size = max(get_doc_size(op1.ops), len(self.read()))
+            new_op1 = TextOperation(new_operation(*op1.ops, size))
+            new_op2 = TextOperation(new_operation(*op2.ops, size))
+            return TextOperation.transform(new_op1, new_op2)
+        except Exception as e:
+            print("Error transforming {} and {}".format(new_op1, new_op2))
+            raise e
+
+    def transform_undo_stacks(self, operation):
+        """ Transforms operations in the undo_stack so their locations are adjusted after other
+            operations are applied to the text """
+        if len(self.undo_stack):
+            self.undo_stack = [self.transform(action, operation)[0] for action in self.undo_stack if len(action.ops)]
+        return
+
+    def add_to_undo_stacks(self, operation, document, undo=False, redo=False):
+
+        # Keep track of operations for use in undo
+        if not undo:
+            self.undo_stack = self.undo_stack[-self.max_undo_size:] + [operation.invert(document)]
+            if not redo:
+                self.redo_stack = []
+        else:
+            #print("{} {}".format(operation.ops, operation.invert(self.read()).ops))
+            self.redo_stack.append(operation.invert(document))
+            pass
+
+    def get_undo_operation(self):
+        operation = self.undo_stack.pop()
+        return operation
 
     # Top-level handling
     # ==================
@@ -177,9 +232,15 @@ class ThreadSafeText(Text, OTClient):
 
         if client:
 
+            operation = TextOperation(message["operation"])
+
             # This *sends* the operation to the server - it does *not* apply it locally
 
-            self.apply_client(TextOperation(message["operation"]))
+            self.apply_client(operation)
+
+            # Transform operations in the undo/redo stacks
+
+            # self.update_undo_stacks(operation)
 
         else:
 
@@ -191,9 +252,11 @@ class ThreadSafeText(Text, OTClient):
 
             else:
 
+                operation = TextOperation(message["operation"])
+
                 # Apply the operation received from the server
 
-                self.apply_server(TextOperation(message["operation"]))
+                self.apply_server(operation)
 
                 # Move the peer marker
 
@@ -202,6 +265,10 @@ class ThreadSafeText(Text, OTClient):
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
 
                 self.adjust_peer_locations(self.active_peer, message["operation"])
+
+                # Transform operations in the undo/redo stacks
+                
+                #vself.update_undo_stacks(operation)
 
         return
 
@@ -275,21 +342,6 @@ class ThreadSafeText(Text, OTClient):
         ''' Cleanly terminates the session '''
         return self.root.freeze_kill(message['string'])
 
-    def handle_undo(self):
-        ''' Override for Ctrl+Z -- Not implemented '''
-        try:
-            self.edit_undo()
-        except TclError:
-            pass
-        return "break"
-
-    def handle_redo(self):
-        ''' Override for Ctrl+Y -- Not currently implmented '''
-        try:
-            self.edit_redo()
-        except TclError:
-            pass
-        return "break"
 
     # Reading and writing to the text box
     # ===================================
@@ -436,7 +488,8 @@ class ThreadSafeText(Text, OTClient):
 
     def get_peer_loc_ops(self, peer, ops):
         """ Converts a list of operations on the main document to inserting the peer ID """
-        return [str(peer.id) * len(val) if isinstance(val, str) else val for val in ops]
+        # return [str(peer.id) * len(val) if isinstance(val, str) else val for val in ops]
+        return [peer.char * len(val) if isinstance(val, str) else val for val in ops]
 
     def get_peer(self, message):
         """ Retrieves the Peer instance using the "src_id" of message """
@@ -536,6 +589,7 @@ class ThreadSafeText(Text, OTClient):
                 except Exception as e:
 
                     print("Exception occurred in message {!r}: {!r} {!r}".format(self.handles[msg.type].__name__, type(e), e))
+                    raise(e)
 
                 # Update any other idle tasks
 

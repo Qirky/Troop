@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from ..config import *
 from ..message import *
 from ..logfile import Log
-from ..utils import new_operation
+from ..utils import *
 from ..interpreter import *
 
 from .textbox import ThreadSafeText
@@ -191,9 +191,22 @@ class Interface(BasicInterface):
         
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
-        self.text.bind("<Key>", self.key_press)
+
+        # Disable by default
+
+        disable = lambda e: "break"
+
+        import string
+
+        for key in list(string.digits + string.ascii_letters) + ["slash"]:
+
+            self.text.bind("<{}-{}>".format(CtrlKey, key), disable)
+
+        self.text.bind("escape", disable)
 
         # Evaluating code
+
+        self.text.bind("<Key>", self.key_press)
 
         self.text.bind("<{}-Return>".format(CtrlKey), self.evaluate)
         self.text.bind("<Alt-Return>", self.single_line_evaluate)
@@ -225,8 +238,8 @@ class Interface(BasicInterface):
         self.text.bind("<{}-v>".format(CtrlKey), self.paste)
 
         # # Undo -- not implemented
-        self.text.bind("<{}-z>".format(CtrlKey), lambda e: "break")
-        self.text.bind("<{}-y>".format(CtrlKey), lambda e: "break")
+        self.text.bind("<{}-z>".format(CtrlKey), self.undo)
+        self.text.bind("<{}-y>".format(CtrlKey), self.redo)
 
         # Handling mouse events
         self.left_mouse = Mouse(self)
@@ -238,14 +251,6 @@ class Interface(BasicInterface):
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
         self.text.bind("<<Selection>>", self.selection)
-
-        # Disabled Key bindings (for now)
-
-        disable = lambda e: "break"
-
-        for key in list("qwertyuipdfghjklb") + ["slash"]:
-
-            self.text.bind("<{}-{}>".format(CtrlKey, key), disable)
 
         # Allowed key-bindings
 
@@ -602,12 +607,12 @@ class Interface(BasicInterface):
         """ Returns a new operation that deletes the contents then inserts the text """
         return [-len(self.text.read()), text]
 
-    def apply_operation(self, operation, index_offset=0):
-        """ Handles a text operation locally and sends to the server """        
+    def apply_operation(self, operation, index_offset=0, **kwargs):
+        """ Handles a text operation locally and sends to the server """
 
         # Apply locally
 
-        self.text.apply_local_operation(operation, index_offset)
+        self.text.apply_local_operation(operation, index_offset, **kwargs)
 
         # Handle the operation on the client side
 
@@ -1042,12 +1047,16 @@ class Interface(BasicInterface):
 
     def undo(self, event):
         ''' Triggers an undo event '''
-        self.add_to_send_queue(MSG_UNDO(self.text.marker.id))
+        if len(self.text.undo_stack):
+            op = self.text.get_undo_operation()
+            self.apply_operation(self.new_operation(*op.ops), get_operation_size(op.ops), undo=True)
         return "break"
 
     def redo(self, event):
-        ''' Override for Ctrl+Y -- Not currently implmented '''
-        # self.push_queue_put(MSG_REDO(self.text.marker.id))
+        ''' Re-applies the last undo event '''
+        if len(self.text.redo_stack):
+            op = self.text.redo_stack.pop()
+            self.apply_operation(self.new_operation(*op.ops), get_operation_size(op.ops), redo=True)
         return "break"
 
     def copy(self, event=None):

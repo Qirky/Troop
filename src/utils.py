@@ -8,37 +8,51 @@
 #         operation.append(tail)
 #     return operation
 
+def _is_retain(op):
+    return isinstance(op, int) and op > 0
 
-def new_operation(index, *args):
+def _is_delete(op):
+    return isinstance(op, int) and op < 0
+
+def _is_insert(op):
+    return isinstance(op, str)
+
+def new_operation(*args):
     """ Returns an operation as a list and removes index/tail if they are 0 """
     values = args[:-1]
     length = args[-1]
 
     operation = []
 
-    if index > 0:
-    
-        operation.append(index)
-
-        length -= index
-
     for value in values:
+
+        if value != 0:
        
-        operation.append(value)
+            operation.append(value)
 
-        if isinstance(value, int):
+            if isinstance(value, int):
 
-            if value > 0:
+                if value > 0:
 
-                length -= value
+                    length -= value
 
-            else:
+                else:
 
-                length += value
+                    length += value
     
     if length > 0:
     
         operation.append(length)
+
+    elif _is_retain(operation[-1]):
+
+        # Trim the final retain
+
+        operation[-1] += length
+
+    if operation[-1] == 0:
+
+        operation.pop()
     
     return operation
 
@@ -79,6 +93,20 @@ def get_operation_index(ops):
             index += len(op)
     return index
 
+def get_doc_size(ops):
+    """ Returns the size of the document this operation is operating on """
+    total = 0
+    for value in ops:
+        if _is_retain(value):
+            total += value
+        elif _is_delete(value):
+            total += (value * -1)
+    return total
+
 import re
 def get_peer_locs(n, text):
     return ( (match.start(), match.end()) for match in re.finditer("{}+".format(n), text))
+
+import string
+def get_peer_char(id_num):
+    return str((string.digits + string.ascii_letters)[id_num])

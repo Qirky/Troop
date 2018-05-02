@@ -6,6 +6,7 @@ except ImportError:
     import tkinter as Tk
     
 from ..config import *
+from ..utils import get_peer_char
 import colorsys
 
 def rgb2hex(*rgb): 
@@ -148,6 +149,7 @@ class Peer:
     """
     def __init__(self, id_num, name, widget, row=1, col=0):
         self.id = id_num
+        self.char = get_peer_char(self.id)
         self.root = widget # Text
         self.root_parent = widget.root
 

@@ -37,9 +37,10 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
-from .utils import get_marker_location, get_peer_locs
+from .utils import get_marker_location, get_peer_locs, get_peer_char
 from .ot.server import Server as OTServer, MemoryBackend
 from .ot.text_operation import TextOperation, IncompatibleOperationError as OTError
+
 
 class TroopServer(OTServer):
     """
@@ -191,7 +192,8 @@ class TroopServer(OTServer):
         message["operation"] = op.ops
 
         # Apply to peer tags
-        peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
+        #peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
+        peer_op = TextOperation([get_peer_char(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
         self.peer_tag_doc = peer_op(self.peer_tag_doc)
 
         # Get location of peer
