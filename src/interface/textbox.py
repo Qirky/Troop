@@ -136,7 +136,7 @@ class ThreadSafeText(Text, OTClient):
 
         return
 
-    def apply_local_operation(self, ops, shift_amount, undo=False, redo=False):
+    def apply_local_operation(self, ops, shift_amount, index=None, undo=False, redo=False):
         """ Applies the operation directly after a keypress """
 
         operation = TextOperation(ops)
@@ -144,13 +144,24 @@ class ThreadSafeText(Text, OTClient):
 
         # Set the active peer to the local marker and apply operation
         self.active_peer = self.marker
+
         self.apply_operation(operation, undo=undo)
+
+        # Track operations in the undo stack
 
         self.add_to_undo_stacks(operation, text, undo, redo)
 
         # Adjust locations of all peers inc. the local one
+
         self.adjust_peer_locations(self.marker, ops)
-        self.marker.shift(shift_amount)
+
+        if index is not None:
+
+            self.marker.move(index)
+
+        else:
+
+            self.marker.shift(shift_amount)
 
         return
 
@@ -184,20 +195,19 @@ class ThreadSafeText(Text, OTClient):
         return
 
     def add_to_undo_stacks(self, operation, document, undo=False, redo=False):
-
+        """ Adds the inverse of an operation to the undo stack """
         # Keep track of operations for use in undo
         if not undo:
             self.undo_stack = self.undo_stack[-self.max_undo_size:] + [operation.invert(document)]
             if not redo:
                 self.redo_stack = []
         else:
-            #print("{} {}".format(operation.ops, operation.invert(self.read()).ops))
             self.redo_stack.append(operation.invert(document))
-            pass
+        return
 
     def get_undo_operation(self):
-        operation = self.undo_stack.pop()
-        return operation
+        """ Gets the last operation from the undo stack """
+        return self.undo_stack.pop()
 
     # Top-level handling
     # ==================
@@ -238,10 +248,6 @@ class ThreadSafeText(Text, OTClient):
 
             self.apply_client(operation)
 
-            # Transform operations in the undo/redo stacks
-
-            # self.update_undo_stacks(operation)
-
         else:
 
             # If we recieve a message from the server with our own id, acknowledge
@@ -265,10 +271,6 @@ class ThreadSafeText(Text, OTClient):
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
 
                 self.adjust_peer_locations(self.active_peer, message["operation"])
-
-                # Transform operations in the undo/redo stacks
-                
-                #vself.update_undo_stacks(operation)
 
         return
 

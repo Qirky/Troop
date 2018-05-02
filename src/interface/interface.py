@@ -1049,14 +1049,14 @@ class Interface(BasicInterface):
         ''' Triggers an undo event '''
         if len(self.text.undo_stack):
             op = self.text.get_undo_operation()
-            self.apply_operation(self.new_operation(*op.ops), get_operation_size(op.ops), undo=True)
+            self.apply_operation(self.new_operation(*op.ops), index=get_operation_index(op.ops), undo=True)
         return "break"
 
     def redo(self, event):
         ''' Re-applies the last undo event '''
         if len(self.text.redo_stack):
             op = self.text.redo_stack.pop()
-            self.apply_operation(self.new_operation(*op.ops), get_operation_size(op.ops), redo=True)
+            self.apply_operation(self.new_operation(*op.ops), index=get_operation_index(op.ops), redo=True)
         return "break"
 
     def copy(self, event=None):

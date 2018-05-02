@@ -56,30 +56,6 @@ def new_operation(*args):
     
     return operation
 
-def get_marker_location(ops):
-    """ Returns the index nubmer a marker should be at based on its operation """
-    n = 0
-    for op in ops:
-        if isinstance(op, str):
-            n += len(op)
-            break
-        elif isinstance(op, int):
-            if op >= 0:
-                n += op
-            else:
-                break
-    return n
-
-def get_operation_size(ops):
-    """ Returns the number of characters added by an operation (can be negative) """
-    count = 0
-    for op in ops:
-        if isinstance(op, str):
-            count += len(op)
-        elif isinstance(op, int) and op < 0:
-            count += op
-    return count
-
 def get_operation_index(ops):
     """ Returns the index that a marker should be after an operation """
     if isinstance(ops[-1], int) and ops[-1] > 0:
@@ -92,6 +68,17 @@ def get_operation_index(ops):
         elif isinstance(op, str):
             index += len(op)
     return index
+
+def get_operation_size(ops):
+    """ Returns the number of characters added by an operation (can be negative) """
+    count = 0
+    for op in ops:
+        if isinstance(op, str):
+            count += len(op)
+        elif isinstance(op, int) and op < 0:
+            count += op
+    return count
+
 
 def get_doc_size(ops):
     """ Returns the size of the document this operation is operating on """
@@ -110,3 +97,10 @@ def get_peer_locs(n, text):
 import string
 def get_peer_char(id_num):
     return str((string.digits + string.ascii_letters)[id_num])
+
+
+if __name__ == '__main__':
+    op = [5, "a", 2]
+
+    print(get_operation_index(op))
+    print(get_marker_location(op))

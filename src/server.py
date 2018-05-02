@@ -37,7 +37,7 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
-from .utils import get_marker_location, get_peer_locs, get_peer_char
+from .utils import get_operation_index, get_peer_locs, get_peer_char
 from .ot.server import Server as OTServer, MemoryBackend
 from .ot.text_operation import TextOperation, IncompatibleOperationError as OTError
 
@@ -198,7 +198,7 @@ class TroopServer(OTServer):
 
         # Get location of peer
         client = self.clients[message["src_id"]]
-        client.set_index(get_marker_location(message["operation"]))
+        client.set_index(get_operation_index(message["operation"]))
 
         return message
 
