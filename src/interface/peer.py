@@ -303,6 +303,8 @@ class Peer:
 
         try:
 
+            # self.root.update_idletasks()
+
             document_length = len(self.root.read())
 
             # Make sure the location is valid
@@ -342,11 +344,15 @@ class Peer:
 
             bbox = self.root.bbox(index)
 
+            print("{} {} -> {}".format(self, index, bbox))
+
             if bbox is None and self == self.root.marker:
 
                 # If this is the local peer, make sure it is seen          
 
-                self.root.see(self.mark) 
+                self.root.see(self.mark)
+
+                print("seeing {}".format(self))
 
                 # Try again to get the bounding box
 

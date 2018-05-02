@@ -169,7 +169,6 @@ class ThreadSafeText(Text, OTClient):
         """ Applies a text operation to the `peer_tag_doc` which contains information about which character relates to which peers """
         operation = TextOperation(self.get_peer_loc_ops(peer, ops))
         self.peer_tag_doc = operation(self.peer_tag_doc)
-        self.update_colours()
         return
 
     def get_state(self):
@@ -612,6 +611,7 @@ class ThreadSafeText(Text, OTClient):
         self.insert("1.0", self.document)
         self.update_colours()
         self.apply_language_formatting()
+        self.refresh_peer_labels()
         return
 
     # handling key events

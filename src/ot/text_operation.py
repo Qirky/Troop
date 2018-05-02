@@ -278,26 +278,3 @@ class TextOperation(object):
 class IncompatibleOperationError(Exception):
     """Two operations or an operation and a string have different lengths."""
     pass
-
-
-if __name__ == "__main__":
-
-    def get_doc_size(ops):
-        """ Returns the size of the document this operation is operating on """
-        total = 0
-        for value in ops:
-            if _is_retain(value):
-                total += value
-            elif _is_delete(value):
-                total += (value * -1)
-        return total
-
-    doc = "hello"
-
-    op1 = TextOperation([3, -1,1])
-    op2 = TextOperation(['a', 5])
-
-    #new = TextOperation.transform(op2, op1)
-
-    new = op2(doc)
-    print(new)
