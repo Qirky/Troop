@@ -608,14 +608,16 @@ class Interface(BasicInterface):
     def get_delete_selection_offset(self, insert=""):
         """ Returns the index_offset for operations deleting the selected area. Use `insert` if you are
             inserting a character in place of the selected text """
-        #offset =  -( selection - (self.text.marker.select_end() - self.text.marker.get_index_num()) )
+        
         index = self.text.marker.get_index_num()
+        sel_size = self.text.marker.selection_size()
+        doc_size = len(self.text.read())
+
         if index == self.text.marker.select_end():
-            if (index + self.text.marker.selection_size()) > len(self.text.read()):
-            #     (self.text.marker.select_start() - self.text.marker.get_index_num())
-                offset = len(insert)
+            if (index + sel_size) > doc_size:
+                offset = index - doc_size # Idk why this works
             else:
-                offset = len(insert) - self.text.marker.selection_size()
+                offset = len(insert) - sel_size
         elif index == self.text.marker.select_start():
             offset = len(insert)
         else:
