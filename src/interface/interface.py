@@ -88,13 +88,11 @@ class Interface(BasicInterface):
         # Inherit
 
         BasicInterface.__init__(self)
+        
+        self.lang = language
+        self.interpreters = {name: BooleanVar() for name in langnames}
 
         self.client = client
-
-        # Set language -- TODO have knowledge of language and set boolean to True
-
-        self.lang = language.start()
-        self.interpreters = {name: BooleanVar() for name in langnames}
 
         # Set logging
 
@@ -278,6 +276,10 @@ class Interface(BasicInterface):
         # Selection indices
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
+
+        # Set language -- TODO have knowledge of language and set boolean to True
+
+        self.lang.start()
 
         # Set the window focus
         self.text.focus_force()       
@@ -1107,7 +1109,7 @@ class Interface(BasicInterface):
     def paste(self, event=None):
         """ Inserts text from the clipboard """
         text = self.root.clipboard_get()
-        
+
         if len(text):
 
             # If selected, delete that first

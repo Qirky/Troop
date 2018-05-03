@@ -474,9 +474,15 @@ class TidalInterpreter(Interpreter):
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
     def start(self):
+        import tempfile
 
-        self.lang = Popen(self.path, shell=True, universal_newlines=True,
-                          stdin=PIPE)
+        self.f_out = tempfile.TemporaryFile("w+")
+
+        self.lang = Popen(self.path, shell=False, universal_newlines=True, bufsize=1,
+                          stdin=PIPE,
+                          stdout=self.f_out,
+                          stderr=self.f_out)
+
 
         # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")
@@ -501,14 +507,48 @@ class TidalInterpreter(Interpreter):
         # Set any keywords e.g. d1 and $
 
         self.keywords  = ["d{}".format(n) for n in d_vals]
-        self.keywords += ["\$", "#", "hush"] # add string regex?
+        self.keywords += ["\$", "#", "hush"]
 
         self.keyword_regex = compile_regex(self.keywords)
+
+        self.is_alive = True
+
+        threading.Thread(target=self.stdout).start()
         
         return self
 
     def __repr__(self):
         return "TidalCycles"
+
+    def evaluate(self, string, *args, **kwargs):
+        """ Sends a string to the stdin and prints the text to the console """
+        # Print to console
+        self.print_stdin(string, *args, **kwargs)
+        # Write to stdin
+        try:
+            self.write_stdout(string)
+        except Exception as e:
+            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
+            stdout(e, string)
+        return
+
+    def stdout(self, text=""):
+        """ Reads the stdout from the self.lang process """
+        while self.is_alive:
+            try:
+                self.f_out.seek(0)
+                for stdout_line in iter(self.f_out.readline, ""):
+                    sys.stdout.write(stdout_line.rstrip())
+                # clear tmpfile
+                self.f_out.truncate(0)
+                time.sleep(0.1)
+            except ValueError as e:
+                print(e)
+                return
+
+    def kill(self):
+        Interpreter.kill(self)
+        self.is_alive = False
 
     @classmethod
     def find_comment(cls, string):        
