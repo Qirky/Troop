@@ -375,6 +375,7 @@ class ThreadSafeText(Text, OTClient):
         shift = get_operation_size(operation)
 
         peer_loc = peer.get_index_num()
+        doc_size = len(self.read())
 
         for other in self.peers.values():
 
@@ -390,13 +391,27 @@ class ThreadSafeText(Text, OTClient):
 
                     other.select_shift(peer_loc, shift)
 
+            # If the other peer is *in* this peer's selection, move it
+
             if peer != other and peer.has_selection() and peer.select_contains( other.get_index_num() ):
 
                 other.move(peer.select_start())
 
+            # if the peer is after this peer, move it
+
             elif peer != other and other.get_index_num() > peer_loc:
 
+                index = other.get_index_num()
+
+                # If the end of the document is reduced past the peer, compensate for it
+
+                if (shift * -1) + index > doc_size:
+
+                    shift = index - doc_size
+
                 other.shift(shift)
+
+            # If behind, just redraw (if on screen)
 
             elif peer != other:
 
