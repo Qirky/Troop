@@ -559,7 +559,7 @@ class Interface(BasicInterface):
 
                     operation = self.new_operation(self.text.marker.select_start(), -selection, char)
 
-                    index_offset = (self.text.marker.select_start() - index) + len(char)
+                    index_offset = self.get_delete_selection_offset(char)
 
                 else:
 
@@ -600,8 +600,25 @@ class Interface(BasicInterface):
     def get_delete_selection_operation(self):
         """ Returns an operation that deletes the selected area """
         op = self.new_operation(self.text.marker.select_start(), -self.text.marker.selection_size())
-        offset = self.text.marker.select_start() - self.text.marker.get_index_num()
+        offset = self.get_delete_selection_offset()
         return op, offset
+
+    def get_delete_selection_offset(self, insert=""):
+        """ Returns the index_offset for operations deleting the selected area. Use `insert` if you are
+            inserting a character in place of the selected text """
+        #offset =  -( selection - (self.text.marker.select_end() - self.text.marker.get_index_num()) )
+        index = self.text.marker.get_index_num()
+        if index == self.text.marker.select_end():
+            if (index + self.text.marker.selection_size()) > len(self.text.read()):
+            #     (self.text.marker.select_start() - self.text.marker.get_index_num())
+                offset = len(insert)
+            else:
+                offset = len(insert) - self.text.marker.selection_size()
+        elif index == self.text.marker.select_start():
+            offset = len(insert)
+        else:
+            print("Issue in selection delete")
+        return offset
 
     def get_set_all_operation(self, text):
         """ Returns a new operation that deletes the contents then inserts the text """
@@ -1090,6 +1107,7 @@ class Interface(BasicInterface):
     def paste(self, event=None):
         """ Inserts text from the clipboard """
         text = self.root.clipboard_get()
+        
         if len(text):
 
             # If selected, delete that first
@@ -1098,8 +1116,8 @@ class Interface(BasicInterface):
                 selection = self.text.marker.selection_size()
         
                 operation = self.new_operation(self.text.marker.select_start(), -selection, text)
-        
-                offset = len(text) - ( selection - (self.text.marker.select_end() - self.text.marker.get_index_num()) )
+
+                offset = self.get_delete_selection_offset(text)
 
                 self.apply_operation(operation, index_offset=offset)
 
