@@ -56,9 +56,23 @@ class MenuBar(Menu):
         codemenu.add_command(label="Evaluate Single Line",  command=self.root.single_line_evaluate,   accelerator="Alt+Return")
         codemenu.add_command(label="Stop All Sound",        command=self.root.stop_sound,       accelerator="Ctrl+.")
         codemenu.add_command(label="Font colour merge",     command=self.root.text.merge.start)
+
+        # Constraints
+
+        constmenu = Menu(self, tearoff=0)
+
+        for name in self.root.text.constraint.names():
+
+            constmenu.add_checkbutton(label=name.title(),
+                                      command  = partial(self.root.set_constraint, name),
+                                      variable = self.root.text.constraint.using[name])
+            
+        codemenu.add_cascade(label="Set Constraint", menu=constmenu)
+
         codemenu.add_separator()
 
         # Allow choice of interpreter
+
         langmenu = Menu(self, tearoff=0)
 
         for name, interpreter in langnames.items():
@@ -70,25 +84,6 @@ class MenuBar(Menu):
         codemenu.add_cascade(label="Choose language", menu=langmenu)
         
         self.add_cascade(label="Code", menu=codemenu)
-
-        # Creative constraint menu
-
-        # constraintmenu = Menu(self, tearoff=0)
-
-        # # Get the names of constraints
-
-        # from . import constraints
-        # constraints = vars(constraints)
-
-        # for name in constraints:
-
-        #     if not name.startswith("_"):
-
-        #         constraintmenu.add_checkbutton(label=name.title(),
-        #                                    command  = partial(self.root.set_constraint, name),
-        #                                    variable = self.root.creative_constraints[name])
-
-        # self.add_cascade(label="Constraints", menu=constraintmenu)        
 
         # Help
 

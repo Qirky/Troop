@@ -191,6 +191,12 @@ class MSG_SET_MARK(MESSAGE):
         self['index'] = int(index)
         self['reply'] = int(reply)
 
+class MSG_PASSWORD(MESSAGE):
+    type = 4
+    def __init__(self, src_id, password):
+        MESSAGE.__init__(self, src_id)
+        self['password']=str(password)
+
 class MSG_REMOVE(MESSAGE):
     type = 5
     def __init__(self, src_id):
@@ -233,19 +239,20 @@ class MSG_SELECT(MESSAGE):
         self['reply']=int(reply)
 
 class MSG_RESET(MSG_SET_ALL):
-    type = 11
-
-class MSG_PASSWORD(MESSAGE):
-    type = 13
-    def __init__(self, src_id, password):
-        MESSAGE.__init__(self, src_id)
-        self['password']=str(password)   
+    type = 11 
 
 class MSG_KILL(MESSAGE):
-    type = 20
+    type = 12
     def __init__(self, src_id, string):
         MESSAGE.__init__(self, src_id)
         self['string']=str(string)
+
+class MSG_CONSTRAINT(MESSAGE):
+    type = 13
+    def __init__(self, src_id, name, peer):
+        MESSAGE.__init__(self, src_id)
+        self.name    = str(name)
+        self.peer_id = int(peer)
 
  
 # Create a dictionary of message type to message class 

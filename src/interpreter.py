@@ -42,6 +42,9 @@ class DummyInterpreter:
     def __init__(self, *args, **kwargs):
         self.re={}
 
+    def __repr__(self):
+        return repr(self.__class__.__name__)
+
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
 

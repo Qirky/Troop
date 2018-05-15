@@ -173,13 +173,13 @@ class Interface(BasicInterface):
 
         # Creative constraints - PUT IN OWN CLASS
 
-        from . import constraints
-        constraints = vars(constraints)
+        # from . import constraints
+        # constraints = vars(constraints)
 
-        self.default_constraint  = "anarchy"
-        self.creative_constraints = {name: BooleanVar() for name in constraints if not name.startswith("_")}
-        self.creative_constraints[self.default_constraint].set(True)
-        self.__constraint__ = constraints[self.default_constraint]()
+        # self.default_constraint  = "anarchy"
+        # self.creative_constraints = {name: BooleanVar() for name in constraints if not name.startswith("_")}
+        # self.creative_constraints[self.default_constraint].set(True)
+        # self.__constraint__ = constraints[self.default_constraint]()
 
         # Menubar
 
@@ -555,7 +555,7 @@ class Interface(BasicInterface):
                 
                 char = event.char
 
-            if len(char) > 0:
+            if len(char) > 0 and self.text.constraint():
 
                 if selection:
 
@@ -597,7 +597,7 @@ class Interface(BasicInterface):
 
     def new_operation(self, *ops):
         """ Returns a list of operations to apply to the document """
-        return new_operation(*ops, len(self.text.read()))
+        return new_operation(*(list(ops) + [len(self.text.read())]))
 
     def get_delete_selection_operation(self):
         """ Returns an operation that deletes the selected area """
@@ -1225,10 +1225,10 @@ class Interface(BasicInterface):
 
         return
 
-    # def set_constraint(self, name):
-    #     """ Tells Troop to use a new character constraint, see `constraints.py` for more information. """
-    #     self.push_queue_put(MSG_CONSTRAINT(self.text.marker.id, name))
-    #     return
+    def set_constraint(self, name):
+        """ Tells Troop to use a new character constraint, see `constraints.py` for more information. """
+        self.push_queue_put(MSG_CONSTRAINT(name, self.text.marker.id))
+        return
 
     # Message logging
     # ===============

@@ -8,6 +8,7 @@ from ..ot.client import Client as OTClient
 from ..ot.text_operation import TextOperation
 
 from .peer import *
+from .constraints import _constraint
 
 try:
     from Tkinter import *
@@ -28,15 +29,19 @@ import json
 
 from .colour_merge import ColourMerge
 
-from . import constraints
-constraints = vars(constraints)
+# from . import constraints
+# constraints = vars(constraints)
 
 class ThreadSafeText(Text, OTClient):
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
         OTClient.__init__(self, revision=0)
 
-        self.operation = TextOperation()
+        self.operation = TextOperation() # what is this for?
+
+        self.constraint = _constraint(self)
+
+        #self.constraint = lambda: True
 
         self.config(undo=True, autoseparators=True, maxundo=50)
         self.undo_stack = []
@@ -69,6 +74,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_KILL,               self.handle_kill)
         self.add_handle(MSG_SET_ALL,            self.handle_set_all)
         self.add_handle(MSG_RESET,              self.handle_soft_reset)
+        self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
         
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -179,8 +185,8 @@ class ThreadSafeText(Text, OTClient):
         """ Transforms two TextOperations and adjusts the first for the length of the document"""
         try:
             size = max(get_doc_size(op1.ops), len(self.read()))
-            new_op1 = TextOperation(new_operation(*op1.ops, size))
-            new_op2 = TextOperation(new_operation(*op2.ops, size))
+            new_op1 = TextOperation(new_operation(*(list(op1.ops) + [size])))
+            new_op2 = TextOperation(new_operation(*(list(op2.ops) + [size])))
             return TextOperation.transform(new_op1, new_op2)
         except Exception as e:
             print("Error transforming {} and {}".format(new_op1, new_op2))
@@ -335,13 +341,16 @@ class ThreadSafeText(Text, OTClient):
         self.revision = 0
         return self.handle_set_all(message)
 
-    def handle_get_all(self, message):
-        ''' Creates a dictionary of data about the text editor and sends it to the server - not used '''
-        return
-
     def handle_kill(self, message):
         ''' Cleanly terminates the session '''
         return self.root.freeze_kill(message['string'])
+
+    def handle_text_constraint(self, message):
+        """ A new text constrait is set """
+        constraint_name = message["name"]
+        dictator_peer   = message["peer_id"]
+        self.constraint.set_constraint(message["name"], dictator_peer)
+        return
 
 
     # Reading and writing to the text box

@@ -96,7 +96,14 @@ def get_peer_locs(n, text):
 
 import string
 def get_peer_char(id_num):
+    """ Returns the ID character to identify a peer """
     return str((string.digits + string.ascii_letters)[id_num])
+
+def get_peer_id_from_char(char):
+    """ Returns the numeric index for a ID character """
+    print(str(char))
+    print((string.digits + string.ascii_letters))
+    return (string.digits + string.ascii_letters).index(str(char))
 
 
 if __name__ == '__main__':
