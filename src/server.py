@@ -66,13 +66,18 @@ class TroopServer(OTServer):
         # Public ip for server is the first IPv4 address we find, else just show the hostname
         self.ip_pub = self.hostname
         
-        try:
-            for info in socket.getaddrinfo(socket.gethostname(), None):
-                if info[0] == 2:
-                    self.ip_pub = info[4][0]
-                    break
-        except socket.gaierror:
-            pass            
+        #try:
+        #    for info in socket.getaddrinfo(socket.gethostname(), None):
+        #        if info[0] == 2:
+        #            self.ip_pub = info[4][0]
+        #            break
+        #except socket.gaierror:
+        #    pass
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        self.ip_pub = s.getsockname()[0]
+        s.close()
 
         # Look for an empty port
         port_found = False
