@@ -123,51 +123,55 @@ class ThreadSafeText(Text, OTClient):
     # Override OT
     def apply_operation(self, operation, undo=False):
         """Should apply an operation from the server to the current document."""
-        
-        if len(self.read()) != len(self.peer_tag_doc):
-        
-            print("{} {}".format( len(self.read()) , len(self.peer_tag_doc)))
-            print("Document length mismatch, please restart the Troop server.")
-            return
 
-        # If other peers have added/deleted chars - transform the undo stack
+        if len(operation.ops):
+            
+            if len(self.read()) != len(self.peer_tag_doc):
+            
+                print("{} {}".format( len(self.read()) , len(self.peer_tag_doc)))
+                print("Document length mismatch, please restart the Troop server.")
+                return
 
-        if self.active_peer != self.marker:
+            # If other peers have added/deleted chars - transform the undo stack
 
-            self.transform_undo_stacks(operation)
+            if self.active_peer != self.marker:
 
-        # Apply op
-        self.set_text(operation(self.read()))
-        self.insert_peer_id(self.active_peer, operation.ops)
+                self.transform_undo_stacks(operation)
+
+            # Apply op
+            self.set_text(operation(self.read()))
+            self.insert_peer_id(self.active_peer, operation.ops)
 
         return
 
     def apply_local_operation(self, ops, shift_amount, index=None, undo=False, redo=False):
         """ Applies the operation directly after a keypress """
 
-        operation = TextOperation(ops)
-        text = self.read()
+        if len(ops):
 
-        # Set the active peer to the local marker and apply operation
-        self.active_peer = self.marker
+            operation = TextOperation(ops)
+            text = self.read()
 
-        self.apply_operation(operation, undo=undo)
+            # Set the active peer to the local marker and apply operation
+            self.active_peer = self.marker
 
-        # Track operations in the undo stack
+            self.apply_operation(operation, undo=undo)
 
-        self.add_to_undo_stacks(operation, text, undo, redo)
+            # Track operations in the undo stack
 
-        # Adjust locations of all peers inc. the local one
+            self.add_to_undo_stacks(operation, text, undo, redo)
 
-        self.adjust_peer_locations(self.marker, ops)
+            # Adjust locations of all peers inc. the local one
 
-        if index is not None:
+            self.adjust_peer_locations(self.marker, ops)
 
-            self.marker.move(index)
+            if index is not None:
 
-        else:
+                self.marker.move(index)
 
-            self.marker.shift(shift_amount)
+            else:
+
+                self.marker.shift(shift_amount)
 
         return
 

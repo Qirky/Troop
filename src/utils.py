@@ -15,6 +15,7 @@ def _is_insert(op):
 
 def new_operation(*args):
     """ Returns an operation as a list and removes index/tail if they are 0 """
+
     values = args[:-1]
     length = args[-1]
 
@@ -40,13 +41,13 @@ def new_operation(*args):
     
         operation.append(length)
 
-    elif _is_retain(operation[-1]):
+    elif len(operation) and _is_retain(operation[-1]):
 
         # Trim the final retain
 
         operation[-1] += length
 
-    if operation[-1] == 0:
+    if len(operation) and operation[-1] == 0:
 
         operation.pop()
     

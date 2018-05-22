@@ -720,6 +720,8 @@ class Interface(BasicInterface):
             self.de_select()
         else:
             index, _, new = self.text.marker.get_index_num(), self.move_marker_ctrl_left(), self.text.marker.get_index_num()
+            if index == 0: # don't apply operation if we are at the start
+                return "break"
             op, offset = self.new_operation(new, new - index), 0
         self.apply_operation(op, offset)
         return "break"
@@ -730,9 +732,12 @@ class Interface(BasicInterface):
             op, offset = self.get_delete_selection_operation()
             self.de_select()
         else:
+            len_text = len(self.text.read())
             index, _, new = self.text.marker.get_index_num(), self.move_marker_ctrl_right(), self.text.marker.get_index_num()
-            op = self.new_operation(index, index - new)
-            if new == len(self.text.read()):
+            if len_text == 0: # dont apply operation if there is no text
+                return "break"
+            op = self.new_operation(index, index - new) 
+            if new == len_text:
                 offset = 0
             else:
                 offset = index - new
