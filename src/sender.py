@@ -26,6 +26,10 @@ class Sender:
         self.conn      = None
         self.conn_id   = None
         self.connected = False
+        self.connection_errors = {
+            -1 : "Login attempt failed",
+            -2 : "Failed to connect: Maximum number of users connected. Please try again later."
+        }
 
         self.ui        = None
 
@@ -76,6 +80,9 @@ class Sender:
 
     def send(self, message):
         return self.__call__(message)
+
+    def error_message(self):
+        return self.connection_errors.get(self.conn_id, "Connected successfully")
 
     def __call__(self, message):
         try:

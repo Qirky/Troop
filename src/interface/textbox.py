@@ -434,7 +434,7 @@ class ThreadSafeText(Text, OTClient):
         """ Re-creates the document of peer_id markers """
         s = []
         for peer_id, length in locations:
-            s.append("{}".format(peer_id) * int(length))
+            s.append("{}".format(get_peer_char(peer_id)) * int(length))
         return "".join(s)
 
     def get_peer_loc_ops(self, peer, ops):
@@ -468,7 +468,7 @@ class ThreadSafeText(Text, OTClient):
 
         for p_id, peer in self.peers.items():
 
-            processed.append(str(p_id))
+            processed.append(peer.char)
 
             self.update_peer_tag(p_id)
 
@@ -480,12 +480,13 @@ class ThreadSafeText(Text, OTClient):
 
             if str(p_id) not in processed:
 
-                self.update_peer_tag(p_id)
+                self.update_peer_tag(get_peer_id_from_char(p_id))
 
         return
 
     def update_peer_tag(self, p_id):
         """ Refreshes a peer's text_tag colours """
+        
         text_tag = Peer.get_text_tag(p_id)
 
         # Make sure we include peers no longer connected
@@ -500,8 +501,8 @@ class ThreadSafeText(Text, OTClient):
 
         self.tag_remove(text_tag, "1.0", END)
         
-        for start, end in get_peer_locs(p_id, self.peer_tag_doc):    
-        
+        for start, end in get_peer_locs(get_peer_char(p_id), self.peer_tag_doc):
+
             self.tag_add(text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
         
         return

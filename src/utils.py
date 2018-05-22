@@ -1,12 +1,8 @@
-# def new_operation(index, value, tail):
-#     """ Returns an operation as a list and removes index/tail if they are 0 """
-#     operation = []
-#     if index > 0:
-#         operation.append(index)
-#     operation.append(value)
-#     if tail > 0:
-#         operation.append(tail)
-#     return operation
+# List of all the possible characters used to represent peers in the document
+
+import string
+
+PEER_CHARS = list(string.digits + string.ascii_letters)
 
 def _is_retain(op):
     return isinstance(op, int) and op > 0
@@ -94,20 +90,10 @@ import re
 def get_peer_locs(n, text):
     return ( (match.start(), match.end()) for match in re.finditer("{}+".format(n), text))
 
-import string
 def get_peer_char(id_num):
     """ Returns the ID character to identify a peer """
-    return str((string.digits + string.ascii_letters)[id_num])
+    return PEER_CHARS[id_num]
 
 def get_peer_id_from_char(char):
     """ Returns the numeric index for a ID character """
-    print(str(char))
-    print((string.digits + string.ascii_letters))
-    return (string.digits + string.ascii_letters).index(str(char))
-
-
-if __name__ == '__main__':
-    op = [5, "a", 2]
-
-    print(get_operation_index(op))
-    print(get_marker_location(op))
+    return PEER_CHARS.index(str(char))

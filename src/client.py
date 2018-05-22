@@ -37,7 +37,7 @@ class Client:
 
             if not self.send.connected:
                 
-                raise ConnectionError("Login attempt failed")
+                raise ConnectionError(self.send.error_message())
 
             else:
 
@@ -51,7 +51,7 @@ class Client:
 
             sys.exit(e)
 
-        if self.id is None:
+        if self.id is None: # catch -1 error
 
             print("No ID number assigned by server")
 

@@ -37,7 +37,7 @@ from .threadserv import ThreadedServer
 from .message import *
 from .interpreter import *
 from .config import *
-from .utils import get_operation_index, get_peer_locs, get_peer_char
+from .utils import *
 from .ot.server import Server as OTServer, MemoryBackend
 from .ot.text_operation import TextOperation, IncompatibleOperationError as OTError
 
@@ -95,6 +95,7 @@ class TroopServer(OTServer):
         self.clients = {}
 
         # ID numbers
+        self.max_id  = len(PEER_CHARS) - 1
         self.last_id = -1
 
         # Give request handler information about this server
@@ -158,17 +159,17 @@ class TroopServer(OTServer):
             return []
         else:
             data = []
-            p_id = self.peer_tag_doc[0]
+            p_char = self.peer_tag_doc[0]
             count = 1
             for char in self.peer_tag_doc[1:]:
-                if char != p_id:
-                    data.append((int(p_id), int(count)))
-                    p_id  = char
+                if char != p_char:
+                    data.append((get_peer_id_from_char(p_char), int(count)))
+                    p_char = char
                     count = 1
                 else:
                     count += 1
             if count > 0:
-                data.append((int(p_id), int(count)))
+                data.append((get_peer_id_from_char(p_char), int(count)))
             return data
 
 
@@ -232,7 +233,16 @@ class TroopServer(OTServer):
         return
 
     def get_next_id(self):
-        self.last_id += 1
+        """ Increases the ID counter and returns it. If it goes over the maximum number allowed, it tries to go to back to the start and 
+            checks if that client is connected. If all clients are connected, it returns -1, signalling the client to terminate """
+        if self.last_id < self.max_id:
+            self.last_id += 1
+        else:
+            for n in list(range(self.last_id, self.max_id)) + list(range(self.last_id)):
+                if n not in self.clients:
+                    self.last_id = n
+            else:
+                return -2 # error message for max clients exceeded                   
         return self.last_id
 
     def clear_history(self):

@@ -237,6 +237,7 @@ class Peer:
         return fg, bg
 
     def update_colours(self):
+        """ Sets the foreground / background colours based on ID """
         self.bg, self.fg = self.get_peer_formatting(self.id)
         return self.bg, self.fg
 

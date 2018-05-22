@@ -314,7 +314,14 @@ class Interface(BasicInterface):
     def init_local_user(self, id_num, name):
         """ Create the peer that is local to the client (text.marker) """
 
-        self.text.marker = self.add_new_user(id_num, name)
+        try:
+
+            self.text.marker = self.add_new_user(id_num, name)
+
+        except ValueError:
+
+            self.kill()
+            print("Error: Maximum number of clients connected to server, please try again later.")
         
         return
 
