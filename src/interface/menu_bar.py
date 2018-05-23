@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 try:
-    from Tkinter import Menu
+    from Tkinter import Menu, DISABLED, NORMAL, StringVar
     import tkFileDialog
     import tkMessageBox
 except ImportError:
-    from tkinter import Menu
+    from tkinter import Menu, DISABLED, NORMAL, StringVar
     from tkinter import filedialog as tkFileDialog
     from tkinter import messagebox as tkMessageBox
     
@@ -133,3 +133,35 @@ class MenuBar(Menu):
             self.root.apply_operation( self.root.get_set_all_operation(contents) )
 
         return
+
+
+class PopupMenu(Menu):
+    def __init__(self, master):
+        self.root = master
+        Menu.__init__(self, master.root, tearoff=0, postcommand=self.update)
+        self.add_command(label="Undo", command=self.root.undo) 
+        self.add_command(label="Redo", command=self.root.redo)
+        self.add_separator()
+        self.add_command(label="Copy", command=self.root.copy)
+        self.add_command(label="Cut", command=self.root.cut)
+        self.add_command(label="Paste", command=self.root.paste)
+        self.add_separator()
+        self.add_command(label="Select All", command=self.root.select_all)
+
+    def show(self, event):
+        """ Displays the popup menu """
+        self.post(event.x_root, event.y_root)
+
+    def update(self):
+        """ Sets the state for variables"""
+
+        self.entryconfig("Undo", state=NORMAL if len(self.root.text.undo_stack) > 0 else DISABLED)
+        self.entryconfig("Redo", state=NORMAL if len(self.root.text.redo_stack) > 0 else DISABLED)
+
+        select = self.root.text.marker.has_selection()
+        self.entryconfig("Copy", state=NORMAL if select else DISABLED)
+        self.entryconfig("Cut", state=NORMAL if select else DISABLED)
+
+        return
+
+

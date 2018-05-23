@@ -12,7 +12,7 @@ from .peer import Peer, rgb2hex, hex2rgb
 from .drag import Dragbar
 from .bracket import BracketHandler
 from .line_numbers import LineNumbers
-from .menu_bar import MenuBar
+from .menu_bar import MenuBar, PopupMenu
 from .mouse import Mouse
 
 try:
@@ -185,6 +185,10 @@ class Interface(BasicInterface):
 
         self.menu = MenuBar(self, visible = True)
 
+        # Right-click menu
+
+        self.popup = PopupMenu(self)
+
         # Key bindings
         
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
@@ -244,7 +248,7 @@ class Interface(BasicInterface):
         self.text.bind("<Button-1>", self.mouse_press_left)
         self.text.bind("<B1-Motion>", self.mouse_left_drag)
         self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
-        # self.text.bind("<Button-2>", self.rightMousePress) # disabled
+        self.text.bind("<Button-3>", self.mouse_press_right)
         
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
@@ -259,7 +263,7 @@ class Interface(BasicInterface):
         self.text.bind("<{}-o>".format(CtrlKey),  self.menu.open_file)
         self.text.bind("<{}-n>".format(CtrlKey),  self.menu.new_file)
 
-        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling", "Shift_L", "Shift_R")
+        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling", "Shift_L", "Shift_R", "Escape")
 
         # Directional commands
 
@@ -1072,20 +1076,21 @@ class Interface(BasicInterface):
         return "break"
 
     def mouse_press_right(self, event):
-        """ Disabled """
+        """ Displays popup menu"""
+        self.popup.show(event)
         return "break"
 
     # Copy, paste, undo etc
     # =====================
 
-    def undo(self, event):
+    def undo(self, event=None):
         ''' Triggers an undo event '''
         if len(self.text.undo_stack):
             op = self.text.get_undo_operation()
             self.apply_operation(self.new_operation(*op.ops), index=get_operation_index(op.ops), undo=True)
         return "break"
 
-    def redo(self, event):
+    def redo(self, event=None):
         ''' Re-applies the last undo event '''
         if len(self.text.redo_stack):
             op = self.text.redo_stack.pop()
@@ -1122,7 +1127,14 @@ class Interface(BasicInterface):
     
     def paste(self, event=None):
         """ Inserts text from the clipboard """
-        text = self.root.clipboard_get()
+
+        try:
+        
+            text = self.root.clipboard_get()
+        
+        except TclError:
+
+            return "break"
 
         if len(text):
 
