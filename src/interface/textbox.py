@@ -75,16 +75,16 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_SET_ALL,            self.handle_set_all)
         self.add_handle(MSG_RESET,              self.handle_soft_reset)
         self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
-        
+
         # Information about other connected users
         self.peers      = self.root.client.peers
         self.peer_tags  = []
-        
+
         self.marker     = None
         self.local_peer = None
 
         self.configure_font()
-        
+
         self.char_w = self.font.measure(" ")
         self.char_h = self.font.metrics("linespace")
 
@@ -97,7 +97,7 @@ class ThreadSafeText(Text, OTClient):
         self.right_brackets = dict(zip(right_b, left_b))
 
         # Set formatting tags
-        
+
         for tag_name, kwargs in tag_descriptions.items():
 
             self.tag_config(tag_name, **kwargs)
@@ -125,9 +125,9 @@ class ThreadSafeText(Text, OTClient):
         """Should apply an operation from the server to the current document."""
 
         if len(operation.ops):
-            
+
             if len(self.read()) != len(self.peer_tag_doc):
-            
+
                 print("{} {}".format( len(self.read()) , len(self.peer_tag_doc)))
                 print("Document length mismatch, please restart the Troop server.")
                 return
@@ -238,13 +238,13 @@ class ThreadSafeText(Text, OTClient):
         if self.marker.id != message['src_id']:
 
             self.root.add_new_user(message['src_id'], message['name'])
-            
-            print("Peer '{}' has joined the session".format(message['name']))  
+
+            print("Peer '{}' has joined the session".format(message['name']))
 
         return
 
     def handle_operation(self, message, client=False):
-        """ Forwards the operation message to the correct handler based on whether it 
+        """ Forwards the operation message to the correct handler based on whether it
             was sent by the client or server """
 
         self.active_peer = self.get_peer(message)
@@ -291,7 +291,7 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_select(self, message):
         """ Update's a peer's selection """
-        peer = self.get_peer(message)        
+        peer = self.get_peer(message)
         peer.select_set(message["start"], message["end"])
         self.update_colours()
         return
@@ -378,13 +378,17 @@ class ThreadSafeText(Text, OTClient):
         """ Returns the entire document as a list in which each element is a line from the text"""
         return self.read().split("\n")
 
+    def get_num_lines(self):
+        """ Returns the number of lines in the document """
+        return int(self.index('end-1c').split('.')[0])
+
     # Updating / retrieving info from peers
     # =====================================
 
     def adjust_peer_locations(self, peer, operation):
         """ When a peer performs an operation, adjust the location of peers following it and update
             the location of peer tags """
-        
+
         shift = get_operation_size(operation)
 
         peer_loc = peer.get_index_num()
@@ -490,7 +494,7 @@ class ThreadSafeText(Text, OTClient):
 
     def update_peer_tag(self, p_id):
         """ Refreshes a peer's text_tag colours """
-        
+
         text_tag = Peer.get_text_tag(p_id)
 
         # Make sure we include peers no longer connected
@@ -504,11 +508,11 @@ class ThreadSafeText(Text, OTClient):
             self.tag_config(text_tag, foreground=fg)
 
         self.tag_remove(text_tag, "1.0", END)
-        
+
         for start, end in get_peer_locs(get_peer_char(p_id), self.peer_tag_doc):
 
             self.tag_add(text_tag, self.number_index_to_tcl(start), self.number_index_to_tcl(end))
-        
+
         return
 
     # Main loop actions
@@ -519,7 +523,7 @@ class ThreadSafeText(Text, OTClient):
         assert isinstance(message, MESSAGE)
         self.queue.put(message)
         return
-    
+
     def listen(self):
         """ Continuously reads from the queue of messages read from the server
             and carries out the specified actions. """
@@ -583,7 +587,7 @@ class ThreadSafeText(Text, OTClient):
         # Get contents of the line
 
         start, end = "{}.0".format(line), "{}.end".format(line)
-        
+
         string = self.get(start, end)
 
         # Go through the possible tags
@@ -591,29 +595,29 @@ class ThreadSafeText(Text, OTClient):
         for tag_name, tag_finding_func in self.root.lang.re.items():
 
             self.tag_remove(tag_name, start, end)
-            
+
             for match_start, match_end in tag_finding_func(string):
-                
+
                 tag_start = "{}.{}".format(line, match_start)
                 tag_end   = "{}.{}".format(line, match_end)
 
                 self.tag_add(tag_name, tag_start, tag_end)
-                
+
         return
 
     def highlight_brackets(self, bracket):
         """ Call this with a bracket """
-        
+
         index = self.marker.get_index_num() - 1
         assert self.read()[index] == bracket
 
         start = self.find_starting_bracket(index - 1, self.right_brackets[bracket], bracket)
-        
+
         if start is not None:
-        
+
             self.tag_add(self.bracket_tag, self.number_index_to_tcl(start))
             self.tag_add(self.bracket_tag, self.number_index_to_tcl(index))
-        
+
         return
 
     def find_starting_bracket(self, index, left_bracket, right_bracket):
@@ -628,7 +632,7 @@ class ThreadSafeText(Text, OTClient):
                 else:
                     return i
             elif text[i] == right_bracket:
-                nests += 1        
+                nests += 1
         return
 
     # Housekeeping
@@ -650,7 +654,7 @@ class ThreadSafeText(Text, OTClient):
             fontfamily = "Courier New"
 
         self.font_names = []
-        
+
         self.font = tkFont.Font(family=fontfamily, size=12, name="Font")
         self.font.configure(**tkFont.nametofont("Font").configure())
         self.font_names.append("Font")
@@ -662,7 +666,7 @@ class ThreadSafeText(Text, OTClient):
         self.font_italic = tkFont.Font(family=fontfamily, size=12, slant="italic", name="ItalicFont")
         self.font_italic.configure(**tkFont.nametofont("ItalicFont").configure())
         self.font_names.append("ItalicFont")
-        
+
         self.configure(font="Font")
 
         self.bracket_style = {'borderwidth': 2, 'relief' : 'groove'}
@@ -672,7 +676,7 @@ class ThreadSafeText(Text, OTClient):
         return
 
     def tcl_index_to_number(self, index):
-        """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the 
+        """ Takes a tcl index e.g. '1.0' and returns the single number it represents if the
             text contents were a single list """
         row, col = [int(val) for val in self.index(index).split(".")]
         return sum([len(line) + 1 for line in self.read().split("\n")[:row-1]]) + col
@@ -693,7 +697,7 @@ class ThreadSafeText(Text, OTClient):
             else:
                 col += 1
             if i >= number:
-                break        
+                break
         return "{}.{}".format(row, col)
 
     def number_index_to_row_col(self, number):

@@ -3,7 +3,7 @@ try:
     import Tkinter as Tk
 except:
     import tkinter as Tk
-    
+
 from ..config import *
 
 class LineNumbers(Tk.Canvas):
@@ -16,15 +16,12 @@ class LineNumbers(Tk.Canvas):
         '''Redraws the line numbers at 30 fps'''
         self.delete("all")
 
-        # Draw a line
-
-        w = self.winfo_width() - 5
-        h = self.winfo_height()
-
-        self.create_line(w, 0, w, h, fill=COLOURS["Background"])
-
         i = self.textwidget.index("@0,0")
-        
+
+        self.config(width=self.textwidget.font.measure(str(max(self.textwidget.get_num_lines(), 10))) + 20)
+
+        w = self.winfo_width() - 5 # Width
+
         while True:
 
             dline=self.textwidget.dlineinfo(i)
@@ -56,5 +53,9 @@ class LineNumbers(Tk.Canvas):
 
 
             i = self.textwidget.index("{}+1line".format(i))
+
+        # Draw a line
+
+        self.create_line(w, 0, w, self.winfo_height(), fill="gray50")#COLOURS["Background"])
 
         self.after(30, self.redraw)

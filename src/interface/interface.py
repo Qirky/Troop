@@ -40,7 +40,7 @@ class BasicInterface:
 
         self.whitespace = (" ", "\n")
         self.delimeters = (".", ",", "(", ")", "[","]","{", "}", "=")
-        
+
         self.is_logging = False
         self.logfile = None
         self.wait_msg = None
@@ -50,7 +50,7 @@ class BasicInterface:
         self.last_keypress  = ""
         self.last_row       = 0
         self.last_col       = 0
-        
+
     def run(self):
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
         # Continually check for messages to be sent
@@ -61,7 +61,7 @@ class BasicInterface:
         except (KeyboardInterrupt, SystemExit):
             self.kill()
         return
-    
+
     def kill(self):
         """ Terminates cleanly """
         stdout("Quitting")
@@ -88,7 +88,7 @@ class Interface(BasicInterface):
         # Inherit
 
         BasicInterface.__init__(self)
-        
+
         self.lang = language
         self.interpreters = {name: BooleanVar() for name in langnames}
 
@@ -103,7 +103,7 @@ class Interface(BasicInterface):
         # Set title and configure the interface grid
 
         self.title = title
-        
+
         self.root.title(self.title)
 
         self.root.columnconfigure(0, weight=0) # Line numbers
@@ -112,7 +112,7 @@ class Interface(BasicInterface):
         self.root.rowconfigure(0, weight=1) # Textbox
         self.root.rowconfigure(1, weight=0) # Dragbar
         self.root.rowconfigure(2, weight=0) # Console
-        
+
         self.root.protocol("WM_DELETE_WINDOW", self.kill )
 
         icon = os.path.join(os.path.dirname(__file__), "img", "icon")
@@ -121,7 +121,7 @@ class Interface(BasicInterface):
 
             # Use .ico file by default
             self.root.iconbitmap(icon + ".ico")
-            
+
         except:
 
             try:
@@ -144,20 +144,21 @@ class Interface(BasicInterface):
         self.scroll.grid(row=0, column=3, sticky='nsew')
 
         # Text box
-        self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"], height=15, bd=0)
+        self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"],
+                                    height=15, bd=0, highlightthickness=0)
         self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
         self.scroll.config(command=self.text.yview)
 
         # Line numbers
         self.line_numbers = LineNumbers(self.text, width=55, bg=COLOURS["Background"], bd=0, highlightthickness=0)
         self.line_numbers.grid(row=0, column=0, sticky='nsew')
-        
+
         # Drag is a small line that changes the size of the console
         self.drag = Dragbar( self )
         self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
-        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=10, font="Font")
+        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=10, font="Font", highlightthickness=0)
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
         sys.stdout = self.console # routes stdout to print to console
 
@@ -190,7 +191,7 @@ class Interface(BasicInterface):
         self.popup = PopupMenu(self)
 
         # Key bindings
-        
+
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
 
 
@@ -248,8 +249,8 @@ class Interface(BasicInterface):
         self.text.bind("<Button-1>", self.mouse_press_left)
         self.text.bind("<B1-Motion>", self.mouse_left_drag)
         self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
-        self.text.bind("<Button-3>", self.mouse_press_right)
-        
+        self.text.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
+
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
         self.text.bind("<<Selection>>", self.selection)
@@ -286,11 +287,11 @@ class Interface(BasicInterface):
         self.lang.start()
 
         # Set the window focus
-        self.text.focus_force()       
-        
+        self.text.focus_force()
+
     def kill(self):
         """ Close socket connections and terminate the application """
-        try:                
+        try:
             self.client.recv.kill()
             self.client.send.kill()
             self.lang.kill()
@@ -305,7 +306,7 @@ class Interface(BasicInterface):
 
     def freeze_kill(self, err):
         ''' Displays an error message and stops communicating to the server '''
-        self.console.write(err) 
+        self.console.write(err)
         self.client.send.kill()
         self.client.recv.kill()
         return
@@ -326,13 +327,13 @@ class Interface(BasicInterface):
 
             self.kill()
             print("Error: Maximum number of clients connected to server, please try again later.")
-        
+
         return
 
     def add_new_user(self, user_id, name):
         """ Initialises a new Peer object """
 
-        peer = self.client.peers[user_id] = Peer(user_id, name, self.text) 
+        peer = self.client.peers[user_id] = Peer(user_id, name, self.text)
 
         # Create a bar on the graph
         peer.graph = self.graphs.create_rectangle(0,0,0,0, fill=peer.bg)
@@ -367,7 +368,7 @@ class Interface(BasicInterface):
             return
 
         # For each connected peer, find the range covered by the tag
-        
+
         for peer in self.text.peers.values():
 
             tag_name = peer.text_tag
@@ -435,11 +436,11 @@ class Interface(BasicInterface):
                 y1 = max_height + offset_y
                 x2 = x1 + graph_w
                 y2 = y1 - (int(height))
-                
+
                 self.graphs.coords(peer.graph, (x1, y1, x2, y2))
 
             # TODO -- Write number / name? Maybe when hovered?
-                    
+
         self.root.update_idletasks()
         self.root.after(100, self.update_graphs)
 
@@ -467,13 +468,13 @@ class Interface(BasicInterface):
                 self.add_to_send_queue(msg)
 
         elif isinstance(message, MESSAGE):
-        
+
             self.client.send_queue.put(message)
 
         else:
 
             raise TypeError("Must be MESSAGE or list")
-        
+
         return
 
     def send_set_mark_msg(self):
@@ -488,7 +489,7 @@ class Interface(BasicInterface):
 
     # Key press and operations
     # ========================
-    
+
     def key_press(self, event):
         """ 'Pushes' the key-press to the server.
         """
@@ -535,7 +536,7 @@ class Interface(BasicInterface):
         # Deletion
 
         elif event.keysym == "Delete":
-            
+
             if tail > 0:
 
                 operation = self.new_operation(index, -1)
@@ -557,13 +558,13 @@ class Interface(BasicInterface):
             if event.keysym == "Return":
 
                 char = "\n"
-                
+
             elif event.keysym == "Tab":
-                
+
                 char = " "*4
-                
+
             else:
-                
+
                 char = event.char
 
             if len(char) > 0 and self.text.constraint():
@@ -599,11 +600,11 @@ class Interface(BasicInterface):
         # Store last key press for Alt+F4 etc
 
         self.last_keypress  = event.keysym
-        
+
         # Make sure the user sees their cursor
 
         self.text.refresh_peer_labels()
-    
+
         return "break"
 
     def new_operation(self, *ops):
@@ -619,7 +620,7 @@ class Interface(BasicInterface):
     def get_delete_selection_offset(self, insert=""):
         """ Returns the index_offset for operations deleting the selected area. Use `insert` if you are
             inserting a character in place of the selected text """
-        
+
         index = self.text.marker.get_index_num()
         sel_size = self.text.marker.selection_size()
         doc_size = len(self.text.read())
@@ -664,37 +665,37 @@ class Interface(BasicInterface):
         return "break"
 
     def key_left(self):
-        """ Called when the left arrow key is pressed; decreases the local peer index 
+        """ Called when the left arrow key is pressed; decreases the local peer index
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_left)
 
     def key_right(self):
-        """ Called when the right arrow key is pressed; increases the local peer index 
+        """ Called when the right arrow key is pressed; increases the local peer index
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_right)
 
     def key_down(self):
-        """ Called when the down arrow key is pressed; increases the local peer index 
+        """ Called when the down arrow key is pressed; increases the local peer index
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_down)
 
     def key_up(self):
-        """ Called when the up arrow key is pressed; decrases the local peer index 
+        """ Called when the up arrow key is pressed; decrases the local peer index
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_up)
 
     def key_home(self):
-        """ Called when the home key is pressed; sets the local peer location to 0 
+        """ Called when the home key is pressed; sets the local peer location to 0
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_home)
 
     def key_end(self):
-        """ Called when the home key is pressed; sets the local peer location to 0 
+        """ Called when the home key is pressed; sets the local peer location to 0
             and updates the location of the label then sends a message to the server
             with the new location """
         return self.key_direction(self.move_marker_end)
@@ -740,7 +741,7 @@ class Interface(BasicInterface):
             index, _, new = self.text.marker.get_index_num(), self.move_marker_ctrl_right(), self.text.marker.get_index_num()
             if len_text == 0: # dont apply operation if there is no text
                 return "break"
-            op = self.new_operation(index, index - new) 
+            op = self.new_operation(index, index - new)
             if new == len_text:
                 offset = 0
             else:
@@ -757,7 +758,7 @@ class Interface(BasicInterface):
         self.text.marker.shift(-1)
 
     def move_marker_right(self):
-        """ Move the cursor right 1 place """ 
+        """ Move the cursor right 1 place """
         self.text.marker.shift(+1)
 
     def move_marker_up(self):
@@ -818,7 +819,7 @@ class Interface(BasicInterface):
         """ Moves the cursor the beginning of the document """
         self.text.marker.move(0)
         return
-    
+
     def move_marker_ctrl_end(self):
         """ Moves the cursor to the end of the document """
         self.text.marker.move(len(self.text.read()))
@@ -894,17 +895,17 @@ class Interface(BasicInterface):
             and the row/col to update it to and calls self.UpdateSelect  """
 
         self.update_select( *self.get_movement_index(self.move_marker_left) )
-        
+
         return "break"
 
     def select_right(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-        
+
         self.update_select( *self.get_movement_index(self.move_marker_right) )
 
         return "break"
-    
+
     def select_up(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
@@ -912,13 +913,13 @@ class Interface(BasicInterface):
         self.update_select( *self.get_movement_index(self.move_marker_up) )
 
         return "break"
-    
+
     def select_down(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
 
         self.update_select( *self.get_movement_index(self.move_marker_down) )
-        
+
         return "break"
 
     def select_end(self, event):
@@ -941,9 +942,9 @@ class Interface(BasicInterface):
         """ Tells the server to highlight all the text in the editor and move
             the marker to 1,0 """
 
-        self.text.marker.move(0)        
+        self.text.marker.move(0)
         self.update_select(0, len(self.text.read()))
-                
+
         return "break"
 
     def selection(self, event=None):
@@ -967,16 +968,16 @@ class Interface(BasicInterface):
         a, b   = "{}.0".format(row), "{}.end".format(row)
 
         if self.text.get(a, b).lstrip() != "":
-            
+
             self.add_to_send_queue( MSG_EVALUATE_BLOCK(self.text.marker.id, row, row) )
-        
+
         return "break"
 
     def evaluate(self, event=None):
         """ Finds the current block of code to evaluate and tells the server """
-        
+
         lines = self.get_current_block()
-        
+
         a, b = ("%d.0" % n for n in lines)
 
         string = self.text.get( a , b ).lstrip()
@@ -986,9 +987,9 @@ class Interface(BasicInterface):
             #  Send notification to other peers
 
             msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1])
-            
+
             self.add_to_send_queue( msg )
-                
+
         return "break"
 
     # Font size
@@ -1002,9 +1003,9 @@ class Interface(BasicInterface):
             font = tkFont.nametofont(font)
             size = font.actual()["size"] + amount
             if size >= 8:
-                
+
                 font.configure(size=size)
-                
+
                 self.text.char_w = self.text.font.measure(" ")
                 self.text.char_h = self.text.font.metrics("linespace")
 
@@ -1053,7 +1054,7 @@ class Interface(BasicInterface):
         index = self.left_mouse.release(event)
 
         self.text.marker.move(index)
-        
+
         self.add_to_send_queue( MSG_SET_MARK(self.text.marker.id, index) )
 
         # Make sure the text box gets focus
@@ -1072,7 +1073,7 @@ class Interface(BasicInterface):
             end   = self.left_mouse.click(event)
 
             self.update_select(start, end) # sends message to server
-            
+
         return "break"
 
     def mouse_press_right(self, event):
@@ -1109,7 +1110,7 @@ class Interface(BasicInterface):
         ''' Copies selected text to the clipboard and then deletes it'''
         if self.text.marker.has_selection():
             text = self.text.read()[self.text.marker.select_start():self.text.marker.select_end()]
-            
+
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
 
@@ -1124,14 +1125,14 @@ class Interface(BasicInterface):
             self.text.marker.move(start_point)
 
         return "break"
-    
+
     def paste(self, event=None):
         """ Inserts text from the clipboard """
 
         try:
-        
+
             text = self.root.clipboard_get()
-        
+
         except TclError:
 
             return "break"
@@ -1140,9 +1141,9 @@ class Interface(BasicInterface):
 
             # If selected, delete that first
             if self.text.marker.has_selection():
-            
+
                 selection = self.text.marker.selection_size()
-        
+
                 operation = self.new_operation(self.text.marker.select_start(), -selection, text)
 
                 offset = self.get_delete_selection_offset(text)
@@ -1152,11 +1153,11 @@ class Interface(BasicInterface):
                 self.de_select()
 
             else:
-            
+
                 operation = self.new_operation(self.text.marker.get_index_num(), text)
-                
+
                 self.apply_operation(operation, index_offset=len(text))
-        
+
         return "break"
 
     # Interface toggles
@@ -1203,7 +1204,7 @@ class Interface(BasicInterface):
         return
 
     def ApplyColours(self, event=None):
-        """ Update the IDE for the new colours """ 
+        """ Update the IDE for the new colours """
         LoadColours() # from config.py
         # Text & Line numbers
         self.text.config(bg=COLOURS["Background"], insertbackground=COLOURS["Background"])
@@ -1233,7 +1234,7 @@ class Interface(BasicInterface):
 
         try:
             self.lang=langtypes[name]()
-        
+
         except ExecutableNotFoundError as e:
 
             print(e)
@@ -1267,10 +1268,10 @@ class Interface(BasicInterface):
             os.mkdir(log_folder)
 
         # Create filename based on date and times
-        
+
         self.fn = time.strftime("client-log-%d%m%y_%H%M%S.txt", time.localtime())
         path    = os.path.join(log_folder, self.fn)
-        
+
         self.log_file   = open(path, "w")
         self.is_logging = True
 
@@ -1281,7 +1282,7 @@ class Interface(BasicInterface):
 
     def ImportLog(self):
         """ Imports a logfile generated by run-server.py --log and 'recreates' the performance """
-        logname = tkFileDialog.askopenfilename()        
+        logname = tkFileDialog.askopenfilename()
         self.logfile = Log(logname)
         self.logfile.set_marker(self.text.marker)
         self.logfile.recreate()
