@@ -519,7 +519,7 @@ class Interface(BasicInterface):
 
         # Un-highlight any brackets
 
-        self.text.tag_remove("tag_open_brackets", "1.0", END)
+        self.remove_highlighted_brackets()
 
         # Key movement
 
@@ -606,6 +606,10 @@ class Interface(BasicInterface):
         self.text.refresh_peer_labels()
 
         return "break"
+
+    def remove_highlighted_brackets(self):
+        """ Removes the text tag for highlighting brackets """
+        return self.text.tag_remove("tag_open_brackets", "1.0", END)
 
     def new_operation(self, *ops):
         """ Returns a list of operations to apply to the document """
@@ -1033,6 +1037,16 @@ class Interface(BasicInterface):
     def mouse_press_left(self, event):
         """ Updates the server on where the local peer's marker is when the mouse release event is triggered.
             Selected area is removed un-selected. """
+
+        if self.popup.is_active():
+
+            self.popup.hide() # remove the right-click popup if necessary
+
+        # If we click somewhere, remove the closed brackets tag
+
+        self.remove_highlighted_brackets() 
+
+        # Get location and process
 
         index = self.left_mouse.click(event)
 

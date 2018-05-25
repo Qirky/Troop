@@ -148,9 +148,21 @@ class PopupMenu(Menu):
         self.add_separator()
         self.add_command(label="Select All", command=self.root.select_all)
 
+        self.active = False
+
+    def is_active(self):
+        return self.active
+
     def show(self, event):
         """ Displays the popup menu """
-        self.post(event.x_root, event.y_root)
+        self.focus_set()
+        self.active = True
+        return self.post(event.x_root, event.y_root)
+
+    def hide(self, event=None):
+        """ Removes the display of the popup """
+        self.active = False
+        return self.unpost()
 
     def update(self):
         """ Sets the state for variables"""
