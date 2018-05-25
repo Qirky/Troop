@@ -9,7 +9,7 @@ from ..interpreter import *
 from .textbox import ThreadSafeText
 from .console import Console
 from .peer import Peer, rgb2hex, hex2rgb
-from .drag import Dragbar
+from .drag import Dragbar, ConsoleDragbar
 from .bracket import BracketHandler
 from .line_numbers import LineNumbers
 from .menu_bar import MenuBar, PopupMenu
@@ -106,8 +106,29 @@ class Interface(BasicInterface):
 
         self.root.title(self.title)
 
+        # Try and start full screen (issues on Linux)
+
+        try:
+
+            self.root.state("zoomed")
+
+        except TclError:
+
+            w = 900
+            h = 600
+
+            ws = self.root.winfo_screenwidth()
+            hs = self.root.winfo_screenheight()
+
+            x = int((ws/2) - (w/2))
+            y = int((hs/2) - (h/2))
+
+            self.root.geometry('{}x{}+{}+{}'.format(w, h, x, y))
+
         self.root.columnconfigure(0, weight=0) # Line numbers
-        self.root.columnconfigure(1, weight=1) # Text and console
+        self.root.columnconfigure(1, weight=2) # Text and console
+        self.root.columnconfigure(2, weight=0) # Vertical dragbar
+        self.root.columnconfigure(3, weight=1) # Graphs
 
         self.root.rowconfigure(0, weight=1) # Textbox
         self.root.rowconfigure(1, weight=0) # Dragbar
@@ -141,12 +162,12 @@ class Interface(BasicInterface):
 
         # Scroll bar
         self.scroll = Scrollbar(self.root)
-        self.scroll.grid(row=0, column=3, sticky='nsew')
+        self.scroll.grid(row=0, column=4, sticky='nsew')
 
         # Text box
         self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"],
                                     height=15, bd=0, highlightthickness=0)
-        self.text.grid(row=0, column=1, sticky="nsew", columnspan=2)
+        self.text.grid(row=0, column=1, sticky="nsew", columnspan=3)
         self.scroll.config(command=self.text.yview)
 
         # Line numbers
@@ -154,22 +175,24 @@ class Interface(BasicInterface):
         self.line_numbers.grid(row=0, column=0, sticky='nsew')
 
         # Drag is a small line that changes the size of the console
-        self.drag = Dragbar( self )
+        self.drag = Dragbar( self, bg="white", height=2  )
         self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
-        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=10, font="Font", highlightthickness=0)
+        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=50, font="Font", highlightthickness=0)
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
         sys.stdout = self.console # routes stdout to print to console
 
+        self.console_drag = ConsoleDragbar(self, bg="white", width=2)
+        self.console_drag.grid(row=2, column=2, stick="nsew")
+
         # Statistics Graphs
-        self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=450, bd=0, highlightthickness=0)
-        self.graphs.grid(row=2, column=2, sticky="nsew")
-        # self.graph_queue = queue.Queue()
+        self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=350, bd=0, highlightthickness=0)
+        self.graphs.grid(row=2, column=3, sticky="nsew")
 
         # Console scroll bar
         self.c_scroll = Scrollbar(self.root)
-        self.c_scroll.grid(row=2, column=3, sticky='nsew')
+        self.c_scroll.grid(row=2, column=4, sticky='nsew')
         self.c_scroll.config(command=self.console.yview)
 
         # Creative constraints - PUT IN OWN CLASS
@@ -249,6 +272,7 @@ class Interface(BasicInterface):
         self.text.bind("<Button-1>", self.mouse_press_left)
         self.text.bind("<B1-Motion>", self.mouse_left_drag)
         self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
+        self.text.bind("<Double-Button-1>", self.mouse_left_double_click)
         self.text.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
 
         # select_background
@@ -831,7 +855,19 @@ class Interface(BasicInterface):
 
     def move_marker_ctrl_left(self):
         """ Moves the cursor to the start of the current word"""
-        index = self.text.marker.get_index_num()
+        index = self.get_word_left_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
+    def move_marker_ctrl_right(self):
+        """ Moves the cursor to the end of the current word, or next word if we are at the end.
+            Left must be non-space, and right must be space"""
+        index = self.get_word_right_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
+    def get_word_left_index(self, index):
+        """ Returns the index of the start of the current word """
         text  = self.text.read()
         # Don't look at the character before if it's a delimeter
         if index > 0 and text[index - 1] in (self.delimeters + self.whitespace):
@@ -843,13 +879,10 @@ class Interface(BasicInterface):
                 break
         else:
             i = 0
-        self.text.marker.move(i)
-        return
+        return i
 
-    def move_marker_ctrl_right(self):
-        """ Moves the cursor to the end of the current word, or next word if we are at the end.
-            Left must be non-space, and right must be space"""
-        index = self.text.marker.get_index_num()
+    def get_word_right_index(self, index):
+        """ Returns the index of the end of the current word """
         text  = self.text.read()
         if index < len(text) and text[index] in (self.delimeters + self.whitespace):
             index += 1
@@ -860,8 +893,8 @@ class Interface(BasicInterface):
                 break
         else:
             i = len(text)
-        self.text.marker.move(i)
-        return
+        return i
+        
 
     # Selection handling
     # ==================
@@ -1038,10 +1071,6 @@ class Interface(BasicInterface):
         """ Updates the server on where the local peer's marker is when the mouse release event is triggered.
             Selected area is removed un-selected. """
 
-        if self.popup.is_active():
-
-            self.popup.hide() # remove the right-click popup if necessary
-
         # If we click somewhere, remove the closed brackets tag
 
         self.remove_highlighted_brackets() 
@@ -1090,6 +1119,14 @@ class Interface(BasicInterface):
 
         return "break"
 
+    def mouse_left_double_click(self, event):
+        """ Highlights word - not yet implemented """
+        index = self.left_mouse.click(event)
+        right = self.get_word_right_index(index)
+        left  = self.get_word_left_index(index)
+        self.update_select(left, right)
+        return "break"
+
     def mouse_press_right(self, event):
         """ Displays popup menu"""
         self.popup.show(event)
@@ -1108,7 +1145,7 @@ class Interface(BasicInterface):
     def redo(self, event=None):
         ''' Re-applies the last undo event '''
         if len(self.text.redo_stack):
-            op = self.text.redo_stack.pop()
+            op = self.text.get_redo_operation()
             self.apply_operation(self.new_operation(*op.ops), index=get_operation_index(op.ops), redo=True)
         return "break"
 

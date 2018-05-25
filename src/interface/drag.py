@@ -4,17 +4,15 @@ except ImportError:
     from tkinter import Frame
 
 class Dragbar(Frame):
-
+    cursor_style="sb_v_double_arrow"
     def __init__(self, master, *args, **kwargs):
 
         self.app  = master
         self.root = master.root
 
-        Frame.__init__( self,
-                        self.root ,
-                        bg="white",
-                        height=2,
-                        cursor="sb_v_double_arrow")
+        kwargs["cursor"]=self.cursor_style
+
+        Frame.__init__( self, self.root, **kwargs )
 
         self.mouse_down = False
         
@@ -36,22 +34,36 @@ class Dragbar(Frame):
     def drag_mousedrag(self, event):
         if self.mouse_down:
 
-            textbox_line_h = self.app.text.dlineinfo("@0,0")
+            line_height = self.app.text.char_h
 
-            if textbox_line_h is not None:
+            text_height = ( self.app.text.winfo_height() / line_height ) # In lines
 
-                line_height = textbox_line_h[3]
+            widget_y = self.app.console.winfo_rooty() # Location of the console
 
-                text_height = int( self.app.text.winfo_height() / line_height ) # In lines
+            new_height =  ( self.app.console.winfo_height() + (widget_y - event.y_root) )
 
-                widget_y = self.app.console.winfo_rooty() # Location of the console
+            # Update heights of console / graphs
 
-                new_height =  ( self.app.console.winfo_height() + (widget_y - event.y_root) )
+            self.app.graphs.config(height = int(new_height))
 
-                # Update heights of console / graphs
+            self.app.console.config(height = int(max(2, new_height / line_height)))
 
-                self.app.graphs.config(height = new_height)
+        return "break"
 
-                self.app.console.config(height = max(2, new_height / line_height))
+class ConsoleDragbar(Dragbar):
+    cursor_style="sb_h_double_arrow"
+    def drag_mousedrag(self, event):
+        """ Resize the canvas """
+        if self.mouse_down:
 
-            return "break"
+            widget_x = self.app.graphs.winfo_rootx() # Location of the graphs
+
+            new_width =  self.app.graphs.winfo_width() + (widget_x - event.x_root)
+
+            self.app.graphs.config(width = int(new_width))
+
+            console_width = (self.app.root.winfo_width() - new_width) / self.app.text.char_w
+            
+            self.app.console.config(width = int(console_width))
+
+        return "break"

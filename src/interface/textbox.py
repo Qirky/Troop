@@ -218,6 +218,10 @@ class ThreadSafeText(Text, OTClient):
         """ Gets the last operation from the undo stack """
         return self.undo_stack.pop()
 
+    def get_redo_operation(self):
+        """ Gets the last operation from the undo stack """
+        return self.redo_stack.pop()
+
     # Top-level handling
     # ==================
 

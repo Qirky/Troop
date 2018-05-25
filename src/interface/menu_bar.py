@@ -148,7 +148,7 @@ class PopupMenu(Menu):
         self.add_separator()
         self.add_command(label="Select All", command=self.root.select_all)
 
-        self.active = False
+        self.bind("<FocusOut>", self.hide) # hide when clicked off
 
     def is_active(self):
         return self.active
@@ -156,12 +156,10 @@ class PopupMenu(Menu):
     def show(self, event):
         """ Displays the popup menu """
         self.focus_set()
-        self.active = True
         return self.post(event.x_root, event.y_root)
 
     def hide(self, event=None):
         """ Removes the display of the popup """
-        self.active = False
         return self.unpost()
 
     def update(self):
