@@ -252,8 +252,8 @@ class ThreadSafeText(Text, OTClient):
         """ After a new client connects, respond to the server to acknowledge"""
         if message['flag'] == 1:
             self.root.block_messages = True
-        elif message['flag'] == 0:
             self.root.add_to_send_queue(MSG_CONNECT_ACK(self.marker.id))
+        elif message['flag'] == 0:
             self.root.block_messages = False
         return
 

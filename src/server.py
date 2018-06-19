@@ -269,6 +269,7 @@ class TroopServer(OTServer):
         if all([client_id in self.acknowledged_clients for client_id in self.clients.keys()]):
             self.waiting_for_ack = False
             self.acknowledged_clients = []
+            self.wait_for_ack(False)
         return
 
     @staticmethod
@@ -496,10 +497,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 if isinstance(msg, MSG_CONNECT):
 
-                    # Tell clients to stop sending messages while new client connects
-
-                    self.master.wait_for_ack(True)
-
                     # Add the new client
 
                     new_client = self.handle_connect(msg)
@@ -514,7 +511,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     # After all clients have been connected, turn off "waiting"
 
-                    self.master.wait_for_ack(False)
+                    # self.master.wait_for_ack(False)
 
                 elif self.master.waiting_for_ack:
 
@@ -536,6 +533,8 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         # Store the client
 
         self.master.clients[new_client.id] = new_client
+
+        self.master.wait_for_ack(True)
 
         # Connect each client
 
