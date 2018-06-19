@@ -248,10 +248,17 @@ class TroopServer(OTServer):
         self.backend = MemoryBackend()
         return
 
-    def wait_for_ack(self):
+    def wait_for_ack(self, flag):
         """ Sets flag to disregard messages that are not MSG_CONNECT_ACK until all clients have responded """
-        self.waiting_for_ack = True
-        self.acknowledged_clients = []
+        if flag == True:
+        
+            self.waiting_for_ack = True
+            self.acknowledged_clients = []
+
+        for client in list(self.clients.values()):
+
+            client.send(MSG_REQUEST_ACK(-1, int(flag)))
+
         return
 
     def connect_ack(self, message):
@@ -431,8 +438,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         assert isinstance(msg, MSG_CONNECT)
 
         if self.client_address not in list(self.master.clients.values()):
-            
-            self.master.wait_for_ack() # Only listen for acknowledge messages
 
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
            
@@ -488,6 +493,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 if isinstance(msg, MSG_CONNECT):
 
+                    # Tell clients to stop sending messages while new client connects
+
+                    self.master.wait_for_ack(True)
+
                     # Add the new client
 
                     new_client = self.handle_connect(msg)
@@ -499,6 +508,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                     # Clear server history
 
                     self.master.clear_history()
+
+                    # After all clients have been connected, turn off "waiting"
+
+                    self.master.wait_for_ack(False)
 
                 elif self.master.waiting_for_ack:
 
@@ -527,10 +540,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         for client in list(self.master.clients.values()):
 
-            # Wait for handshake
-
-            client.send(MSG_REQUEST_ACK(-1, 1))
-
             # Tell other clients about the new connection
 
             client.send(msg1)
@@ -542,12 +551,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
                 new_client.send(msg2)
-
-        # After all clients have been connected, turn off "waiting"
-
-        for client in list(self.master.clients.values()):
-
-            client.send(MSG_REQUEST_ACK(-1, 0))
 
         return
 

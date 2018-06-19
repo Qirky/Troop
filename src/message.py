@@ -249,12 +249,16 @@ class MSG_KILL(MESSAGE):
 
 class MSG_CONNECT_ACK(MESSAGE):
     type = 13
+    def __init__(self, src_id, reply=0):
+        MESSAGE.__init__(self, src_id)
+        self["reply"] = reply
 
 class MSG_REQUEST_ACK(MESSAGE):
     type = 14
-    def __init__(self, src_id, flag):
+    def __init__(self, src_id, flag, reply=0):
         MESSAGE.__init__(self, src_id)
         self['flag'] = int(flag)
+        self["reply"] = reply
 
 class MSG_CONSTRAINT(MESSAGE):
     type = 15
