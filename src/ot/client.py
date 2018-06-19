@@ -12,6 +12,10 @@ class Client(object):
         self.revision = revision
         self.state = synchronized
 
+    def reset(self):
+        self.revision = 0
+        self.state = synchronized
+
     def apply_client(self, operation):
         """Call this method when the user (!) changes the document."""
         self.state = self.state.apply_client(self, operation)

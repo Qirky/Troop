@@ -251,7 +251,7 @@ class ThreadSafeText(Text, OTClient):
     def handle_request_ack(self, message):
         """ After a new client connects, respond to the server to acknowledge"""
         if message['flag'] == 1:
-            self.root.block_messages = True            
+            self.root.block_messages = True
         elif message['flag'] == 0:
             self.root.add_to_send_queue(MSG_CONNECT_ACK(self.marker.id))
             self.root.block_messages = False
@@ -338,7 +338,9 @@ class ThreadSafeText(Text, OTClient):
     def handle_set_all(self, message):
         ''' Sets the contents of the text box and updates the location of peer markers '''
 
-        self.document     = message["document"]
+        self.reset() # inherited from OTClient
+
+        self.document = message["document"]
 
         self.peer_tag_doc = self.create_peer_tag_doc(message["peer_tag_loc"])
 
