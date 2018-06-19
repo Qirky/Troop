@@ -246,6 +246,7 @@ class TroopServer(OTServer):
     def clear_history(self):
         """ Removes revision history - make sure clients' revision numbers reset """
         self.backend = MemoryBackend()
+        self.msg_queue = queue.Queue()
         return
 
     def wait_for_ack(self, flag):
@@ -319,9 +320,11 @@ class TroopServer(OTServer):
 
                 # Send to all other clients and the sender if "reply" flag is true
 
-                if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
+                if not self.waiting_for_ack:
 
-                    client.send(msg)
+                    if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
+
+                        client.send(msg)
 
             except DeadClientError as err:
 
