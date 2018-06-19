@@ -524,7 +524,7 @@ class Interface(BasicInterface):
 
         # Ignore the CtrlKey and non-ascii chars
 
-        if event.keysym in self.ignored_keys:
+        if (self.block_messages is True) or (event.keysym in self.ignored_keys):
 
             return "break"
 
@@ -675,13 +675,15 @@ class Interface(BasicInterface):
     def apply_operation(self, operation, index_offset=0, **kwargs):
         """ Handles a text operation locally and sends to the server """
 
-        # Apply locally
+        if self.block_messages is False:
 
-        self.text.apply_local_operation(operation, index_offset, **kwargs)
+            # Apply locally
 
-        # Handle the operation on the client side
+            self.text.apply_local_operation(operation, index_offset, **kwargs)
 
-        self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
+            # Handle the operation on the client side
+
+            self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
 
         return
 
