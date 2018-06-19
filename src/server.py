@@ -65,14 +65,6 @@ class TroopServer(OTServer):
 
         # Public ip for server is the first IPv4 address we find, else just show the hostname
         self.ip_pub = self.hostname
-        
-        #try:
-        #    for info in socket.getaddrinfo(socket.gethostname(), None):
-        #        if info[0] == 2:
-        #            self.ip_pub = info[4][0]
-        #            break
-        #except socket.gaierror:
-        #    pass
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -95,6 +87,8 @@ class TroopServer(OTServer):
 
         # Reference to the thread that is listening for new connections
         self.server_thread = Thread(target=self.server.serve_forever)
+
+        self.waiting_for_ack = False # Flagged True after new connected client
         
         # Dict of IDs to Client instances
         self.clients = {}
@@ -198,7 +192,6 @@ class TroopServer(OTServer):
         message["operation"] = op.ops
 
         # Apply to peer tags
-        #peer_op = TextOperation([str(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
         peer_op = TextOperation([get_peer_char(message["src_id"]) * len(val) if isinstance(val, str) else val for val in op.ops])
         self.peer_tag_doc = peer_op(self.peer_tag_doc)
 
@@ -253,6 +246,21 @@ class TroopServer(OTServer):
     def clear_history(self):
         """ Removes revision history - make sure clients' revision numbers reset """
         self.backend = MemoryBackend()
+        return
+
+    def wait_for_ack(self):
+        """ Sets flag to disregard messages that are not MSG_CONNECT_ACK until all clients have responded """
+        self.waiting_for_ack = True
+        self.acknowledged_clients = []
+        return
+
+    def connect_ack(self, message):
+        """ Handle response from clients confirming the new connected client """
+        client_id = message["src_id"]
+        self.acknowledged_clients.append(client_id)
+        if all([client_id in self.acknowledged_clients for client_id in self.clients.keys()]):
+            self.waiting_for_ack = False
+            self.acknowledged_clients = []
         return
 
     @staticmethod
@@ -419,35 +427,18 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return
 
     def handle_connect(self, msg):
-        """ Stores information about the new client """
+        """ Stores information about the new client. Wait for acknowledgement from all connected peers before continuing processing messages """
         assert isinstance(msg, MSG_CONNECT)
+
         if self.client_address not in list(self.master.clients.values()):
+            
+            self.master.wait_for_ack() # Only listen for acknowledge messages
+
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
+           
             self.connect_clients(new_client) # Contacts other clients
-        return new_client
-
-    # def handle_set_all(self, msg):
-    #     """ Forwards the SET_ALL message to requesting client and stores
-    #         the data in self.master.contents """
-    #     assert isinstance(msg, MSG_SET_ALL)
-
-    #     # Always store the last SET_ALL on the server
-
-    #     self.master.set_contents( msg["data"] )
-
-    #     new_client_id = msg['client_id']
-
-    #     if new_client_id != -1:
-            
-    #         for client in self.master.clients:
-                
-    #             if client.id == new_client_id:
-
-    #                 client.send( MSG_SET_ALL(self.get_client_id(), self.master.get_contents(), new_client_id) )
-
-    #                 break
-            
-    #     return
+           
+            return new_client
 
     def leader(self):
         """ Returns the peer client that is "leading" """
@@ -509,6 +500,12 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.clear_history()
 
+                elif self.master.waiting_for_ack:
+
+                    if isinstance(msg, MSG_CONNECT_ACK):
+
+                        self.master.connect_ack(msg)
+
                 else:
 
                     # Add any other messages to the send queue
@@ -541,6 +538,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
                 new_client.send(msg2)
+
+            # Wait for handshake
+
+            client.send(MSG_REQUEST_ACK(-1))
 
         return
 

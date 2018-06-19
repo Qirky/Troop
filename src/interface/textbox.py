@@ -74,6 +74,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_KILL,               self.handle_kill)
         self.add_handle(MSG_SET_ALL,            self.handle_set_all)
         self.add_handle(MSG_RESET,              self.handle_soft_reset)
+        self.add_handle(MSG_REQUEST_ACK,        self.handle_request_ack)
         self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
 
         # Information about other connected users
@@ -245,6 +246,11 @@ class ThreadSafeText(Text, OTClient):
 
             print("Peer '{}' has joined the session".format(message['name']))
 
+        return
+
+    def handle_request_ack(self, message):
+        """ After a new client connects, respond to the server to acknowledge"""
+        self.root.add_to_send_queue(MSG_CONNECT_ACK(self.marker.id))
         return
 
     def handle_operation(self, message, client=False):

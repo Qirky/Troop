@@ -247,12 +247,20 @@ class MSG_KILL(MESSAGE):
         MESSAGE.__init__(self, src_id)
         self['string']=str(string)
 
-class MSG_CONSTRAINT(MESSAGE):
+class MSG_CONNECT_ACK(MESSAGE):
     type = 13
+
+class MSG_REQUEST_ACK(MESSAGE):
+    type = 14
+
+class MSG_CONSTRAINT(MESSAGE):
+    type = 15
     def __init__(self, src_id, name, peer):
         MESSAGE.__init__(self, src_id)
         self.name    = str(name)
         self.peer_id = int(peer)
+
+
 
  
 # Create a dictionary of message type to message class 
@@ -270,6 +278,8 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_EVALUATE_BLOCK,
         MSG_EVALUATE_STRING,
         MSG_RESET,
+        MSG_CONNECT_ACK,
+        MSG_REQUEST_ACK,
     ]
 }
 
