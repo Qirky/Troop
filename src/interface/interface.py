@@ -302,6 +302,8 @@ class Interface(BasicInterface):
         self.handle_direction["Home"]  = self.key_home
         self.handle_direction["End"]   = self.key_end
 
+        self.block_messages = False # flag to stop sending messages
+
         # Selection indices
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
@@ -489,11 +491,13 @@ class Interface(BasicInterface):
 
             for msg in messages:
 
-                self.add_to_send_queue(msg)
+                self.add_to_send_queue(msg) # just in case we get nested lists somehow
 
         elif isinstance(message, MESSAGE):
 
-            self.client.send_queue.put(message)
+            if self.block_messages == False or (self.block_messages == True and isinstance(message, MSG_CONNECT_ACK)):
+
+                self.client.send_queue.put(message)
 
         else:
 

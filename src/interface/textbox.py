@@ -250,7 +250,11 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_request_ack(self, message):
         """ After a new client connects, respond to the server to acknowledge"""
-        self.root.add_to_send_queue(MSG_CONNECT_ACK(self.marker.id))
+        if message['flag'] == 1:
+            self.root.block_messages = True            
+        elif message['flag'] == 0:
+            self.root.add_to_send_queue(MSG_CONNECT_ACK(self.marker.id))
+            self.root.block_messages = False
         return
 
     def handle_operation(self, message, client=False):

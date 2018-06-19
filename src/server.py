@@ -527,6 +527,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         for client in list(self.master.clients.values()):
 
+            # Wait for handshake
+
+            client.send(MSG_REQUEST_ACK(-1, 1))
+
             # Tell other clients about the new connection
 
             client.send(msg1)
@@ -539,9 +543,11 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 new_client.send(msg2)
 
-            # Wait for handshake
+        # After all clients have been connected, turn off "waiting"
 
-            client.send(MSG_REQUEST_ACK(-1))
+        for client in list(self.master.clients.values()):
+
+            client.send(MSG_REQUEST_ACK(-1, 0))
 
         return
 

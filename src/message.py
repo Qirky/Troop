@@ -252,6 +252,9 @@ class MSG_CONNECT_ACK(MESSAGE):
 
 class MSG_REQUEST_ACK(MESSAGE):
     type = 14
+    def __init__(self, src_id, flag):
+        MESSAGE.__init__(self, src_id)
+        self['flag'] = int(flag)
 
 class MSG_CONSTRAINT(MESSAGE):
     type = 15
