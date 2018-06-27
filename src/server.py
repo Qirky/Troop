@@ -387,6 +387,7 @@ class TroopServer(OTServer):
 
 class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
+    name = None
 
     def client(self):        
         return self.get_client(self.get_client_id())
@@ -433,7 +434,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
     def handle_client_lost(self):
         """ Terminates cleanly """
-        stdout("Client @ {} has disconnected".format(self.client_address))
+        stdout("Client '{}' @ {} has disconnected".format(self.client_name, self.client_address))
         self.master.remove_client(self.client_id)
         return
 
@@ -441,9 +442,11 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         """ Stores information about the new client. Wait for acknowledgement from all connected peers before continuing processing messages """
         assert isinstance(msg, MSG_CONNECT)
 
-        if self.client_address not in list(self.master.clients.values()):
+        if self.client_address not in list(self.master.clients.values()): # should that be self.client_address?
 
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
+
+            self.client_name = new_client.name
            
             self.connect_clients(new_client) # Contacts other clients
            
