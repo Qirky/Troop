@@ -110,7 +110,8 @@ class Interface(BasicInterface):
 
         try:
 
-            self.root.state("zoomed")
+            #self.root.state("zoomed")
+            pass
 
         except TclError:
 
@@ -658,10 +659,7 @@ class Interface(BasicInterface):
         doc_size = len(self.text.read())
 
         if index == self.text.marker.select_end():
-            if (index + sel_size) > doc_size:
-                offset = index - doc_size # Idk why this works
-            else:
-                offset = len(insert) - sel_size
+            offset = len(insert) - sel_size
         elif index == self.text.marker.select_start():
             offset = len(insert)
         else:

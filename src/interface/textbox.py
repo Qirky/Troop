@@ -154,6 +154,7 @@ class ThreadSafeText(Text, OTClient):
             text = self.read()
 
             # Set the active peer to the local marker and apply operation
+            
             self.active_peer = self.marker
 
             self.apply_operation(operation, undo=undo)
@@ -287,13 +288,13 @@ class ThreadSafeText(Text, OTClient):
 
                 self.apply_server(operation)
 
-                # Move the peer marker
-
-                self.active_peer.move(get_operation_index(message["operation"]))
-
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
 
                 self.adjust_peer_locations(self.active_peer, message["operation"])
+
+                # Move the peer marker
+
+                self.active_peer.move(get_operation_index(message["operation"]))
 
         return
 
@@ -407,48 +408,45 @@ class ThreadSafeText(Text, OTClient):
 
         shift = get_operation_size(operation)
 
-        peer_loc = peer.get_index_num()
+        peer_index = peer.get_index_num()
+
         doc_size = len(self.read())
 
         for other in self.peers.values():
 
-            # Move any of a peer's selection
+            if other != peer:
 
-            if other != peer and other.has_selection():
+                other_index = other.get_index_num()
 
-                if peer.has_selection():
+                # Moving whole selections
 
-                    other.select_remove(peer.select_start(), peer.select_end())
+                if other.has_selection():
+
+                    if peer.has_selection():
+
+                        other.select_remove(peer.select_start(), peer.select_end())
+
+                    else:
+
+                        other.select_shift(peer_index, shift)
+
+                # If the other peer is *in* this peer's selection, move it
+
+                if peer.has_selection() and peer.select_contains( other_index ):
+        
+                    other.move(peer.select_start())
+
+                # Adjust the index if it comes after the operating peer index
+
+                elif other_index > peer_index:
+
+                    other.shift(shift)
+
+                # If behind, just redraw (if on screen)
 
                 else:
 
-                    other.select_shift(peer_loc, shift)
-
-            # If the other peer is *in* this peer's selection, move it
-
-            if peer != other and peer.has_selection() and peer.select_contains( other.get_index_num() ):
-
-                other.move(peer.select_start())
-
-            # if the peer is after this peer, move it
-
-            elif peer != other and other.get_index_num() > peer_loc:
-
-                index = other.get_index_num()
-
-                # If the end of the document is reduced past the peer, compensate for it
-
-                if (shift * -1) + index > doc_size:
-
-                    shift = index - doc_size
-
-                other.shift(shift)
-
-            # If behind, just redraw (if on screen)
-
-            elif peer != other:
-
-                other.refresh()
+                    other.refresh()
 
         self.update_colours()
 
@@ -586,7 +584,6 @@ class ThreadSafeText(Text, OTClient):
         self.insert("1.0", self.document)
         self.update_colours()
         self.apply_language_formatting()
-        self.refresh_peer_labels()
         return
 
     # handling key events
