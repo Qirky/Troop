@@ -201,6 +201,12 @@ class TroopServer(OTServer):
 
         return message
 
+    def handle_set_mark(self, message):
+        """ Handles a new MSG_SET_MARK by updating the client model's index """
+        client = self.clients[message["src_id"]]
+        client.set_index(int(message["index"]))
+        return message
+
     def set_contents(self, data):
         """ Updates the document contents, including the location of user text ranges and marks """
         for key, value in data.items():
@@ -302,6 +308,10 @@ class TroopServer(OTServer):
                 if isinstance(msg, MSG_OPERATION):
 
                     msg = self.handle_operation(msg)
+
+                elif isinstance(msg, MSG_SET_MARK):
+
+                    msg = self.handle_set_mark(msg)
 
                 self.respond(msg)
 
@@ -516,7 +526,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     # self.master.wait_for_ack(False)
 
-                elif self.master.waiting_for_ack:
+                elif self.master.waiting_for_ack: # TODO -- this doesn't make any sense
 
                     if isinstance(msg, MSG_CONNECT_ACK):
 
