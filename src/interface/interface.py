@@ -110,8 +110,7 @@ class Interface(BasicInterface):
 
         try:
 
-            #self.root.state("zoomed")
-            pass
+            self.root.state("zoomed")
 
         except TclError:
 
@@ -816,7 +815,7 @@ class Interface(BasicInterface):
         # Use the bounding box to adjust the y-pos
         x, y, w, h = self.text.bbox(tcl_index)
         # If the line down is off screen, make sure we can see it
-        if y >= self.text.winfo_height():
+        if (y + (2 * h)) >= self.text.winfo_height():
             self.text.see(tcl_index + "+1lines") # View lines we can't see
         # Calculate new index and check bbox
         new_tcl_index = self.text.index("@{},{}".format(x, y + h))
