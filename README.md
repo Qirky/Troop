@@ -42,9 +42,7 @@ You can change the language after you've opened the editor by going to `Code -> 
 
 Alternatively you can start Troop in a different "mode" so that it is interpreting another language at startup. To do this, run the following from the command line depending on your desired startup language:
  
-**TidalCycles**
-
-[Link](https://tidalcycles.org/)
+**[TidalCycles](https://tidalcycles.org/)**
 
 	python run-client.py --mode TidalCycles
 
@@ -52,9 +50,7 @@ Alternatively you can start Troop in a different "mode" so that it is interpreti
 
 	python run-client.py --mode TidalCyclesStack
 
-**SuperCollider**
-
-[Link](https://supercollider.github.io/)
+**[SuperCollider](https://supercollider.github.io/)**
 
 	python run-client.py --mode SuperCollider
 
@@ -66,9 +62,7 @@ Once this is done you'll need to make SuperCollider listen for Troop messages by
 
 	Troop.start
   
-**Sonic Pi**
-
-[Link](https://sonic-pi.net/)
+**[Sonic Pi](https://sonic-pi.net/)**
 
 	python run-client.py --mode Sonic-Pi  
 
