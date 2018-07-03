@@ -398,6 +398,7 @@ class TroopServer(OTServer):
 class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
     name = None
+    client_name = ""
 
     def client(self):        
         return self.get_client(self.get_client_id())

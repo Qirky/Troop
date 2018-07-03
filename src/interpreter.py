@@ -22,7 +22,7 @@ import sys
 import re
 import time
 import threading
-import io
+import shlex
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -134,13 +134,12 @@ class Interpreter(DummyInterpreter):
 
         import tempfile
 
-        self.f_out = tempfile.TemporaryFile("w+",)
+        self.f_out = tempfile.TemporaryFile("w+", buffering=1)
         self.is_alive = True
 
     def start(self):
         """ Opens the process with the interpreter language """
-
-        self.lang = Popen(self.path, shell=False, universal_newlines=True, bufsize=1,
+        self.lang = Popen(shlex.split(self.path), shell=False, universal_newlines=True, bufsize=1,
                           stdin=PIPE,
                           stdout=self.f_out,
                           stderr=self.f_out)
@@ -176,13 +175,15 @@ class Interpreter(DummyInterpreter):
         """ Continually reads the stdout from the self.lang process """
         while self.is_alive:
             try:
-                self.poll()
+                #self.poll()
                 self.f_out.seek(0)
+                #print(repr(self.f_out.read()))
                 for stdout_line in iter(self.f_out.readline, ""):
+                    #
                     sys.stdout.write(stdout_line.rstrip())                
                 # clear tmpfile
                 self.f_out.truncate(0)
-                time.sleep(0.05)
+                time.sleep(0.1)
             except ValueError as e:
                 print(e)
                 return
@@ -203,7 +204,7 @@ class CustomInterpreter:
 
 class FoxDotInterpreter(Interpreter):
     filetype=".py"
-    path = "python -m FoxDot --pipe"
+    path = "python -u -m FoxDot --pipe"
 
     def __init__(self):
 
