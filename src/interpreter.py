@@ -101,6 +101,7 @@ class DummyInterpreter:
             n = len(name)
             for i in range(1,len(string)):
                 sys.stdout.write(colour_format("." * n, colour) + _ + string[i])
+                sys.stdout.flush()
         return
     
     def stop_sound(self):
@@ -108,6 +109,7 @@ class DummyInterpreter:
     
     @staticmethod
     def format(string):
+        """ Method to be overloaded in sub-classes for formatting strings to be evaluated """
         return string
     
 class Interpreter(DummyInterpreter):
@@ -116,6 +118,7 @@ class Interpreter(DummyInterpreter):
     keyword_regex = compile_regex([])
     comment_regex = compile_regex([])
     stdout   = None
+    stdout_thread = None
     filetype = ".txt"
     def __init__(self, path):
 
@@ -129,13 +132,21 @@ class Interpreter(DummyInterpreter):
 
             raise ExecutableNotFoundError("'{}' is not a valid executable. Using Dummy Interpreter instead.".format(path))
 
+        import tempfile
+
+        self.f_out = tempfile.TemporaryFile("w+",)
+        self.is_alive = True
 
     def start(self):
+        """ Opens the process with the interpreter language """
 
-        self.lang = Popen(self.path, shell=True, universal_newlines=True,
+        self.lang = Popen(self.path, shell=False, universal_newlines=True, bufsize=1,
                           stdin=PIPE,
-                          stdout=PIPE,
-                          stderr=STDOUT)
+                          stdout=self.f_out,
+                          stderr=self.f_out)
+
+        self.stdout_thread = threading.Thread(target=self.stdout)
+        self.stdout_thread.start()
 
         return self
 
@@ -148,37 +159,40 @@ class Interpreter(DummyInterpreter):
     def write_stdout(self, string):
         self.lang.stdin.write(self.format(string))
         self.lang.stdin.flush()
+        return
 
     def evaluate(self, string, *args, **kwargs):
         """ Sends a string to the stdin and prints the text to the console """
         # Print to console
         self.print_stdin(string, *args, **kwargs)
-        # Write to stdin
-        try:
-            self.write_stdout(string)
-        except Exception as e:
-            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
-            stdout(e, string)
-        # Read stdout (wait 0.1 seconds)
-        threading.Thread(target=self.stdout).start()
+        self.write_stdout(string)
         return
 
-    def stdout(self):
-        """ Reads the stdout from the self.lang process """
-        if self.lang.stdout is None:
-            return 0
+    def poll(self):
+        """ To be overloaded """
+        pass
 
-        size = 0
-        for stdout_line in iter(self.lang.stdout.readline, ""):
-            size = len(stdout_line)
-            sys.stdout.write(stdout_line)
-
-        return size
+    def stdout(self, text=""):
+        """ Continually reads the stdout from the self.lang process """
+        while self.is_alive:
+            try:
+                self.poll()
+                self.f_out.seek(0)
+                for stdout_line in iter(self.f_out.readline, ""):
+                    sys.stdout.write(stdout_line.rstrip())                
+                # clear tmpfile
+                self.f_out.truncate(0)
+                time.sleep(0.05)
+            except ValueError as e:
+                print(e)
+                return
+        return
 
     def kill(self):
         """ Stops communicating with the subprocess """
         self.lang.communicate()
-        self.lang.kill() 
+        self.lang.kill()
+        self.is_alive = False
 
 class CustomInterpreter:
     def __init__(self, *args, **kwargs):
@@ -193,72 +207,18 @@ class FoxDotInterpreter(Interpreter):
 
     def __init__(self):
 
-        # 1. Try importing directly
+        Interpreter.__init__(self, self.path)
 
-        try:
-            # Try importing from install
-
-            try:
-
-                import FoxDot
-
-            except ImportError:
-
-                # Import locally if not found
-
-                from . import FoxDot
-
-            self.lang = FoxDot
-
-            self.imported = True
-
-            try:
-
-                self.keywords = list(FoxDot.get_keywords()) + list(FoxDot.SynthDefs) + ["play"]
-
-            except AttributeError:
-
-                self.keywords = ['>>']
-
-        except (ImportError, FileNotFoundError):
-            
-            Interpreter.__init__(self, self.path)
-
-            self.imported = False
-
-            self.keywords = ['classmethod', 'Clock', 'rFloorDiv', 'any', 'type', 'dict', 'max_length', 
-                             'sorted', 'staticmethod', 'or', 'loop_pattern_method', 'format', 'super', 
-                             'globals', 'rXor', 'inf', 'PTree', 'isinstance', 'callable', 'Scale', 'PRange', 
-                             'Div', 'PRand', 'pattern_depth', 'unicode', 'chr', '__import__', 'next', 'Or', 
-                             'EuclidsAlgorithm', 'FloorDiv', 'memoryview', 'setattr', 'sum', 'import', 
-                             'sliceToRange', 'PatternFormat', 'modi', 'Pow', 'PulsesToDurations', 'True', 
-                             'issubclass', 'PWalk', 'cmp', 'PDelay', 'list', 'dir', 'len', 'enumerate', 
-                             'Format', 'PTri', 'reduce', 'reload', 'PEuclid', 'PIndex', 'PFibMod', 'divmod', 
-                             'PSquare', 'unichr', 'round', 'map', 'long', 'Group', 'linvar', 'mapvar', 
-                             'PPairs', 'with', 'Mod', 'None', 'locals', 'basestring', 'P10', 'PRhythm', 
-                             'tuple', 'from', 'not', 'class', 'try', 'hasattr', 'compile', 'PSum', 'Pvar', 
-                             'filter', 'loop_pattern_func', 'PJoin', 'bool', 'Root', 'eval', 'for', 'Server', 
-                             'Add', 'PSq', 'str', 'PStutter', 'get_inverse_op', 'var', 'repr', 'PChain', 
-                             'reversed', 'hex', 'Nil', 'rSub', 'equal_values', 'if', 'all', 'rAdd', 'return', 
-                             'PZip', 'global', 'else', 'Samples', 'print', 'PWhite', 'file', 'ord', 'rOr', 'range',
-                             'complex', 'PwRand', 'PEuclid2', 'group_modi', 'Get', 'PStretch', 'asStream', 'lambda',
-                              'PSine', 'PDur', 'self', 'False', 'rGet', 'except', 'PQuicken', 'zip', 'hash', 'PAlt', 
-                              'PatternContainer', 'help', 'pow', 'PEq', 'in', 'PStep', 'iter', 'is', 'GeneratorPattern', 
-                              'ClassPatternMethod', 'min', 'DominantPattern', 'Mul', 'when', 'metaPattern', 'rMod', 
-                              'input', 'object', 'def', 'POperand', 'elif', 'while', 'PNe', 'PShuf', 'xrange',
-                              'getattr', 'get_expanded_len', 'rPow', 'bytearray', 'asPattern', 'expvar', 'Pattern', 
-                              'EmptyItem', 'vars', 'PZip2', 'delattr', 'frozenset', 'property', 'execfile', 
-                              'deepcopy', 'stdout', 'Xor', 'int', 'Sub', 'PxRand', 'PatternMethod', 'as', 'float', 
-                              'set', '\\A\\s*@.+', 'max', 'dots', 'patternclass', 'LCM', 'open', 'raw_input', 
-                              'PBeat', 'PGroup', 'StaticPatternMethod', 'Convert', 'P', 'and', 'abs', 'bin', 
-                              'slice', 'id', 'rDiv', '>>']
+        self.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>']
 
         self.keyword_regex = compile_regex(self.keywords)
 
-        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
-
     def __repr__(self):
         return "FoxDot"
+
+    @staticmethod
+    def format(string):
+        return "{}\n\n".format(string)
 
     @classmethod
     def find_comment(cls, string):        
@@ -277,41 +237,13 @@ class FoxDotInterpreter(Interpreter):
                   return [(i, len(string))]
         return []
 
-    def write_stdout(self, string):
-        self.lang.stdin.write(string + "\n\n")
-        self.lang.stdin.flush()
-        return
-
-    def start(self):
-        if not self.imported:
-            Interpreter.start(self)
-        return self
+    def poll(self):
+        """ Sends an empty string to the interpreter to flush stdout """
+        return self.write_stdout("")
 
     def kill(self):
-        if self.imported:
-            self.evaluate(self.stop_sound())
-        else:
-            Interpreter.kill(self)
-        return
-
-    def evaluate(self, *args, **kwargs):
-        """ Sends code to FoxDot instance and prints any error text """
-
-        if self.imported:
-        
-            Interpreter.print_stdin(self, *args, **kwargs)
-
-            response = self.lang.execute(args[0], verbose=False)
-
-            if response is not None:
-
-                if response.startswith("Traceback"):
-
-                    print(response)
-        else:
-
-            Interpreter.evaluate(self, *args, **kwargs)
-        
+        self.evaluate(self.stop_sound())
+        Interpreter.kill(self)
         return
 
     def stop_sound(self):
@@ -477,14 +409,8 @@ class TidalInterpreter(Interpreter):
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
     def start(self):
-        import tempfile
 
-        self.f_out = tempfile.TemporaryFile("w+")
-
-        self.lang = Popen(self.path, shell=False, universal_newlines=True, bufsize=1,
-                          stdin=PIPE,
-                          stdout=self.f_out,
-                          stderr=self.f_out)
+        Interpreter.start(self)
 
 
         # Import Tidal and set the cps
@@ -514,44 +440,12 @@ class TidalInterpreter(Interpreter):
 
         self.keyword_regex = compile_regex(self.keywords)
 
-        self.is_alive = True
-
-        threading.Thread(target=self.stdout).start()
+        # threading.Thread(target=self.stdout).start()
         
         return self
 
     def __repr__(self):
         return "TidalCycles"
-
-    def evaluate(self, string, *args, **kwargs):
-        """ Sends a string to the stdin and prints the text to the console """
-        # Print to console
-        self.print_stdin(string, *args, **kwargs)
-        # Write to stdin
-        try:
-            self.write_stdout(string)
-        except Exception as e:
-            stdout("Error in {}.evaluate()".format(self.__class__.__name__))
-            stdout(e, string)
-        return
-
-    def stdout(self, text=""):
-        """ Reads the stdout from the self.lang process """
-        while self.is_alive:
-            try:
-                self.f_out.seek(0)
-                for stdout_line in iter(self.f_out.readline, ""):
-                    sys.stdout.write(stdout_line.rstrip())
-                # clear tmpfile
-                self.f_out.truncate(0)
-                time.sleep(0.1)
-            except ValueError as e:
-                print(e)
-                return
-
-    def kill(self):
-        Interpreter.kill(self)
-        self.is_alive = False
 
     @classmethod
     def find_comment(cls, string):        
