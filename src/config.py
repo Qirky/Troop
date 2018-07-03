@@ -88,18 +88,23 @@ FOXDOT        = 0
 TIDAL         = 1
 TIDALSTACK    = 2
 SUPERCOLLIDER = 3
+SONICPI       = 4
 
 langnames = { "foxdot"           : FOXDOT,
               "tidalcycles"      : TIDAL,
               "tidalcyclesstack" : TIDALSTACK,
               "supercollider"    : SUPERCOLLIDER,
+              "sonic-pi"         : SONICPI,
+              "sonicpi"          : SONICPI,
               "none"             : DUMMY }
 
-langtitles = { "foxdot" : "FoxDot",
-               "tidalcycles": "TidalCycles",
-               "supercollider": "SuperCollider",
-               "tidalcyclesstack": "TidalCycles (stack)",
-               "none": "No Interpreter" }
+langtitles = { "foxdot"           : "FoxDot",
+               "tidalcycles"      : "TidalCycles",
+               "supercollider"    : "SuperCollider",
+               "tidalcyclesstack" : "TidalCycles (stack)",
+               "sonic-pi"         : "Sonic-Pi",
+               "sonicpi"          : "Sonic-Pi",
+               "none"             : "No Interpreter" }
 
 def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless

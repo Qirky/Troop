@@ -13,6 +13,13 @@ from subprocess import Popen
 from subprocess import PIPE, STDOUT
 from datetime import datetime
 
+# Import OSC library depending on Python version
+
+if PY_VERSION == 2:
+    from . import OSC
+else:
+    from . import OSC3 as OSC
+
 try:
     broken_pipe_exception = BrokenPipeError
 except NameError:  # Python 2
@@ -105,6 +112,7 @@ class DummyInterpreter:
         return
     
     def stop_sound(self):
+        """ Returns the string for stopping all sound in a language """
         return ""
     
     @staticmethod
@@ -164,6 +172,7 @@ class Interpreter(DummyInterpreter):
         """ Sends a string to the stdin and prints the text to the console """
         # Print to console
         self.print_stdin(string, *args, **kwargs)
+        # Pipe to the subprocess
         self.write_stdout(string)
         return
 
@@ -171,6 +180,7 @@ class Interpreter(DummyInterpreter):
         """ Continually reads the stdout from the self.lang process """
         while self.is_alive:
             try:
+                # Check contents of file
                 self.f_out.seek(0)
                 for stdout_line in iter(self.f_out.readline, ""):
                     sys.stdout.write(stdout_line.rstrip())                
@@ -240,32 +250,48 @@ class FoxDotInterpreter(Interpreter):
         return "Clock.clear()"
 
 
-class SuperColliderInterpreter(Interpreter):
-    filetype = ".scd"
+class OSCInterpreter(Interpreter):
+    """ Class for sending messages via OSC instead of using a subprocess """
     def __init__(self):
-        
-        if PY_VERSION == 2:
-            from . import OSC
-        else:
-            from . import OSC3 as OSC
 
-        # Connect to OSC client
-        self.host = 'localhost'
-        self.port = 57120
+        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
+
         self.lang = OSC.OSCClient()
         self.lang.connect((self.host, self.port))
 
-        # Define a function to produce new OSC messages
-        self.new_msg = lambda: OSC.OSCMessage("/troop")
+    # Overload to not activate a server
+    def start(self):
+        return self
 
-        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
+    def kill(self):
+        self.evaluate(self.stop_sound())
+        self.lang.close()
+        return
+
+    def new_osc_message(self, string):
+        """ Overload in sub-class, return OSC.OSCMessage"""
+        return
+
+    def evaluate(self, string, *args, **kwargs):
+        # Print to the console the message
+        Interpreter.print_stdin(self, string, *args, **kwargs)
+        # Create an osc message and send to the server
+        self.lang.send(self.new_osc_message(string))
+        return
+
+class SuperColliderInterpreter(OSCInterpreter):
+    filetype = ".scd"
+    host = 'localhost'
+    port = 57120
 
     def __repr__(self):
         return "SuperCollider"
 
-    # Overload
-    def start(self):
-        return self
+    def new_osc_message(self, string):
+        """ Returns OSC message for Troop Quark """
+        msg = OSC.OSCMessage("/troop")
+        msg.append([string])
+        return msg
 
     @classmethod
     def find_comment(cls, string):        
@@ -283,11 +309,6 @@ class SuperColliderInterpreter(Interpreter):
                 if not instring and i < len(string) and string[i + 1] == "/":
                     return [(i, len(string))]
         return []
-
-    def kill(self):
-        self.evaluate(self.stop_sound())
-        self.lang.close()
-        return
 
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
@@ -380,15 +401,48 @@ class SuperColliderInterpreter(Interpreter):
 
     def stop_sound(self):
         return "s.freeAll"
+
+
+class SonicPiInterpreter(OSCInterpreter):
+    filetype = ".rb"
+    host = 'localhost'
+    port = 4557
+    
+    def __repr__(self):
+        return "Sonic-Pi"
+
+    def new_osc_message(self, string):
+        """ Returns OSC message for Troop Quark """
+        msg = OSC.OSCMessage("/run-code")
+        msg.append(["0", string])
+        return msg
+
+    @classmethod
+    def find_comment(cls, string):        
+        instring, instring_char = False, ""
+        for i, char in enumerate(string):
+            if char in ('"', "'"):
+                if instring:
+                    if char == instring_char:
+                        instring = False
+                        instring_char = ""
+                else:
+                    instring = True
+                    instring_char = char
+            elif char == "#":
+              if not instring:
+                  return [(i, len(string))]
+        return []
+
+    def get_block_of_code(self, text, index):
+        """ Returns first and last line as Sonic Pi evaluates the whole code """
+        start, end = "1.0", text.index("end")
+        return [int(index.split(".")[0]) for index in (start, end)]
+
+    def stop_sound(self):
+        return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(self.host, self.port)
+
         
-    def evaluate(self, string, *args, **kwargs):
-        # Print to the console the message
-        Interpreter.print_stdin(self, string, *args, **kwargs)
-        # Create an osc message and send to SuperCollider
-        msg = self.new_msg()
-        msg.append([string])
-        self.lang.send(msg)
-        return
 
 class TidalInterpreter(Interpreter):
     path = 'ghci'
@@ -396,7 +450,6 @@ class TidalInterpreter(Interpreter):
     def __init__(self):
         # Start haskell interpreter
         Interpreter.__init__(self, self.path)
-        self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
     def start(self):
 
@@ -470,4 +523,5 @@ langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
               TIDALSTACK    : StackTidalInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter,
+              SONICPI       : SonicPiInterpreter,
               DUMMY         : DummyInterpreter }
