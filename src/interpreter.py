@@ -183,7 +183,7 @@ class Interpreter(DummyInterpreter):
                     sys.stdout.write(stdout_line.rstrip())                
                 # clear tmpfile
                 self.f_out.truncate(0)
-                time.sleep(0.1)
+                time.sleep(0.05)
             except ValueError as e:
                 print(e)
                 return
