@@ -246,6 +246,11 @@ class Interface(BasicInterface):
         self.text.bind("<{}-BackSpace>".format(CtrlKey),   self.key_ctrl_backspace)
         self.text.bind("<{}-Delete>".format(CtrlKey),      self.key_ctrl_delete)
 
+        # indentation
+
+        self.text.bind("<{}-bracketright>".format(CtrlKey),    self.indent)
+        self.text.bind("<{}-bracketleft>".format(CtrlKey),     self.unindent)
+
         self.text.bind("<{}-m>".format(CtrlKey), self.menu.toggle)
 
         # Key bindings to handle select
@@ -1212,6 +1217,12 @@ class Interface(BasicInterface):
 
                 self.apply_operation(operation, index_offset=len(text))
 
+        return "break"
+
+    def indent(self, event=None):
+        return "break"
+
+    def unindent(self, event=None):
         return "break"
 
     # Interface toggles
