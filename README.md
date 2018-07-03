@@ -64,7 +64,7 @@ Once this is done you'll need to make SuperCollider listen for Troop messages by
   
 **[Sonic Pi](https://sonic-pi.net/)**
 
-	python run-client.py --mode Sonic-Pi  
+	python run-client.py --mode SonicPi  
 
 Currently requires Sonic-Pi to be open on your computer.
 
