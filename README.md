@@ -44,6 +44,8 @@ Alternatively you can start Troop in a different "mode" so that it is interpreti
  
 **TidalCycles**
 
+[Link](https://tidalcycles.org/)
+
 	python run-client.py --mode TidalCycles
 
 **TidalCycles (installed using Stack)**
@@ -51,6 +53,8 @@ Alternatively you can start Troop in a different "mode" so that it is interpreti
 	python run-client.py --mode TidalCyclesStack
 
 **SuperCollider**
+
+[Link](https://supercollider.github.io/)
 
 	python run-client.py --mode SuperCollider
 
@@ -62,6 +66,13 @@ Once this is done you'll need to make SuperCollider listen for Troop messages by
 
 	Troop.start
   
+**Sonic Pi**
+
+[Link](https://sonic-pi.net/)
+
+	python run-client.py --mode Sonic-Pi  
+
+Currently requires Sonic-Pi to be open on your computer.
 
 **Other**
 
