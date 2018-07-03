@@ -167,19 +167,12 @@ class Interpreter(DummyInterpreter):
         self.write_stdout(string)
         return
 
-    def poll(self):
-        """ To be overloaded """
-        pass
-
     def stdout(self, text=""):
         """ Continually reads the stdout from the self.lang process """
         while self.is_alive:
             try:
-                #self.poll()
                 self.f_out.seek(0)
-                #print(repr(self.f_out.read()))
                 for stdout_line in iter(self.f_out.readline, ""):
-                    #
                     sys.stdout.write(stdout_line.rstrip())                
                 # clear tmpfile
                 self.f_out.truncate(0)
@@ -237,10 +230,6 @@ class FoxDotInterpreter(Interpreter):
               if not instring:
                   return [(i, len(string))]
         return []
-
-    def poll(self):
-        """ Sends an empty string to the interpreter to flush stdout """
-        return self.write_stdout("")
 
     def kill(self):
         self.evaluate(self.stop_sound())
