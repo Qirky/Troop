@@ -717,3 +717,17 @@ class ThreadSafeText(Text, OTClient):
         """ Takes an integer number and returns the row and column as integers """
         tcl_index = self.number_index_to_tcl(number)
         return tuple(int(x) for x in tcl_index.split("."))
+
+    def get_line_contents(self, line):
+        """ Returns the contents of a line specified by an integer """
+        return self.get("{}.0".format(line), "{}.end".format(line))
+
+    def get_leading_whitespace(self, line):
+        """ Returns the number of spaces that a line starts with, if the line is only whitespace, returns 0"""
+        line_contents = self.get_line_contents(line)
+
+        if line_contents.startswith(" ") and len(line_contents.strip()) > 0:
+
+            return len(line_contents) - len(line_contents.lstrip(' '))
+
+        return 0

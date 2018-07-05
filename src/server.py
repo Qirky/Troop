@@ -523,15 +523,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.clear_history()
 
-                    # After all clients have been connected, turn off "waiting"
+                elif self.master.waiting_for_ack and isinstance(msg, MSG_CONNECT_ACK):
 
-                    # self.master.wait_for_ack(False)
-
-                elif self.master.waiting_for_ack: # TODO -- this doesn't make any sense
-
-                    if isinstance(msg, MSG_CONNECT_ACK):
-
-                        self.master.connect_ack(msg)
+                    self.master.connect_ack(msg)
 
                 else:
 

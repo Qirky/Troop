@@ -543,6 +543,7 @@ class Interface(BasicInterface):
         # Get index
 
         index     = self.text.marker.get_index_num() # possibly just use .index_num
+        line_num  = self.text.number_index_to_row_col(index)[0]
         doc_size  = len(self.text.read())
         tail      = doc_size - index
         selection = self.text.marker.selection_size()
@@ -591,7 +592,9 @@ class Interface(BasicInterface):
 
             if event.keysym == "Return":
 
-                char = "\n"
+                # If the line starts with blank space, add the same blank space
+
+                char = "\n" + (" "*self.text.get_leading_whitespace(line_num))
 
             elif event.keysym == "Tab":
 
