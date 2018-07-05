@@ -279,6 +279,7 @@ class Interface(BasicInterface):
         self.text.bind("<ButtonRelease-1>", self.mouse_left_release)
         self.text.bind("<Double-Button-1>", self.mouse_left_double_click)
         self.text.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
+        self.text.bind("<Button-2>" if SYSTEM!=MAC_OS else "<Button-3>", lambda *e: "break") # disable middle button
 
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
