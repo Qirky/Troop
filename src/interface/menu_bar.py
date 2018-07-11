@@ -139,14 +139,14 @@ class PopupMenu(Menu):
     def __init__(self, master):
         self.root = master
         Menu.__init__(self, master.root, tearoff=0, postcommand=self.update)
-        self.add_command(label="Undo", command=self.root.undo) 
-        self.add_command(label="Redo", command=self.root.redo)
+        self.add_command(label="Undo", command=self.root.undo, accelerator="Ctrl+Z") 
+        self.add_command(label="Redo", command=self.root.redo, accelerator="Ctrl+Y")
         self.add_separator()
-        self.add_command(label="Copy", command=self.root.copy)
-        self.add_command(label="Cut", command=self.root.cut)
-        self.add_command(label="Paste", command=self.root.paste)
+        self.add_command(label="Copy", command=self.root.copy, accelerator="Ctrl+C")
+        self.add_command(label="Cut", command=self.root.cut, accelerator="Ctrl+X")
+        self.add_command(label="Paste", command=self.root.paste, accelerator="Ctrl+V")
         self.add_separator()
-        self.add_command(label="Select All", command=self.root.select_all)
+        self.add_command(label="Select All", command=self.root.select_all, accelerator="Ctrl+A")
 
         self.bind("<FocusOut>", self.hide) # hide when clicked off
 
