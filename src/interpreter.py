@@ -142,7 +142,7 @@ class Interpreter(DummyInterpreter):
 
         import tempfile
 
-        self.f_out = tempfile.TemporaryFile("w+", buffering=1)
+        self.f_out = tempfile.TemporaryFile("w+", 1) # buffering = 1
         self.is_alive = True
 
     def start(self):
@@ -195,7 +195,7 @@ class Interpreter(DummyInterpreter):
     def kill(self):
         """ Stops communicating with the subprocess """
         self.lang.communicate()
-        self.lang.kill()
+        #self.lang.kill()
         self.is_alive = False
 
 class CustomInterpreter:

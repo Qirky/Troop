@@ -332,7 +332,7 @@ class Interface(BasicInterface):
             if self.is_logging:
                 self.log_file.close()
         except(Exception) as e:
-            stdout(e)
+            stdout(e.__class__.__name__, e)
         BasicInterface.kill(self)
         return
 
