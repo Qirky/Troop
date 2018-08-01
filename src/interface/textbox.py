@@ -83,6 +83,7 @@ class ThreadSafeText(Text, OTClient):
 
         self.marker     = None
         self.local_peer = None
+        self.view       = (0, 0) # where the scroll bar is
 
         self.configure_font()
 
@@ -169,11 +170,16 @@ class ThreadSafeText(Text, OTClient):
 
             if index is not None:
 
-                self.marker.move(index)
+                self.marker.move(index, local_operation = True)
 
             else:
 
-                self.marker.shift(shift_amount)
+                self.marker.shift(shift_amount, local_operation = True)
+
+            # Return to old view
+
+            # self.root.scroll.set(*self.view)
+            self.reset_view()
 
         return
 
@@ -295,6 +301,13 @@ class ThreadSafeText(Text, OTClient):
                 # Move the peer marker
 
                 self.active_peer.move(get_operation_index(message["operation"]))
+
+                # Return to old view
+
+                print("returning view to {}".format(self.view))
+
+                #self.root.scroll.set(*self.view)
+                self.reset_view()
 
         return
 
@@ -475,18 +488,12 @@ class ThreadSafeText(Text, OTClient):
 
         return this_peer
 
-    def refresh_peer_labels(self):
-        ''' Updates the locations of the peers to their marks'''
-        for peer_id, peer in self.peers.items():
-             peer.refresh()
-        return
-
     def update_colours(self):
         """ Sets the peer tags in the text document """
 
         processed = []
 
-        # Go through connected peers
+        # Go through connected peers and colour the text
 
         for p_id, peer in self.peers.items():
 
@@ -580,10 +587,24 @@ class ThreadSafeText(Text, OTClient):
 
     def refresh(self):
         """ Clears the text box and loads the current document state, called after an operation """
+        
+        # Store the current "view" to re-apply later
+        self.view = self.root.scroll.get()
+        
+        # Remove all the text and insert new text
         self.clear()
         self.insert("1.0", self.document)
+
+        # Update the  colours and formatting
         self.update_colours()
         self.apply_language_formatting()
+        
+        return
+
+    def refresh_peer_labels(self):
+        ''' Updates the locations of the peers to their marks'''
+        for peer_id, peer in self.peers.items():
+             peer.refresh()
         return
 
     # handling key events
@@ -650,6 +671,17 @@ class ThreadSafeText(Text, OTClient):
 
     # Housekeeping
     # ============
+
+    def reset_view(self):
+        """ Sets the view to the last position stored"""
+        self.yview('moveto', self.view[0])
+        return
+
+    def yview(self, *args, **kwargs):
+        """ Overload text yview to update location of markers on scroll """
+        #print("{} {} {}".format(args, kwargs, self.view))
+        self.refresh_peer_labels()
+        return Text.yview(self, *args, **kwargs)
 
     def configure_font(self):
         """ Sets up font for the editor """

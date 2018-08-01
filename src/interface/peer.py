@@ -258,9 +258,9 @@ class Peer:
                 pass
         return
 
-    def shift(self, amount):
+    def shift(self, amount, *args, **kwargs):
         """ Updates the peer's location relative to its current location by calling `move` """        
-        return self.move(self.index_num + amount)
+        return self.move(self.index_num + amount, *args, **kwargs)
 
     def select_shift(self, loc, amount):
         return self.hl_select.shift(loc, amount)
@@ -299,7 +299,7 @@ class Peer:
         """ Returns true if this peer and other peer have the first same value for their tcl index """
         return self.get_row() == other.get_row()
         
-    def move(self, loc, raised = False):
+    def move(self, loc, raised = False, local_operation = False):
         """ Updates the location of the Peer's label """
 
         try:
@@ -345,9 +345,9 @@ class Peer:
 
             bbox = self.root.bbox(index)
 
-            if bbox is None and self == self.root.marker:
+            if bbox is None and self == self.root.marker:# and local_operation is True:
 
-                # If this is the local peer, make sure it is seen          
+                # If this is the local peer make sure it is seen.
 
                 self.root.see(self.mark)
 

@@ -166,7 +166,8 @@ class Interface(BasicInterface):
 
         # Text box
         self.text=ThreadSafeText(self, bg=COLOURS["Background"], fg="white", insertbackground=COLOURS["Background"],
-                                    height=15, bd=0, highlightthickness=0)
+                                    height=15, bd=0, highlightthickness=0, yscrollcommand=self.scroll.set)
+
         self.text.grid(row=0, column=1, sticky="nsew", columnspan=3)
         self.scroll.config(command=self.text.yview)
 
@@ -179,8 +180,17 @@ class Interface(BasicInterface):
         self.drag.grid(row=1, column=0, stick="nsew", columnspan=4)
 
         # Console Box
-        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=50, font="Font", highlightthickness=0)
+
+        self.c_scroll = Scrollbar(self.root)
+        self.c_scroll.grid(row=2, column=4, sticky='nsew')
+
+        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=50, font="Font", 
+                            highlightthickness=0, yscrollcommand=self.c_scroll.set)
+
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
+
+        self.c_scroll.config(command=self.console.yview)
+        
         sys.stdout = self.console # routes stdout to print to console
 
         self.console_drag = ConsoleDragbar(self, bg="white", width=2)
@@ -190,10 +200,7 @@ class Interface(BasicInterface):
         self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=350, bd=0, highlightthickness=0)
         self.graphs.grid(row=2, column=3, sticky="nsew")
 
-        # Console scroll bar
-        self.c_scroll = Scrollbar(self.root)
-        self.c_scroll.grid(row=2, column=4, sticky='nsew')
-        self.c_scroll.config(command=self.console.yview)
+        
 
         # Creative constraints - PUT IN OWN CLASS
 
