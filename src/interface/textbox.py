@@ -170,16 +170,17 @@ class ThreadSafeText(Text, OTClient):
 
             if index is not None:
 
-                self.marker.move(index, local_operation = True)
+                self.marker.move(index)
 
             else:
 
-                self.marker.shift(shift_amount, local_operation = True)
+                self.marker.shift(shift_amount)
 
-            # Return to old view
+            # Make sure we can see the local marker
 
-            # self.root.scroll.set(*self.view)
-            self.reset_view()
+            if self.bbox(self.marker.mark) is None:
+
+                self.marker.see()
 
         return
 
@@ -294,6 +295,10 @@ class ThreadSafeText(Text, OTClient):
 
                 self.apply_server(operation)
 
+                # Return to old view
+
+                self.reset_view()
+
                 # If the operation is delete/insert, change the indexes of peers that are based after this one
 
                 self.adjust_peer_locations(self.active_peer, message["operation"])
@@ -301,13 +306,6 @@ class ThreadSafeText(Text, OTClient):
                 # Move the peer marker
 
                 self.active_peer.move(get_operation_index(message["operation"]))
-
-                # Return to old view
-
-                print("returning view to {}".format(self.view))
-
-                #self.root.scroll.set(*self.view)
-                self.reset_view()
 
         return
 
@@ -604,7 +602,7 @@ class ThreadSafeText(Text, OTClient):
     def refresh_peer_labels(self):
         ''' Updates the locations of the peers to their marks'''
         for peer_id, peer in self.peers.items():
-             peer.refresh()
+             peer.redraw()
         return
 
     # handling key events
@@ -679,7 +677,6 @@ class ThreadSafeText(Text, OTClient):
 
     def yview(self, *args, **kwargs):
         """ Overload text yview to update location of markers on scroll """
-        #print("{} {} {}".format(args, kwargs, self.view))
         self.refresh_peer_labels()
         return Text.yview(self, *args, **kwargs)
 

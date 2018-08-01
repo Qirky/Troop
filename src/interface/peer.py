@@ -333,60 +333,57 @@ class Peer:
 
             index = "{}.{}".format(self.row, self.col)
 
-            # Find out if this needs to be raised
-
-            raised = self.find_overlapping_peers()
-
-            # Update the Tk text tag
+            # Update the Tk text tag and draw the label
 
             self.root.mark_set(self.mark, index)
 
-            # Only move the cursor if we have a valid index
-
-            bbox = self.root.bbox(index)
-
-            if bbox is None and self == self.root.marker:# and local_operation is True:
-
-                # If this is the local peer make sure it is seen.
-
-                self.root.see(self.mark)
-
-                # Try again to get the bounding box
-
-                bbox = self.root.bbox(index)
-
-            if bbox is not None:
-
-                x, y, width, height = bbox
-
-                x_val = x - 2
-
-                # Label can go on top of the cursor
-
-                if raised:
-
-                    y_val = (y - height, y - height)
-
-                else:
-
-                    y_val = (y + height, y)
-                
-                self.label.place(x=x_val, y=y_val[0], anchor="nw")
-                self.insert.place(x=x_val, y=y_val[1], anchor="nw")
-
-            else:
-
-                # If we're not meant to see the peer, hide it
-                
-                self.label.place(x=-100, y=-100)
-                self.insert.place(x=-100, y=-100)
-
+            self.redraw()
 
         except Tk.TclError as e:
 
             print(e)
             
         return self.index_num
+
+    def redraw(self):
+        """ Redraws the peer label """
+        bbox = self.root.bbox(self.mark)
+
+        if bbox is not None:
+
+            x, y, width, height = bbox
+
+            self.x_val = x - 2
+
+            # Label can go on top of the cursor
+
+            raised = self.find_overlapping_peers()
+
+            if raised:
+
+                self.y_val = (y - height, y - height)
+
+            else:
+
+                self.y_val = (y + height, y)
+
+        else:
+
+            # Move out of view if not needed
+
+            self.x_val = -100
+            self.y_val = (-100, -100)
+
+        self.label.place(x=self.x_val, y=self.y_val[0], anchor="nw")
+        self.insert.place(x=self.x_val, y=self.y_val[1], anchor="nw")
+
+        return
+
+    def see(self):
+        """ Use text.see to see this peer then redraw """
+        self.root.see(self.mark)
+        self.redraw()
+        return
 
     def select(self, start, end):
         """ Updates the selected text area for a peer """
