@@ -164,8 +164,9 @@ class Interpreter(DummyInterpreter):
         return [(match.start(), match.end()) for match in self.comment_regex.finditer(string)]
 
     def write_stdout(self, string):
-        self.lang.stdin.write(self.format(string))
-        self.lang.stdin.flush()
+        if self.is_alive:
+            self.lang.stdin.write(self.format(string))
+            self.lang.stdin.flush()
         return
 
     def evaluate(self, string, *args, **kwargs):
@@ -179,6 +180,9 @@ class Interpreter(DummyInterpreter):
     def stdout(self, text=""):
         """ Continually reads the stdout from the self.lang process """
         while self.is_alive:
+            if self.lang.poll():
+                self.is_alive = False
+                break
             try:
                 # Check contents of file
                 self.f_out.seek(0)
@@ -194,9 +198,10 @@ class Interpreter(DummyInterpreter):
 
     def kill(self):
         """ Stops communicating with the subprocess """
-        self.lang.communicate()
-        #self.lang.kill()
+        # End process if not done so already
         self.is_alive = False
+        if self.lang.poll() is None:
+            self.lang.communicate()
 
 class CustomInterpreter:
     def __init__(self, *args, **kwargs):
