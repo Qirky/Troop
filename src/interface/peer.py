@@ -278,7 +278,7 @@ class Peer:
 
             # If the indices are in overlapping position, on the same row, and the other peer is not already raised
 
-            if peer != self:
+            if peer != self and peer.visible:
 
                 peer_index = peer.get_index_num()
                 this_index = self.get_index_num()
@@ -353,6 +353,11 @@ class Peer:
 
     def redraw(self):
         """ Redraws the peer label """
+
+        if self.visible is False:
+
+            return
+
         bbox = self.root.bbox(self.mark)
 
         if bbox is not None:
@@ -453,10 +458,6 @@ class Peer:
     def remove(self):
         """ Removes the peer from sight, but stays in the address book in case a client reconnects """
         self.hl_select.hide()
-        #self.label.destroy()
-        #self.insert.destroy()
-        self.root.root.graphs.delete(self.graph)
-        #del self.root.peers[self.id]
         self.hide()
         return
 
@@ -472,6 +473,7 @@ class Peer:
         self.y_val = (-100, -100)
         self.label.place(x=self.x_val, y=self.y_val[0], anchor="nw")
         self.insert.place(x=self.x_val, y=self.y_val[1], anchor="nw")
+        self.self.index_num = -1
         self.visible = False
         return 
     
