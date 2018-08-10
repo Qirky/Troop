@@ -250,7 +250,15 @@ class ThreadSafeText(Text, OTClient):
         ''' Prints to the console that new user has connected '''
         if self.marker.id != message['src_id']:
 
-            self.root.add_new_user(message['src_id'], message['name'])
+            # If a user has connected before, use that Peer instance
+
+            if message["src_id"] in self.peers:
+
+                self.root.reconnect_user(message['src_id'], message['name'])
+
+            else:
+
+                self.root.add_new_user(message['src_id'], message['name'])
 
             print("Peer '{}' has joined the session".format(message['name']))
 
@@ -344,7 +352,9 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_remove(self, message):
         """ Removes a Peer from the session based on the contents of message """
-        print("Peer '{!s}' has disconnected".format(self.get_peer(message).remove()))
+        peer = self.get_peer(message)
+        print("Peer '{!s}' has disconnected".format(peer))
+        peer.remove()
         return
 
     def handle_set_all(self, message):

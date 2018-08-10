@@ -199,6 +199,8 @@ class Peer:
         self.sel_start = "0.0"
         self.sel_end   = "0.0"
 
+        self.visible = True
+
         # self.move(1,0) # create the peer
 
     def __str__(self):
@@ -301,6 +303,10 @@ class Peer:
         
     def move(self, loc, raised = False, local_operation = False):
         """ Updates the location of the Peer's label """
+
+        if self.visible is False:
+
+            return
 
         try:
 
@@ -445,13 +451,29 @@ class Peer:
             return False
 
     def remove(self):
-        """ Destroys the Tk items associated with this peer and deletes it from the address book """
+        """ Removes the peer from sight, but stays in the address book in case a client reconnects """
         self.hl_select.hide()
-        self.label.destroy()
-        self.insert.destroy()
+        #self.label.destroy()
+        #self.insert.destroy()
         self.root.root.graphs.delete(self.graph)
-        del self.root.peers[self.id]
-        return self
+        #del self.root.peers[self.id]
+        self.hide()
+        return
+
+    def reconnect(self, name):
+        """ Un-hides a peer and updates the name when a client reconnects """
+        self.visible = True
+        self.name.set(name)
+        return
+
+    def hide(self):
+        """ Moves a label out of view """
+        self.x_val = -100
+        self.y_val = (-100, -100)
+        self.label.place(x=self.x_val, y=self.y_val[0], anchor="nw")
+        self.insert.place(x=self.x_val, y=self.y_val[1], anchor="nw")
+        self.visible = False
+        return 
     
     def has_selection(self):
         """ Returns True if this peer is selecting any text """

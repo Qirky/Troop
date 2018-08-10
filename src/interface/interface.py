@@ -383,6 +383,13 @@ class Interface(BasicInterface):
 
         return peer
 
+    def reconnect_user(self, user_id, name):
+        """ Re-adds a disconnected user to the interface """
+        peer = self.client.peers[user_id]
+        peer.reconnect(name)
+        peer.move(0)
+        return peer
+
     def stop_sound(self, *event):
         """ Sends a kill all sound message to the server based on the language """
         self.add_to_send_queue( MSG_EVALUATE_STRING(self.text.marker.id, self.lang.stop_sound() + "\n", reply=1) )

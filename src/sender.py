@@ -28,7 +28,8 @@ class Sender:
         self.connected = False
         self.connection_errors = {
             -1 : "Login attempt failed",
-            -2 : "Failed to connect: Maximum number of users connected. Please try again later."
+            -2 : "Failed to connect: Maximum number of users connected. Please try again later.",
+            -3 : "Only one user per IP address allowed."
         }
 
         self.ui        = None

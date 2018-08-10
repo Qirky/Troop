@@ -66,10 +66,16 @@ class TroopServer(OTServer):
         # Public ip for server is the first IPv4 address we find, else just show the hostname
         self.ip_pub = self.hostname
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        self.ip_pub = s.getsockname()[0]
-        s.close()
+        try:
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            self.ip_pub = s.getsockname()[0]
+            s.close()
+
+        except OSError:
+
+            pass
 
         # Look for an empty port
         port_found = False
@@ -249,6 +255,13 @@ class TroopServer(OTServer):
                 return -2 # error message for max clients exceeded                   
         return self.last_id
 
+    def client_exists(self, ip_addr):
+        """ Returns True if a ip_addr is in the address book"""
+        for client_id, client in self.clients.items():
+            if client.hostname == ip_addr:
+                return True
+        return False
+
     def clear_history(self):
         """ Removes revision history - make sure clients' revision numbers reset """
         self.backend = MemoryBackend()
@@ -264,7 +277,9 @@ class TroopServer(OTServer):
 
         for client in list(self.clients.values()):
 
-            client.send(MSG_REQUEST_ACK(-1, int(flag)))
+            if client.connected:
+
+                client.send(MSG_REQUEST_ACK(-1, int(flag)))
 
         return
 
@@ -327,23 +342,25 @@ class TroopServer(OTServer):
 
         for client in list(self.clients.values()):
 
-            try:
+            if client.connected:
 
-                # Send to all other clients and the sender if "reply" flag is true
+                try:
 
-                if not self.waiting_for_ack:
+                    # Send to all other clients and the sender if "reply" flag is true
 
-                    if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
+                    if not self.waiting_for_ack:
 
-                        client.send(msg)
+                        if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
 
-            except DeadClientError as err:
+                            client.send(msg)
 
-                # Remove client if no longer contactable
+                except DeadClientError as err:
 
-                self.remove_client(client.id)
+                    # Remove client if no longer contactable
 
-                stdout(err)
+                    self.remove_client(client.id)
+
+                    stdout(err)
 
         return
 
@@ -353,13 +370,17 @@ class TroopServer(OTServer):
             
         if client_id in self.clients:
 
-            del self.clients[client_id]
+            # del self.clients[client_id]
+
+            self.clients[client_id].disconnect()
 
         # Notify other clients
 
         for client in list(self.clients.values()):
-                
-            client.send(MSG_REMOVE(client_id))
+
+            if client.connected:
+                   
+                client.send(MSG_REMOVE(client_id))
 
         return
         
@@ -371,7 +392,9 @@ class TroopServer(OTServer):
 
         for client in list(self.clients.values()):
 
-            client.send(outgoing)
+            if client.connected:
+
+                client.send(outgoing)
 
         sleep(0.5)
         
@@ -388,8 +411,10 @@ class TroopServer(OTServer):
             outgoing = MSG_RESPONSE(-1, string)
 
             for client in list(self.clients.values()):
+
+                if client.connected:
                 
-                client.send(outgoing)
+                  client.send(outgoing)
                     
         return
 
@@ -410,20 +435,48 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.client_id
 
     def authenticate(self, password):
+
+        addr = self.client_address[0]
         
         if password == self.master.password.hexdigest():
 
-            # Reply with the client id
+            # See if this is a reconnecting client
 
-            self.client_id = self.master.get_next_id()
+            client = self.master.get_client_from_addr(addr)
 
-            stdout("New Connection from {}".format(self.client_address[0]))
+            # If the IP address already exists, re-connect the client (if not connected)
+
+            if client is not None:
+
+                if client.connected:
+
+                    # Don't reconnect
+
+                    stdout("User already connected: {}".format(addr))
+
+                    self.client_id = -3 # 
+
+                else:
+
+                    self.client_id = client.id
+
+                    client.connect(self.request)
+
+                    stdout("Re-connected user from {}".format(addr))
+
+            else:
+
+                # Reply with the client id
+
+                self.client_id = self.master.get_next_id()
+
+                stdout("New connected user from {}".format(addr))
 
         else:
 
             # Negative ID indicates failed login
 
-            stdout("Failed login from {}".format(self.client_address[0]))
+            stdout("Failed login from {}".format(addr))
 
             self.client_id = -1
 
@@ -445,7 +498,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
     def handle_client_lost(self):
         """ Terminates cleanly """
-        stdout("Client '{}' @ {} has disconnected".format(self.client_name, self.client_address))
+        stdout("Client '{}' @ {} has disconnected".format(self.client_name, self.client_address[0]))
         self.master.remove_client(self.client_id)
         return
 
@@ -552,7 +605,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             # Tell other clients about the new connection
 
-            client.send(msg1)
+            if client.connected:
+
+                client.send(msg1)
 
             # Tell the new client about other clients
 
@@ -581,7 +636,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             # Tell other clients about the new connection
 
-            client.send(msg)
+            if client.connected:
+
+                client.send(msg)
 
         return
     
@@ -605,6 +662,15 @@ class Client:
         # Location
 
         self.index = 0
+        self.connected = True
+
+    def disconnect(self):
+        self.connected = False
+        self.source.close()
+
+    def connect(self, socket):
+        self.connected = True
+        self.source = socket
         
     def get_index(self):
         return self.index
@@ -624,8 +690,10 @@ class Client:
         return
 
     def __eq__(self, other):
-        return self.address == other
+        #return self.address == other
+        return self.hostname == other
 
     def __ne__(self, other):
-        return self.address != other
+        #return self.address != other
+        return self.hostname != other
 
