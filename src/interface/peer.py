@@ -473,7 +473,7 @@ class Peer:
         self.y_val = (-100, -100)
         self.label.place(x=self.x_val, y=self.y_val[0], anchor="nw")
         self.insert.place(x=self.x_val, y=self.y_val[1], anchor="nw")
-        self.self.index_num = -1
+        self.index_num = -1
         self.visible = False
         return 
     
