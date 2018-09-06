@@ -144,11 +144,12 @@ class TroopServer(OTServer):
             self.is_logging = False
             self.log_file = None
 
-    def get_client_from_addr(self, client_address):
+    def get_client_from_addr(self, client_hostname, username):
         """ Returns the server-side representation of a client
             using the client address tuple """
         for client in list(self.clients.values()):
-            if client == client_address:
+            #if client.hostname == client_hostname and client.name == username:
+            if client == (client_hostname, username):
                 return client
 
     def get_client(self, client_id):
@@ -255,12 +256,12 @@ class TroopServer(OTServer):
                 return -2 # error message for max clients exceeded                   
         return self.last_id
 
-    def client_exists(self, ip_addr):
-        """ Returns True if a ip_addr is in the address book"""
-        for client_id, client in self.clients.items():
-            if client.hostname == ip_addr:
-                return True
-        return False
+    # def client_exists(self, ip_addr):
+    #     """ Returns True if a ip_addr is in the address book"""
+    #     for client_id, client in self.clients.items():
+    #         if client.hostname == ip_addr:
+    #             return True
+    #     return False
 
     def clear_history(self):
         """ Removes revision history - make sure clients' revision numbers reset """
@@ -287,11 +288,15 @@ class TroopServer(OTServer):
         """ Handle response from clients confirming the new connected client """
         client_id = message["src_id"]
         self.acknowledged_clients.append(client_id)
-        if all([client_id in self.acknowledged_clients for client_id in self.clients.keys()]):
+        if all([client_id in self.acknowledged_clients for client_id in self.connected_clients()]):
             self.waiting_for_ack = False
             self.acknowledged_clients = []
             self.wait_for_ack(False)
         return
+
+    def connected_clients(self):
+        """ Returns a list of all the connected clients_id's """
+        return (client_id for client_id, client in self.clients.items() if client.connected)
 
     @staticmethod
     def read_configuration_file(filename):
@@ -434,15 +439,20 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
     def get_client_id(self):
         return self.client_id
 
-    def authenticate(self, password):
+    def authenticate(self, packet):
 
         addr = self.client_address[0]
+
+        password = packet[0]['password']
+        username = packet[0]['name']
         
         if password == self.master.password.hexdigest():
 
             # See if this is a reconnecting client
 
-            client = self.master.get_client_from_addr(addr)
+            client = self.master.get_client_from_addr(addr, username)
+
+            self.client_info = (addr, username)
 
             # If the IP address already exists, re-connect the client (if not connected)
 
@@ -452,7 +462,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     # Don't reconnect
 
-                    stdout("User already connected: {}".format(addr))
+                    stdout("User already connected: {}@{}".format(username, addr))
 
                     self.client_id = -3 # 
 
@@ -462,7 +472,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     client.connect(self.request)
 
-                    stdout("Re-connected user from {}".format(addr))
+                    stdout("{} re-connected user from {}".format(username, addr))
 
             else:
 
@@ -470,7 +480,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 self.client_id = self.master.get_next_id()
 
-                stdout("New connected user from {}".format(addr))
+                stdout("New connected user '{}' from {}".format(username, addr))
 
         else:
 
@@ -487,9 +497,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         self.request.send(reply)
 
         return self.client_id
-
-    def not_authenticated(self):
-        return self.authenticate(self.get_message()[0]['password']) < 0
 
     def get_message(self):
         data = self.request.recv(self.master.bytes) 
@@ -532,7 +539,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         # Password test
 
-        if self.not_authenticated():
+        packet = self.get_message()
+
+        if self.authenticate(packet) < 0:
 
             return
 
@@ -609,13 +618,13 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 client.send(msg1)
 
-            # Tell the new client about other clients
+                # Tell the new client about other clients
 
-            if client != self.client_address:
+                if client != self.client_info:
 
-                msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
+                    msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
 
-                new_client.send(msg2)
+                    new_client.send(msg2)
 
         return
 
@@ -691,9 +700,11 @@ class Client:
 
     def __eq__(self, other):
         #return self.address == other
-        return self.hostname == other
+        #return self.hostname == other
+        return (self.hostname, self.name) == other
 
     def __ne__(self, other):
         #return self.address != other
-        return self.hostname != other
+        #return self.hostname != other
+        return (self.hostname, self.name) != other
 

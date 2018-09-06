@@ -193,9 +193,10 @@ class MSG_SET_MARK(MESSAGE):
 
 class MSG_PASSWORD(MESSAGE):
     type = 4
-    def __init__(self, src_id, password):
+    def __init__(self, src_id, password, name):
         MESSAGE.__init__(self, src_id)
         self['password']=str(password)
+        self['name']=str(name)
 
 class MSG_REMOVE(MESSAGE):
     type = 5

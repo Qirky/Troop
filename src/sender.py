@@ -22,6 +22,7 @@ class Sender:
         self.hostname = None
         self.port     = None
         self.address  = None
+        self.name     = None
         
         self.conn      = None
         self.conn_id   = None
@@ -29,12 +30,12 @@ class Sender:
         self.connection_errors = {
             -1 : "Login attempt failed",
             -2 : "Failed to connect: Maximum number of users connected. Please try again later.",
-            -3 : "Only one user per IP address allowed."
+            -3 : "A user with that name has already connected from your location."
         }
 
         self.ui        = None
 
-    def connect(self, hostname, port=57890, using_ipv6=False, password=""):
+    def connect(self, hostname, port=57890, username="", using_ipv6=False, password=""):
         """ Connects to the master Troop server and
             start a listening instance on this machine """
         if not self.connected:
@@ -43,6 +44,8 @@ class Sender:
             self.hostname = hostname
             self.port     = int(port)
             self.address  = (self.hostname, self.port)
+
+            self.name     = username
 
             # Connect to remote
 
@@ -70,7 +73,7 @@ class Sender:
 
             # Send the password
 
-            self.conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest())
+            self.conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest(), self.name)
 
             self.send( self.conn_msg )
 

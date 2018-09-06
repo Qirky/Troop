@@ -33,7 +33,7 @@ class Client:
 
         try:
             
-            self.send = Sender().connect(self.hostname, self.port, ipv6, getpass())
+            self.send = Sender().connect(self.hostname, self.port, self.name, ipv6, getpass())
 
             if not self.send.connected:
                 
