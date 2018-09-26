@@ -174,4 +174,22 @@ class PopupMenu(Menu):
 
         return
 
+class ConsolePopupMenu(PopupMenu):
+    def __init__(self, master):
+        self.root = master # console widget
+        disable = lambda *e: None
+        Menu.__init__(self, master.root, tearoff=0, postcommand=self.update)
+        self.add_command(label="Undo", command=disable, accelerator="Ctrl+Z", state=DISABLED) 
+        self.add_command(label="Redo", command=disable, accelerator="Ctrl+Y", state=DISABLED)
+        self.add_separator()
+        self.add_command(label="Copy", command=self.root.copy, accelerator="Ctrl+C")
+        self.add_command(label="Cut", command=disable, accelerator="Ctrl+X", state=DISABLED)
+        self.add_command(label="Paste", command=disable, accelerator="Ctrl+V", state=DISABLED)
+        self.add_separator()
+        self.add_command(label="Select All", command=self.root.select_all, accelerator="Ctrl+A")
 
+        self.bind("<FocusOut>", self.hide) # hide when clicked off
+
+    def update(self):
+        self.entryconfig("Copy", state=NORMAL if self.root.has_selection() else DISABLED)
+        return

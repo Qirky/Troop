@@ -13,6 +13,8 @@ try:
 except ImportError:
     import Queue as queue
 
+from .menu_bar import ConsolePopupMenu
+
 import re
 
 re_colour = re.compile(r"<colour=\"(?P<colour>.*?)\">(?P<c_text>.*?)</colour>(?P<string>.*?)$", re.DOTALL)
@@ -23,7 +25,9 @@ def find_colour(string):
 class Console(Text):
     def __init__(self, root, **kwargs):
         # Inherit
-        Text.__init__(self, root, **kwargs)   
+        Text.__init__(self, root, **kwargs)
+
+        self.root = root # 
 
         # Set font
 
@@ -47,8 +51,17 @@ class Console(Text):
         # Queue waits for messages to be added to the console
         self.queue = queue.Queue()
 
-        # Don't allow keypresses
+        # By default, don't allow keypresses
         self.bind("<Key>", self.null)
+        
+        self.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
+
+        CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
+
+        self.bind("<{}-c>".format(CtrlKey), self.copy)
+        self.bind("<{}-a>".format(CtrlKey), self.select_all)
+
+        self.popup = ConsolePopupMenu(self)
 
         self.colours = {}
 
@@ -108,4 +121,25 @@ class Console(Text):
     def flush(self, *args, **kwargs):
         """ Override """
         return
-        
+
+    def has_selection(self):
+        """ Returns True if the SEL tag is found in the Console widget """
+        return bool(self.tag_ranges(SEL))
+
+    def get_selection(self):
+        return self.get(SEL_FIRST, SEL_LAST)
+
+    def mouse_press_right(self, event):
+        """ Displays popup menu"""
+        self.popup.show(event)
+        return "break"
+
+    def copy(self, event=None):
+        if self.has_selection():
+            self.root.clipboard_clear()
+            self.root.clipboard_append(self.get_selection())
+        return "break"
+
+    def select_all(self, event=None):
+        self.tag_add(SEL,"1.0", END)
+        return "break"
