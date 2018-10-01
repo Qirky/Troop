@@ -710,11 +710,20 @@ class Interface(BasicInterface):
     # Directional keypress
     # ====================
 
+    def see_local_peer(self):
+        """ Calculates the local peer tcl_index and makes sure the text widget views it """
+        return self.see_peer(self.text.marker)
+
+    def see_peer(self, peer):
+        return self.text.see(peer.get_tcl_index())
+
     def key_direction(self, move_func):
         """ Calls the function that moves the user's cursor then does necessary updating e.g. for server """
+        self.see_local_peer()
         move_func()
         self.send_set_mark_msg()
         self.de_select()
+        self.see_local_peer()
         self.text.refresh_peer_labels()
         return "break"
 
@@ -820,6 +829,7 @@ class Interface(BasicInterface):
         tcl_index  = self.text.number_index_to_tcl(self.text.marker.get_index_num())
         line_num   = int(tcl_index.split(".")[0])
         # Use the bounding box to adjust the y-pos
+        # self.text.see(tcl_index)
         x, y, w, h = self.text.bbox(tcl_index)
         y = y - h
         # If the new index is off the canvas, try and see the line
