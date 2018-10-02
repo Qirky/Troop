@@ -654,7 +654,7 @@ class Interface(BasicInterface):
 
         # Make sure the user sees their cursor
 
-        self.text.refresh_peer_labels()
+        # self.text.refresh_peer_labels()
 
         return "break"
 
@@ -715,7 +715,10 @@ class Interface(BasicInterface):
         return self.see_peer(self.text.marker)
 
     def see_peer(self, peer):
-        return self.text.see(peer.get_tcl_index())
+        index = peer.get_tcl_index()
+        if self.text.bbox(index) is None:
+            self.text.see(index)
+        return
 
     def key_direction(self, move_func):
         """ Calls the function that moves the user's cursor then does necessary updating e.g. for server """
@@ -724,7 +727,6 @@ class Interface(BasicInterface):
         self.send_set_mark_msg()
         self.de_select()
         self.see_local_peer()
-        self.text.refresh_peer_labels()
         return "break"
 
     def key_left(self):
@@ -869,9 +871,6 @@ class Interface(BasicInterface):
 
     def move_marker_end(self):
         """ Moves the cursor to the end of a line """
-        #row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
-        #index  = self.text.tcl_index_to_number( "{!r}.end".format(row) ) # TODO
-
         tcl_index = self.text.number_index_to_tcl(self.text.marker.get_index_num())
         x, y, w, h = self.text.bbox(tcl_index)
         new_x = self.text.winfo_width()
@@ -974,7 +973,7 @@ class Interface(BasicInterface):
     def select_right(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-
+            
         self.update_select( *self.get_movement_index(self.move_marker_right) )
 
         return "break"
@@ -1086,7 +1085,7 @@ class Interface(BasicInterface):
 
                 self.line_numbers.config(width=self.line_numbers.winfo_width() + shift)
 
-                self.text.refresh_peer_labels()
+                # self.text.refresh_peer_labels()
 
         return
 

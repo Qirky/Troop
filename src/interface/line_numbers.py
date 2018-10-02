@@ -58,4 +58,10 @@ class LineNumbers(Tk.Canvas):
 
         self.create_line(w, 0, w, self.winfo_height(), fill="gray50")#COLOURS["Background"])
 
+        # Draw peer_lables
+
+        if self.textwidget.is_refreshing is False:
+
+            self.textwidget.refresh_peer_labels()
+
         self.after(30, self.redraw)

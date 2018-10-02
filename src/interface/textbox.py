@@ -33,6 +33,7 @@ from .colour_merge import ColourMerge
 # constraints = vars(constraints)
 
 class ThreadSafeText(Text, OTClient):
+    is_refreshing = False
     def __init__(self, root, **options):
         Text.__init__(self, root.root, **options)
         OTClient.__init__(self, revision=0)
@@ -445,7 +446,7 @@ class ThreadSafeText(Text, OTClient):
 
                     if peer.has_selection():
 
-                        other.select_remove(peer.select_start(), peer.select_end())
+                        other.select_remove(peer.select_start(), peer.select_end()) # questionable
 
                     else:
 
@@ -595,6 +596,8 @@ class ThreadSafeText(Text, OTClient):
 
     def refresh(self):
         """ Clears the text box and loads the current document state, called after an operation """
+
+        self.is_refreshing = True
         
         # Store the current "view" to re-apply later
         self.view = self.root.scroll.get()
@@ -606,6 +609,8 @@ class ThreadSafeText(Text, OTClient):
         # Update the  colours and formatting
         self.update_colours()
         self.apply_language_formatting()
+
+        self.is_refreshing = False
         
         return
 
@@ -682,13 +687,9 @@ class ThreadSafeText(Text, OTClient):
 
     def reset_view(self):
         """ Sets the view to the last position stored"""
+
         self.yview('moveto', self.view[0])
         return
-
-    def yview(self, *args, **kwargs):
-        """ Overload text yview to update location of markers on scroll """
-        self.refresh_peer_labels()
-        return Text.yview(self, *args, **kwargs)
 
     def configure_font(self):
         """ Sets up font for the editor """
