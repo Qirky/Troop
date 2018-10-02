@@ -5,27 +5,11 @@
     ------------
 
     The Troop Server runs on the local machine by default on port 57890.
-    These can be changed when instantiating the TroopServer object:
-
-        TroopServer.__init__(hostname, port)
-
-    The Troop Server is what is currently used to exectute the code. The
-    contents of the document is not stored on the server, but *all*
-    evaluated code is executed on the server machine. This opens up the
-    server machine to potentially malicious Python executions, but a security
-    module will be included soon.
-
-    The Troop Server should have FoxDot installed in their Python path and
-    SuperCollider running on the local machine.
+    This needs to be running before connecting using the client application.
+    See "run-client.py" for more information on how to connect to the
+    server. 
 
 """
-from __future__ import absolute_import
-from src.server import TroopServer
-import sys, os
+from src.__main__ import run_server
 
-
-myServer = TroopServer(log = "--log" in sys.argv)
-myServer.start()
-
-    
-    
+run_server()
