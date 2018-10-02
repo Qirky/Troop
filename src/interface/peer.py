@@ -59,6 +59,7 @@ class Highlight:
         self.text = text
         self.tag  = tag
         self.deactivate()
+
     def __repr__(self):
         return "<Selection: {} - {}>".format(self.start, self.end)
 
@@ -67,7 +68,7 @@ class Highlight:
     
     def set(self, start, end):
         """ Set a relative index """
-        self.anchor = start
+        self.anchor = start # point of origin (could be end or start in terms of length)
         self.start  = min(start, end)
         self.end    = max(start, end)
         self.active = self.start != self.end
@@ -88,6 +89,16 @@ class Highlight:
             self.hide()
         return
 
+    def shift(self, loc, amount):
+        if self.active:
+            if loc < self.start:
+                self.anchor += amount
+                self.start  += amount
+                self.end    += amount
+            elif loc < self.end:
+                self.end += amount
+        return
+
     def is_active(self):
         return self.active
     
@@ -97,15 +108,6 @@ class Highlight:
         self.anchor   = 0
         self.active   = False
         self.multiple = []
-    
-    def shift(self, loc, amount):
-        if self.active:
-            if loc < self.start:
-                self.start += amount
-                self.end   += amount
-            elif loc < self.end:
-                self.end += amount
-        return
     
     def show(self):
         """ Adds the highlight tag to the text """
@@ -343,7 +345,7 @@ class Peer:
 
             self.root.mark_set(self.mark, index)
 
-            self.redraw()
+            # self.redraw() # handles in line_numbers.py now
 
         except Tk.TclError as e:
 
