@@ -179,9 +179,9 @@ class ThreadSafeText(Text, OTClient):
 
             # Make sure we can see the local marker
 
-            if self.bbox(self.marker.mark) is None:
+            # if self.bbox(self.marker.mark) is None:
 
-                self.marker.see()
+            #     self.marker.see()
 
         return
 
@@ -390,9 +390,10 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_text_constraint(self, message):
         """ A new text constrait is set """
-        constraint_name = message["name"]
-        dictator_peer   = message["peer_id"]
-        self.constraint.set_constraint(message["name"], dictator_peer)
+        print("{} received".format(message))
+        # constraint_name = message["name"]
+        # dictator_peer   = message["peer_id"]
+        # self.constraint.set_constraint(message["name"], dictator_peer)
         return
 
 

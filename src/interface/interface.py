@@ -701,9 +701,17 @@ class Interface(BasicInterface):
 
             self.text.apply_local_operation(operation, index_offset, **kwargs)
 
-            # Handle the operation on the client side
+            # Handle the operation on the client side (this is just self.text.server_ack?)
 
             self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
+
+            # Reset the view on the textbox
+
+            self.text.reset_view()
+
+            # Make sure we can see the marker
+
+            self.see_local_peer()
 
         return
 
@@ -715,8 +723,12 @@ class Interface(BasicInterface):
         return self.see_peer(self.text.marker)
 
     def see_peer(self, peer):
-        index = peer.get_tcl_index()
-        if self.text.bbox(index) is None:
+        """ If the peer label (the peer's current tcl index +- 2 lines worth) is not 
+            visible, make sure we can see it. """
+        index        = peer.get_tcl_index()
+        top_index    = "{}-2lines".format(index)
+        bottom_index = "{}+2lines".format(index)
+        if self.text.bbox(top_index) is None or self.text.bbox(bottom_index) is None:
             self.text.see(index)
         return
 
@@ -1344,7 +1356,7 @@ class Interface(BasicInterface):
 
     def set_constraint(self, name):
         """ Tells Troop to use a new character constraint, see `constraints.py` for more information. """
-        self.push_queue_put(MSG_CONSTRAINT(name, self.text.marker.id))
+        self.add_to_send_queue(MSG_CONSTRAINT(self.text.marker.id, name))
         return
 
     # Message logging
