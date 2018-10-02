@@ -157,6 +157,7 @@ Original Comments
 > 	Added a generic callback handler.
 > 	- dwh
 """
+from __future__ import print_function
 
 import math, re, socket, select, string, struct, sys, threading, time, types, array, errno, inspect
 from SocketServer import UDPServer, DatagramRequestHandler, ForkingMixIn, ThreadingMixIn, StreamRequestHandler, TCPServer
@@ -166,10 +167,10 @@ global version
 version = ("0.3","6", "$Rev: 6382 $"[6:-2])
 
 global FloatTypes
-FloatTypes = [types.FloatType]
+FloatTypes = [float]
 
 global IntTypes
-IntTypes = [types.IntType]
+IntTypes = [int]
 
 global NTP_epoch
 from calendar import timegm
@@ -274,7 +275,7 @@ class OSCMessage(object):
 		'argument' may also be a list or tuple, in which case its elements
 		will get appended one-by-one, all using the provided typehint
 		"""
-		if type(argument) == types.DictType:
+		if type(argument) == dict:
 			argument = argument.items()
 		elif isinstance(argument, OSCMessage):
 			raise TypeError("Can only append 'OSCMessage' to 'OSCBundle'")
@@ -357,7 +358,7 @@ class OSCMessage(object):
 		out = list(values)
 		out.extend(self.values())
 		
-		if type(values) == types.TupleType:
+		if type(values) == tuple:
 			return tuple(out)
 		
 		return out
@@ -412,14 +413,14 @@ class OSCMessage(object):
 	def _buildItemList(self, values, typehint=None):
 		if isinstance(values, OSCMessage):
 			items = values.items()
-		elif type(values) == types.ListType:
+		elif type(values) == list:
 			items = []
 			for val in values:
-				if type(val) == types.TupleType:
+				if type(val) == tuple:
 					items.append(val[:2])
 				else:
 					items.append((typehint, val))
-		elif type(values) == types.TupleType:
+		elif type(values) == tuple:
 			items = [values[:2]]
 		else:		
 			items = [(typehint, values)]
@@ -435,7 +436,7 @@ class OSCMessage(object):
 		
 		new_items = self._buildItemList(val)
 		
-		if type(i) != types.SliceType:
+		if type(i) != slice:
 			if len(new_items) != 1:
 				raise TypeError("single-item assignment expects a single value or a (typetag, value) tuple")
 			
@@ -532,7 +533,7 @@ class OSCMessage(object):
 				break
 			i += 1
 		else:
-			raise ValueError("'%s' not in OSCMessage" % str(m))
+			raise ValueError("'%s' not in OSCMessage" % str(v))
 		# but more efficient than first calling self.values().index(val),
 		# then calling self.items(), which would in turn call self.values() again...
 		
@@ -634,7 +635,7 @@ class OSCBundle(OSCMessage):
 			binary = OSCBlob(argument.getBinary())
 		else:
 			msg = OSCMessage(self.address)
-			if type(argument) == types.DictType:
+			if type(argument) == dict:
 				if 'addr' in argument:
 					msg.setAddress(argument['addr'])
 				if 'args' in argument:
@@ -717,7 +718,7 @@ def OSCBlob(next):
 	The blob ends with 0 to 3 zero-bytes ('\x00') 
 	"""
 
-	if type(next) in types.StringTypes:
+	if type(next) in (str,):
 		OSCblobLength = math.ceil((len(next)) / 4.0) * 4
 		binary = struct.pack(">i%ds" % (OSCblobLength), OSCblobLength, next)
 	else:
@@ -778,7 +779,7 @@ def OSCTimeTag(time):
 		secs = secs - NTP_epoch
 		binary = struct.pack('>LL', long(secs), long(fract * NTP_units_per_second))
 	else:
-		binary = struct.pack('>LL', 0L, 1L)
+		binary = struct.pack('>LL', 0, 1)
 
 	return binary
 
@@ -808,7 +809,7 @@ def _readInt(data):
 	as a 32-bit integer. """
 	
 	if(len(data)<4):
-		print "Error: too few bytes for int", data, len(data)
+		print("Error: too few bytes for int", data, len(data))
 		rest = data
 		integer = 0
 	else:
@@ -845,7 +846,7 @@ def _readFloat(data):
 	"""
 	
 	if(len(data)<4):
-		print "Error: too few bytes for float", data, len(data)
+		print("Error: too few bytes for float", data, len(data))
 		rest = data
 		float = 0
 	else:
@@ -860,7 +861,7 @@ def _readDouble(data):
 	"""
 	
 	if(len(data)<8):
-		print "Error: too few bytes for double", data, len(data)
+		print("Error: too few bytes for double", data, len(data))
 		rest = data
 		float = 0
 	else:
@@ -901,7 +902,7 @@ def decodeOSC(data):
 				decoded.append(value)
 		else:
 			raise OSCError("OSCMessage's typetag-string lacks the magic ','")
-
+	
 	return decoded
 
 ######
@@ -913,7 +914,7 @@ def decodeOSC(data):
 def hexDump(bytes):
 	""" Useful utility; prints the string in hexadecimal.
 	"""
-	print "byte   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F"
+	print("byte   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F")
 
 	num = len(bytes)
 	for i in range(num):
@@ -921,12 +922,12 @@ def hexDump(bytes):
 			line = "%02X0 : " % (i/16)
 		line += "%02X " % ord(bytes[i])
 		if (i+1) % 16 == 0:
-			print "%s: %s" % (line, repr(bytes[i-15:i+1]))
+			print("%s: %s" % (line, repr(bytes[i-15:i+1])))
 			line = ""
 
 	bytes_left = num % 16
 	if bytes_left:
-		print "%s: %s" % (line.ljust(54), repr(bytes[-bytes_left:]))
+		print("%s: %s" % (line.ljust(54), repr(bytes[-bytes_left:])))
 
 def getUrlStr(*args):
 	"""Convert provided arguments to a string in 'host:port/prefix' format
@@ -939,7 +940,7 @@ def getUrlStr(*args):
 	if not len(args):
 		return ""
 		
-	if type(args[0]) == types.TupleType:
+	if type(args[0]) == tuple:
 		host = args[0][0]
 		port = args[0][1]
 		args = args[1:]
@@ -961,7 +962,7 @@ def getUrlStr(*args):
 	else:
 		host = 'localhost'
 	
-	if type(port) == types.IntType:
+	if type(port) == int:
 		return "%s:%d%s" % (host, port, prefix)
 	else:
 		return host + prefix
@@ -970,7 +971,7 @@ def parseUrlStr(url):
 	"""Convert provided string in 'host:port/prefix' format to it's components
 	Returns ((host, port), prefix)
 	"""
-	if not (type(url) in types.StringTypes and len(url)):
+	if not (type(url) in (str,) and len(url)):
 		return (None, '')
 
 	i = url.find("://")
@@ -1153,7 +1154,7 @@ class OSCClient(object):
 		try:
 			self._ensureConnected(address)
 			self.client_address = address
-		except socket.error, e:
+		except socket.error as e:
 			self.client_address = None
 			raise OSCClientError("SocketError: %s" % str(e))
 		
@@ -1185,7 +1186,7 @@ class OSCClient(object):
 			if self.client_address:
 				self.socket.connect(self.client_address)
 			
-		except socket.error, e:
+		except socket.error as e:
 			if e[0] in (7, 65):	# 7 = 'no address associated with nodename',  65 = 'no route to host'
 				raise e
 			else:
@@ -1215,7 +1216,7 @@ class OSCClient(object):
 		
 		try:
 			self.socket.sendall(msg.getBinary())
-		except socket.error, e:
+		except socket.error as e:
 			if e[0] in (7, 65):	# 7 = 'no address associated with nodename',  65 = 'no route to host'
 				raise e
 			else:
@@ -1234,7 +1235,7 @@ def parseFilterStr(args):
 	"""
 	out = {}
 	
-	if type(args) in types.StringTypes:
+	if type(args) in (str,):
 		args = [args]
 		
 	prefix = None
@@ -1382,9 +1383,9 @@ class OSCMultiClient(OSCClient):
 			self.targets[address][0] = prefix
 		
 		if filters != None:
-			if type(filters) in types.StringTypes:
+			if type(filters) in (str,):
 				(_, filters) = parseFilterStr(filters)
-			elif type(filters) != types.DictType:
+			elif type(filters) != dict:
 				raise TypeError("'filters' argument must be a dict with {addr:bool} entries")
 		
 			self._updateFilters(self.targets[address][1], filters)
@@ -1396,10 +1397,10 @@ class OSCMultiClient(OSCClient):
 		  - prefix (string): The OSC-address prefix prepended to the address of each OSCMessage
 		  sent to this OSCTarget (optional)
 		"""
-		if type(address) in types.StringTypes:
+		if type(address) in (str,):
 			address = self._searchHostAddr(address)
 				
-		elif (type(address) == types.TupleType):
+		elif (type(address) == tuple):
 			(host, port) = address[:2]
 			try:
 				host = socket.gethostbyname(host)
@@ -1438,10 +1439,10 @@ class OSCMultiClient(OSCClient):
 		the 'address' argument can be a ((host, port) tuple), or a hostname.
 		If the 'prefix' argument is given, the Target is only deleted if the address and prefix match.
 		"""
-		if type(address) in types.StringTypes:
+		if type(address) in (str,):
 			address = self._searchHostAddr(address) 
 
-		if type(address) == types.TupleType:
+		if type(address) == tuple:
 			(host, port) = address[:2]
 			try:
 				host = socket.gethostbyname(host)
@@ -1456,10 +1457,10 @@ class OSCMultiClient(OSCClient):
 		the 'address' argument can be a ((host, port) tuple), or a hostname.
 		If the 'prefix' argument is given, the return-value is only True if the address and prefix match.
 		"""
-		if type(address) in types.StringTypes:
+		if type(address) in (str,):
 			address = self._searchHostAddr(address) 
 
-		if type(address) == types.TupleType:
+		if type(address) == tuple:
 			(host, port) = address[:2]
 			try:
 				host = socket.gethostbyname(host)
@@ -1494,10 +1495,10 @@ class OSCMultiClient(OSCClient):
 		'address' can be a (host, port) tuple, or a 'host' (string), in which case the first matching OSCTarget is returned
 		Returns (None, ['',{}]) if address not found.
 		"""
-		if type(address) in types.StringTypes:
+		if type(address) in (str,):
 			address = self._searchHostAddr(address) 
 
-		if (type(address) == types.TupleType): 
+		if (type(address) == tuple): 
 			(host, port) = address[:2]
 			try:
 				host = socket.gethostbyname(host)
@@ -1675,7 +1676,7 @@ class OSCMultiClient(OSCClient):
 					sent = self.socket.sendto(binary, address)
 					binary = binary[sent:]
 				
-			except socket.error, e:
+			except socket.error as e:
 				if e[0] in (7, 65):	# 7 = 'no address associated with nodename',  65 = 'no route to host'
 					raise e
 				else:
@@ -2200,10 +2201,10 @@ class OSCServer(UDPServer, OSCAddressSpace):
 		url = ""
 		have_port = False
 		for item in data:
-			if (type(item) == types.IntType) and not have_port:
+			if (type(item) == int) and not have_port:
 				url += ":%d" % item
 				have_port = True
-			elif type(item) in types.StringTypes:
+			elif type(item) in (str,):
 				url += item
 
 		(addr, tail) = parseUrlStr(url)
@@ -2238,10 +2239,10 @@ class OSCServer(UDPServer, OSCAddressSpace):
 		url = ""
 		have_port = False
 		for item in data:
-			if (type(item) == types.IntType) and not have_port:
+			if (type(item) == int) and not have_port:
 				url += ":%d" % item
 				have_port = True
-			elif type(item) in types.StringTypes:
+			elif type(item) in (str,):
 				url += item
 
 		(addr, _) = parseUrlStr(url)
@@ -2262,7 +2263,7 @@ class OSCServer(UDPServer, OSCAddressSpace):
 		
 		try:
 			self.client._delTarget(addr)
-		except NotSubscribedError, e:
+		except NotSubscribedError as e:
 			txt = "%s: %s" % (e.__class__.__name__, str(e))
 			self.printErr(txt)
 
@@ -2454,7 +2455,7 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 			
 	def setup(self):
 		StreamRequestHandler.setup(self)
-		print "SERVER: New client connection."
+		print("SERVER: New client connection.")
 		self.setupAddressSpace()
 		self.server._clientRegister(self)
 		
@@ -2465,7 +2466,7 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 	def finish(self):
 		StreamRequestHandler.finish(self)
 		self.server._clientUnregister(self)
-		print "SERVER: Client connection handled."
+		print("SERVER: Client connection handled.")
 	def _transmit(self, data):
 		sent = 0
 		while sent < len(data):
@@ -2492,7 +2493,7 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 			if self._transmit(len_big_endian) and self._transmit(binary):
 				return True
 			return False			
-		except socket.error, e:
+		except socket.error as e:
 			if e[0] == errno.EPIPE: # broken pipe
 				return False
 			raise e
@@ -2518,14 +2519,14 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 		# get OSC packet size from stream which is prepended each transmission
 		chunk = self._receive(4)
 		if chunk == None:
-			print "SERVER: Socket has been closed."
+			print("SERVER: Socket has been closed.")
 			return None
 		# extract message length from big endian unsigned long (32 bit) 
 		slen = struct.unpack(">L", chunk)[0]
 		# receive the actual message
 		chunk = self._receive(slen)
 		if chunk == None:
-			print "SERVER: Socket has been closed."
+			print("SERVER: Socket has been closed.")
 			return None
 		# decode OSC data and dispatch
 		msg = decodeOSC(chunk)
@@ -2544,7 +2545,7 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 		# clean and blocking behaviour here
 		self.connection.settimeout(None)
 		
-		print "SERVER: Entered server loop"
+		print("SERVER: Entered server loop")
 		try:
 			while True:
 				decoded = self._receiveMsg()
@@ -2552,7 +2553,7 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 					return
 				elif len(decoded) <= 0:
 					# if message decoding fails we try to stay in sync but print a message
-					print "OSC stream server: Spurious message received."
+					print("OSC stream server: Spurious message received.")
 					continue
 
 				self.replies = []
@@ -2573,11 +2574,11 @@ class OSCStreamRequestHandler(StreamRequestHandler, OSCAddressSpace):
 				if not txOk:
 					break
 		
-		except socket.error, e:
+		except socket.error as e:
 			if e[0] == errno.ECONNRESET:
 				# if connection has been reset by client, we do not care much
 				# about it, we just assume our duty fullfilled
-				print "SERVER: Connection has been reset by peer."
+				print("SERVER: Connection has been reset by peer.")
 			else:
 				raise e
 		
@@ -2717,18 +2718,18 @@ class OSCStreamingClient(OSCAddressSpace):
 				tmp = self.socket.recv(count - len(chunk))
 			except socket.timeout:
 				if not self._running:
-					print "CLIENT: Socket timed out and termination requested."
+					print("CLIENT: Socket timed out and termination requested.")
 					return None
 				else:
 					continue
-			except socket.error, e:
+			except socket.error as e:
 				if e[0] == errno.ECONNRESET:
-					print "CLIENT: Connection reset by peer."
+					print("CLIENT: Connection reset by peer.")
 					return None
 				else:
 					raise e
 			if not tmp or len(tmp) == 0:
-				print "CLIENT: Socket has been closed."
+				print("CLIENT: Socket has been closed.")
 				return None
 			chunk = chunk + tmp
 		return chunk
@@ -2753,7 +2754,7 @@ class OSCStreamingClient(OSCAddressSpace):
 		return msg
 
 	def _receiving_thread_entry(self):
-		print "CLIENT: Entered receiving thread."
+		print("CLIENT: Entered receiving thread.")
 		self._running = True
 		while self._running:
 			decoded = self._receiveMsgWithTimeout()
@@ -2777,7 +2778,7 @@ class OSCStreamingClient(OSCAddressSpace):
 			self._txMutex.release()
 			if not txOk:
 				break
-		print "CLIENT: Receiving thread terminated."
+		print("CLIENT: Receiving thread terminated.")
 		
 	def _unbundle(self, decoded):
 		if decoded[0] != "#bundle":
@@ -2810,13 +2811,13 @@ class OSCStreamingClient(OSCAddressSpace):
 				tmp = self.socket.send(data[sent:])
 			except socket.timeout:
 				if not self._running:
-					print "CLIENT: Socket timed out and termination requested."
+					print("CLIENT: Socket timed out and termination requested.")
 					return False
 				else:
 					continue
-			except socket.error, e:
+			except socket.error as e:
 				if e[0] == errno.ECONNRESET:
-					print "CLIENT: Connection reset by peer."
+					print("CLIENT: Connection reset by peer.")
 					return False
 				else:
 					raise e
