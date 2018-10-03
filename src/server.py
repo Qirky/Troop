@@ -256,13 +256,6 @@ class TroopServer(OTServer):
                 return -2 # error message for max clients exceeded                   
         return self.last_id
 
-    # def client_exists(self, ip_addr):
-    #     """ Returns True if a ip_addr is in the address book"""
-    #     for client_id, client in self.clients.items():
-    #         if client.hostname == ip_addr:
-    #             return True
-    #     return False
-
     def clear_history(self):
         """ Removes revision history - make sure clients' revision numbers reset """
         self.backend = MemoryBackend()
@@ -332,6 +325,10 @@ class TroopServer(OTServer):
                 elif isinstance(msg, MSG_SET_MARK):
 
                     msg = self.handle_set_mark(msg)
+
+                elif isinstance(msg, MSG_CONSTRAINT):
+
+                    print(msg)
 
                 self.respond(msg)
 

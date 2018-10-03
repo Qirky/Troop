@@ -263,10 +263,10 @@ class MSG_REQUEST_ACK(MESSAGE):
 
 class MSG_CONSTRAINT(MESSAGE):
     type = 15
-    def __init__(self, src_id, name, peer):
+    def __init__(self, src_id, name):#, peer):
         MESSAGE.__init__(self, src_id)
-        self.name    = str(name)
-        self.peer_id = int(peer)
+        self['name'] = str(name) # replace with ID number
+        # self.peer_id = int(peer) # 
 
 
 
@@ -288,40 +288,9 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_RESET,
         MSG_CONNECT_ACK,
         MSG_REQUEST_ACK,
+        MSG_CONSTRAINT,
     ]
 }
-
-# def convert_to_message(string):
-#     """ Takes a dict of values and returns the appropriate message wrapper """
-#     data = json.loads(string)
-#     cls = MESSAGE_TYPE[data["type"]]
-#     del data["type"]
-#     return cls(**data)
-
-# def read_from_socket(sock):
-#     """ Reads data from the socket """
-#     # Get number single int that tells us how many digits to read
-#     try:
-#         bits = int(sock.recv(4))
-#         if bits > 0:
-#             # Read the remaining data (JSON)
-#             data = sock.recv(bits)
-#             # Convert back to Python data structure
-#             return convert_to_message(data)
-#     except (ConnectionAbortedError, ConnectionResetError):
-#         return None
-
-# def send_to_socket(sock, data):
-#     """ Sends instances of MESSAGE to a connected socket """
-#     assert isinstance(data, MESSAGE)
-#     # Get length and store as string
-#     msg_len, msg_str = len(data), data.as_bytes()
-#     # Continually send until we know all of the data has been sent
-#     sent = 0
-#     while sent < msg_len:
-#         bits = sock.send(msg_str[sent:])
-#         sent += bits
-#     return
 
 # Exceptions
 
