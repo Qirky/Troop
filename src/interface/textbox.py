@@ -177,12 +177,6 @@ class ThreadSafeText(Text, OTClient):
 
                 self.marker.shift(shift_amount)
 
-            # Make sure we can see the local marker
-
-            # if self.bbox(self.marker.mark) is None:
-
-            #     self.marker.see()
-
         return
 
     def insert_peer_id(self, peer, ops):
