@@ -496,7 +496,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         return self.client_id
 
     def get_message(self):
-        data = self.request.recv(self.master.bytes) 
+        data = self.request.recv(self.master.bytes)
         data = self.reader.feed(data)
         return data
 

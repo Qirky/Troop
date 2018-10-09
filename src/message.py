@@ -13,10 +13,24 @@ import re
 import inspect
 import json
 
+def escape_chars(s):
+    return s.replace(">", "\>").replace("<", "\<")
+
+def unescape_chars(s):
+    return s.replace("\>", ">").replace("\<", "<")
+
 class NetworkMessageReader:
     def __init__(self):
         self.string = ""
         self.re_msg = re.compile(r"<(.*?>?)>(?=<|$)", re.DOTALL)
+
+    def findall(self, string):
+        """ Returns all values in a message as a list """
+        return self.re_msg.findall(string)
+
+    def convert_to_json(self, string):
+        """ Un-escapes special characters and converts a string to a json object """
+        return json.loads(unescape_chars(string))
 
     def feed(self, data):
         """ Adds text (read from server connection) and returns the complete messages within. Any
@@ -25,9 +39,7 @@ class NetworkMessageReader:
         # Most data is read from the server, which is bytes in Python3 and str in Python2, so make
         # sure it is properly decoded to a string.
 
-        if type(data) is bytes:
-
-            string = data.decode()
+        string = data.decode() if type(data) is bytes else data
 
         if string == "":
 
@@ -37,7 +49,7 @@ class NetworkMessageReader:
         full_message = self.string + string
 
         # Identify message tags
-        data = self.re_msg.findall(full_message)
+        data = self.findall(full_message)
 
         # i is the data, pkg  is the list of messages
         i, pkg = 0, []
@@ -59,7 +71,7 @@ class NetworkMessageReader:
 
                 # Collect the arguments
 
-                args = [json.loads(data[n]) for n in range(i+1, i+j)]
+                args = [self.convert_to_json(data[n]) for n in range(i+1, i+j)]
 
                 pkg.append(cls(*args))
 
@@ -106,7 +118,7 @@ class MESSAGE(object):
 
     @staticmethod
     def format(value):
-        return "<{}>".format(json.dumps(value))
+        return "<{}>".format(escape_chars(json.dumps(value)))
 
     def bytes(self):
         return str(self).encode("utf-8")
@@ -311,3 +323,14 @@ class DeadClientError(Exception):
         self.name = name
     def __str__(self):
         return "DeadClientError: Could not connect to {}".format(self.name)
+
+
+
+if __name__ == "__main__":
+
+    test1 = MSG_OPERATION(1, [0, 'd1 >> play("<x ><  o >")', 0], 10)
+    test2 = MSG_SET_MARK(1, 10)
+
+    message = str(test1) + str(test2)
+
+    print(message)
