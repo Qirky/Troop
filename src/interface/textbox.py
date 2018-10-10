@@ -383,7 +383,7 @@ class ThreadSafeText(Text, OTClient):
         return self.root.freeze_kill(message['string'])
 
     def handle_text_constraint(self, message):
-        """ A new text constrait is set """
+        """ A new text constrait is set """ # TODO: implement the constraints again
         print("{} received".format(message))
         # constraint_name = message["name"]
         # dictator_peer   = message["peer_id"]
@@ -439,13 +439,15 @@ class ThreadSafeText(Text, OTClient):
 
                 if other.has_selection():
 
+                    # If the selections overlap, de-highlight the deleted section
+
                     if peer.has_selection():
 
-                        other.select_remove(peer.select_start(), peer.select_end()) # questionable
+                        other.select_remove(peer.select_start(), peer.select_end())
 
-                    else:
+                    # Shift a selected area
 
-                        other.select_shift(peer_index, shift)
+                    other.select_shift(peer_index, shift)
 
                 # If the other peer is *in* this peer's selection, move it
 

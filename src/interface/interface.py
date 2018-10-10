@@ -685,7 +685,7 @@ class Interface(BasicInterface):
         elif index == self.text.marker.select_start():
             offset = len(insert)
         else:
-            print("Issue in selection delete")
+            raise IndexError("Selection indicies do not match")
         return offset
 
     def get_set_all_operation(self, text):
