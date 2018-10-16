@@ -45,7 +45,7 @@ class NetworkMessageReader:
 
             raise EmptyMessageError()
 
-        # Collate with any existing text
+        # Join with any existing text
         full_message = self.string + string
 
         # Identify message tags
@@ -81,12 +81,9 @@ class NetworkMessageReader:
 
             except IndexError:
 
-                # If there aren't enough arguments, store the remaining string for next time
-                # and return the list we have so far
+                # If there aren't enough arguments, return what we have so far
 
-                self.string = full_message[length:]
-
-                return pkg
+                break
 
             except TypeError as e:
 
@@ -99,7 +96,7 @@ class NetworkMessageReader:
 
         # If we process the whole string, reset the stored string
 
-        self.string = ""
+        self.string = full_message[length:]
 
         return pkg
 
@@ -328,9 +325,4 @@ class DeadClientError(Exception):
 
 if __name__ == "__main__":
 
-    test1 = MSG_OPERATION(1, [0, 'd1 >> play("<x ><  o >")', 0], 10)
-    test2 = MSG_SET_MARK(1, 10)
-
-    message = str(test1) + str(test2)
-
-    print(message)
+    pass
