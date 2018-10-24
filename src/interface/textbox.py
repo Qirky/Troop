@@ -124,7 +124,10 @@ class ThreadSafeText(Text, OTClient):
         return self.root.add_to_send_queue(message)
 
     # Override OT
-    def apply_operation(self, operation, undo=False):
+    # def apply_server(self, server, *args, **kwargs):
+    #     return
+
+    def apply_operation(self, operation, peer=None, undo=False):
         """Should apply an operation from the server to the current document."""
 
         if len(operation.ops):
@@ -135,15 +138,24 @@ class ThreadSafeText(Text, OTClient):
                 print("Document length mismatch, please restart the Troop server.")
                 return
 
+            if peer is None:
+
+                peer = self.active_peer
+
             # If other peers have added/deleted chars - transform the undo stack
 
-            if self.active_peer != self.marker:
+            # if self.active_peer != self.marker:
+
+            #     self.transform_undo_stacks(operation)
+
+            if peer != self.marker:
 
                 self.transform_undo_stacks(operation)
 
             # Apply op
             self.set_text(operation(self.read()))
-            self.insert_peer_id(self.active_peer, operation.ops)
+            #self.insert_peer_id(self.active_peer, operation.ops)
+            self.insert_peer_id(peer, operation.ops)
 
         return
 
@@ -157,9 +169,9 @@ class ThreadSafeText(Text, OTClient):
 
             # Set the active peer to the local marker and apply operation
             
-            self.active_peer = self.marker
+            # self.active_peer = self.marker # I think this is an issue
 
-            self.apply_operation(operation, undo=undo)
+            self.apply_operation(operation, peer=self.marker, undo=undo)
 
             # Track operations in the undo stack
 
@@ -272,8 +284,6 @@ class ThreadSafeText(Text, OTClient):
         """ Forwards the operation message to the correct handler based on whether it
             was sent by the client or server """
 
-        self.active_peer = self.get_peer(message)
-
         if client:
 
             operation = TextOperation(message["operation"])
@@ -291,6 +301,8 @@ class ThreadSafeText(Text, OTClient):
                 self.server_ack()
 
             else:
+
+                self.active_peer = self.get_peer(message)
 
                 operation = TextOperation(message["operation"])
 
