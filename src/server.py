@@ -192,9 +192,19 @@ class TroopServer(OTServer):
         # Apply to document
         try:
             op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
+        
+        # debug
         except OTError as err:
+        
             print(self.document, message["operation"])
+        
             raise err
+
+        # Returns None if there are inconsistencies in revision numbers
+        # (if last_by_user and last_by_user >= revision)
+        if op is None:
+
+            return
         
         message["operation"] = op.ops
 
@@ -342,27 +352,29 @@ class TroopServer(OTServer):
         """ Update all clients with a message. Only sends back messages to
             a client if the `reply` flag is nonzero. """
 
-        for client in list(self.clients.values()):
+        if msg is not None:
 
-            if client.connected:
+            for client in list(self.clients.values()):
 
-                try:
+                if client.connected:
 
-                    # Send to all other clients and the sender if "reply" flag is true
+                    try:
 
-                    if not self.waiting_for_ack:
+                        # Send to all other clients and the sender if "reply" flag is true
 
-                        if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
+                        if not self.waiting_for_ack:
 
-                            client.send(msg)
+                            if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
 
-                except DeadClientError as err:
+                                client.send(msg)
 
-                    # Remove client if no longer contactable
+                    except DeadClientError as err:
 
-                    self.remove_client(client.id)
+                        # Remove client if no longer contactable
 
-                    stdout(err)
+                        self.remove_client(client.id)
+
+                        stdout(err)
 
         return
 
