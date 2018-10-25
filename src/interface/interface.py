@@ -548,13 +548,11 @@ class Interface(BasicInterface):
 
         # Ignore the CtrlKey and non-ascii chars
 
-        if self.user_disabled():
-
-            print("keypress and disabled")
+        if self.user_disabled(): # should be breaking
 
             return "break"
 
-        if (event.keysym in self.ignored_keys): # should be breaking
+        if (event.keysym in self.ignored_keys):
 
             return "break"
 
