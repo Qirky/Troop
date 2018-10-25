@@ -5,7 +5,7 @@ from ..config import *
 from ..message import *
 from ..interpreter import *
 from ..ot.client import Client as OTClient
-from ..ot.text_operation import TextOperation
+from ..ot.text_operation import TextOperation, IncompatibleOperationError
 
 from .peer import *
 from .constraints import _constraint
@@ -144,17 +144,28 @@ class ThreadSafeText(Text, OTClient):
 
             # If other peers have added/deleted chars - transform the undo stack
 
-            # if self.active_peer != self.marker:
-
-            #     self.transform_undo_stacks(operation)
-
             if peer != self.marker:
 
                 self.transform_undo_stacks(operation)
 
             # Apply op
-            self.set_text(operation(self.read()))
-            #self.insert_peer_id(self.active_peer, operation.ops)
+
+            try:
+
+                new_text = operation(self.read())
+
+            except IncompatibleOperationError as err:
+
+                # Get some debug info
+
+                print("Length of text is {}".format(len(self.read())))
+                print("Operation is {}".format(operation.ops))
+                print("Length: {}".format(get_operation_size(operation.ops)))
+
+                raise err
+
+            self.set_text(new_text)
+
             self.insert_peer_id(peer, operation.ops)
 
         return

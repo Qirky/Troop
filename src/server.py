@@ -182,6 +182,21 @@ class TroopServer(OTServer):
     def get_contents(self):
         return [self.document, self.get_client_ranges(), self.get_client_locs()]
 
+    def update_all_clients(self):
+        """ Sends a reset message with the contents from the server to make sure new user starts the  same  """
+
+        msg = MSG_RESET(-1, *self.get_contents())
+
+        for client in list(self.clients.values()):
+
+            # Tell other clients about the new connection
+
+            if client.connected:
+
+                client.send(msg)
+
+        return
+
     # Operation info
     # ==============
 
@@ -263,7 +278,7 @@ class TroopServer(OTServer):
                 if n not in self.clients:
                     self.last_id = n
             else:
-                return -2 # error message for max clients exceeded                   
+                return ERR_MAX_LOGINS # error message for max clients exceeded                   
         return self.last_id
 
     def clear_history(self):
@@ -289,12 +304,27 @@ class TroopServer(OTServer):
 
     def connect_ack(self, message):
         """ Handle response from clients confirming the new connected client """
+        
         client_id = message["src_id"]
+        
         self.acknowledged_clients.append(client_id)
+
+        # When we have all clients acknowledged, stop waiting
+        
         if all([client_id in self.acknowledged_clients for client_id in self.connected_clients()]):
+
+            # Send set_text to all to reset the text
+
+            self.update_all_clients()
+
+            # Stop waiting
+        
             self.waiting_for_ack = False
+            
             self.acknowledged_clients = []
+            
             self.wait_for_ack(False)
+        
         return
 
     def connected_clients(self):
@@ -473,23 +503,25 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     stdout("User already connected: {}@{}".format(username, addr))
 
-                    self.client_id = -3 # 
+                    self.client_id = ERR_NAME_TAKEN 
 
                 else:
+
+                    # User re-connecting
+
+                    stdout("{} re-connected user from {}".format(username, addr))
 
                     self.client_id = client.id
 
                     client.connect(self.request)
 
-                    stdout("{} re-connected user from {}".format(username, addr))
-
             else:
 
                 # Reply with the client id
 
-                self.client_id = self.master.get_next_id()
-
                 stdout("New connected user '{}' from {}".format(username, addr))
+
+                self.client_id = self.master.get_next_id()
 
         else:
 
@@ -497,7 +529,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             stdout("Failed login from {}".format(addr))
 
-            self.client_id = -1
+            self.client_id = ERR_LOGIN_FAIL
 
         # Send back the user_id as a 4 digit number
 
@@ -522,15 +554,21 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         """ Stores information about the new client. Wait for acknowledgement from all connected peers before continuing processing messages """
         assert isinstance(msg, MSG_CONNECT)
 
-        if self.client_address not in list(self.master.clients.values()): # should that be self.client_address?
+        # Create the client and connect to other clients
+
+        if self.client_address not in list(self.master.clients.values()):
 
             new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
 
             self.client_name = new_client.name
            
             self.connect_clients(new_client) # Contacts other clients
+
+            # Don't accept more messages while connecting
+
+            self.master.wait_for_ack(True)
            
-            return new_client
+        return new_client
 
     def leader(self):
         """ Returns the peer client that is "leading" """
@@ -588,7 +626,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     # Send the contents to the all clients
 
-                    self.update_all_clients()
+                    # self.update_all_clients()
 
                     # Clear server history
 
@@ -598,7 +636,8 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.connect_ack(msg)
 
-                else:
+                #else:
+                elif not self.master.waiting_for_ack:
 
                     # Add any other messages to the send queue
 
@@ -612,8 +651,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         # Store the client
 
         self.master.clients[new_client.id] = new_client
-
-        self.master.wait_for_ack(True)
 
         # Connect each client
 
@@ -642,21 +679,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         client = self.client()
         client.send(MSG_SET_ALL(-1, *self.master.get_contents()))
-
-        return
-
-    def update_all_clients(self):
-        """ Sends a reset message with the contents from the server to make sure new user starts the  same  """
-
-        msg = MSG_RESET(-1, *self.master.get_contents())
-
-        for client in list(self.master.clients.values()):
-
-            # Tell other clients about the new connection
-
-            if client.connected:
-
-                client.send(msg)
 
         return
     

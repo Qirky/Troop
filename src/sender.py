@@ -9,6 +9,7 @@
 from __future__ import absolute_import
 from .message import *
 from .config import *
+from .utils import *
 
 import socket
 from hashlib import md5
@@ -28,9 +29,9 @@ class Sender:
         self.conn_id   = None
         self.connected = False
         self.connection_errors = {
-            -1 : "Login attempt failed",
-            -2 : "Failed to connect: Maximum number of users connected. Please try again later.",
-            -3 : "A user with that name has already connected from your location."
+            ERR_LOGIN_FAIL : "Login attempt failed",
+            ERR_MAX_LOGINS : "Failed to connect: Maximum number of users connected. Please try again later.",
+            ERR_NAME_TAKEN : "A user with that name has already connected from your location."
         }
 
         self.ui        = None

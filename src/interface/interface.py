@@ -350,6 +350,10 @@ class Interface(BasicInterface):
         self.client.recv.kill()
         return
 
+    def user_disabled(self):
+        """ Returns True if user is blocked from applying operations etc """
+        return self.block_messages # to-do: update variable name
+
     @staticmethod
     def convert(index):
         """ Converts a Tkinter index into a tuple of integers """
@@ -515,7 +519,7 @@ class Interface(BasicInterface):
 
         elif isinstance(message, MESSAGE):
 
-            if self.block_messages == False or (self.block_messages == True and isinstance(message, MSG_CONNECT_ACK)):
+            if self.user_disabled() is False or isinstance(message, MSG_CONNECT_ACK):
 
                 self.client.send_queue.put(message)
 
@@ -544,7 +548,13 @@ class Interface(BasicInterface):
 
         # Ignore the CtrlKey and non-ascii chars
 
-        if (self.block_messages is True) or (event.keysym in self.ignored_keys):
+        if self.user_disabled():
+
+            print("keypress and disabled")
+
+            return "break"
+
+        if (event.keysym in self.ignored_keys): # should be breaking
 
             return "break"
 
@@ -695,7 +705,7 @@ class Interface(BasicInterface):
     def apply_operation(self, operation, index_offset=0, **kwargs):
         """ Handles a text operation locally and sends to the server """
 
-        if self.block_messages is False:
+        if self.user_disabled() is False:
 
             # Apply locally
 
