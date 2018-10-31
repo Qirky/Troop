@@ -513,7 +513,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.client_id = client.id
 
-                    client.connect(self.request)
+                    # client.connect(self.request) # *** getting issues
 
             else:
 
@@ -568,7 +568,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             self.master.wait_for_ack(True)
            
-        return new_client
+            return new_client
 
     def leader(self):
         """ Returns the peer client that is "leading" """
@@ -623,10 +623,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                     # Add the new client
 
                     new_client = self.handle_connect(msg)
-
-                    # Send the contents to the all clients
-
-                    # self.update_all_clients()
 
                     # Clear server history
 
