@@ -517,10 +517,9 @@ class ThreadSafeText(Text, OTClient):
 
                 this_peer = self.peers[message['src_id']]
 
-            except KeyError:
+            except KeyError as err:
 
-                print("KeyError: No peer with this ID")
-                # send to server something to quit
+                self.root.freeze_kill(str(err))
 
         return this_peer
 

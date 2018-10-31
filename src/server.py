@@ -513,8 +513,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.client_id = client.id
 
-                    # client.connect(self.request) # *** getting issues
-
             else:
 
                 # Reply with the client id
