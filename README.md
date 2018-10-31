@@ -1,4 +1,4 @@
-# Troop v0.7.4
+# Troop v0.7.5
 
 ## Real-time collaborative live coding
 
@@ -9,6 +9,19 @@ Troop is not a language for live coding but a tool for connecting multiple live 
 Troop is compatible with both Python 2 and 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
 
 ## Getting started
+
+There are two ways of using Troop; one is to download the latest release and run it as you would any other program on your computer, and the other is two run the files using Python. The first option does not require Python to be installed on your machine, but you do need to have correctly configured your live coding language of choice first.
+
+#### Using the downloadable executable
+
+1. Download the latest version for your appropriate operating system [from this page](https://github.com/Qirky/Troop/releases).
+2. Double-click the program to get started or run from the command line with arguments as you would below e.g.
+
+```
+Troop-Windows-0.7.4-client.exe --mode TidalCycles
+```
+
+#### Running the Python files
 
 Download the files from this repository as a .zip file and extract the contents to a suitable folder. Alternatively, if you are familiar with Git you can clone the repository yourself using:
 
