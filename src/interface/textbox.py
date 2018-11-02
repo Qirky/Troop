@@ -8,7 +8,8 @@ from ..ot.client import Client as OTClient
 from ..ot.text_operation import TextOperation, IncompatibleOperationError
 
 from .peer import *
-from .constraints import _constraint
+from .constraints import TextConstraint
+from .colour_merge import ColourMerge
 
 try:
     from Tkinter import *
@@ -27,11 +28,6 @@ import time
 import sys
 import json
 
-from .colour_merge import ColourMerge
-
-# from . import constraints
-# constraints = vars(constraints)
-
 class ThreadSafeText(Text, OTClient):
     is_refreshing = False
     def __init__(self, root, **options):
@@ -40,9 +36,7 @@ class ThreadSafeText(Text, OTClient):
 
         self.operation = TextOperation() # what is this for?
 
-        self.constraint = _constraint(self)
-
-        #self.constraint = lambda: True
+        self.constraint = TextConstraint(self)
 
         self.config(undo=True, autoseparators=True, maxundo=50)
         self.undo_stack = []
@@ -407,10 +401,15 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_text_constraint(self, message):
         """ A new text constrait is set """ # TODO: implement the constraints again
-        print("{} received".format(message))
-        # constraint_name = message["name"]
-        # dictator_peer   = message["peer_id"]
-        # self.constraint.set_constraint(message["name"], dictator_peer)
+        constraint_id = message["constraint_id"]
+        dictator_peer   = message["src_id"]
+
+        if not (constraint_id == 0 and self.constraint.rule is None):
+
+            print("New rule received! Setting mode to '{}'".format(self.constraint.get_name(constraint_id).title()))
+        
+        self.constraint.set_constraint(constraint_id, dictator_peer)
+        
         return
 
 

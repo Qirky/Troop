@@ -272,9 +272,9 @@ class MSG_REQUEST_ACK(MESSAGE):
 
 class MSG_CONSTRAINT(MESSAGE):
     type = 15
-    def __init__(self, src_id, name):#, peer):
+    def __init__(self, src_id, constraint_id):
         MESSAGE.__init__(self, src_id)
-        self['name'] = str(name) # replace with ID number
+        self['constraint_id'] = int(constraint_id) 
         # self.peer_id = int(peer) # 
 
 

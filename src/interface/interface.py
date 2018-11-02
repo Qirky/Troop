@@ -352,7 +352,10 @@ class Interface(BasicInterface):
 
     def user_disabled(self):
         """ Returns True if user is blocked from applying operations etc """
-        return self.block_messages # to-do: update variable name
+        if self.block_messages: # to-do: update variable name
+            return True
+        else:
+            return (not self.text.constraint())
 
     @staticmethod
     def convert(index):
@@ -369,6 +372,7 @@ class Interface(BasicInterface):
         except ValueError:
 
             self.kill()
+            
             print("Error: Maximum number of clients connected to server, please try again later.")
 
         return
@@ -552,7 +556,7 @@ class Interface(BasicInterface):
 
             return "break"
 
-        if (event.keysym in self.ignored_keys):
+        elif (event.keysym in self.ignored_keys):
 
             return "break"
 

@@ -95,6 +95,8 @@ class TroopServer(OTServer):
         self.server_thread = Thread(target=self.server.serve_forever)
 
         self.waiting_for_ack = False # Flagged True after new connected client
+
+        self.text_constraint = MSG_CONSTRAINT(-1, 0) # default
         
         # Dict of IDs to Client instances
         self.clients = {}
@@ -178,6 +180,8 @@ class TroopServer(OTServer):
                 data.append((get_peer_id_from_char(p_char), int(count)))
             return data
 
+    def get_text_constraint(self):
+        return self.text_constraint
 
     def get_contents(self):
         return [self.document, self.get_client_ranges(), self.get_client_locs()]
@@ -194,6 +198,7 @@ class TroopServer(OTServer):
             if client.connected:
 
                 client.send(msg)
+                client.send(self.get_text_constraint())
 
         return
 
@@ -368,7 +373,7 @@ class TroopServer(OTServer):
 
                 elif isinstance(msg, MSG_CONSTRAINT):
 
-                    print(msg)
+                    self.text_constraint = msg
 
                 self.respond(msg)
 
@@ -630,7 +635,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.connect_ack(msg)
 
-                #else:
                 elif not self.master.waiting_for_ack:
 
                     # Add any other messages to the send queue
@@ -673,6 +677,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         client = self.client()
         client.send(MSG_SET_ALL(-1, *self.master.get_contents()))
+        client.send(self.master.get_text_constraint())
 
         return
     

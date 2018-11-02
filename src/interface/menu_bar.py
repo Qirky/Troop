@@ -61,11 +61,11 @@ class MenuBar(Menu):
 
         constmenu = Menu(self, tearoff=0)
 
-        for name in self.root.text.constraint.names():
+        for i, name in self.root.text.constraint.items():
 
-            constmenu.add_checkbutton(label=name.title(),
-                                      command  = partial(self.root.set_constraint, name),
-                                      variable = self.root.text.constraint.using[name])
+            constmenu.add_checkbutton(label=str(name).title(),
+                                      command  = partial(self.root.set_constraint, i),
+                                      variable = self.root.text.constraint.using[i])
             
         codemenu.add_cascade(label="Set Constraint", menu=constmenu)
 
