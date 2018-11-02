@@ -406,7 +406,7 @@ class ThreadSafeText(Text, OTClient):
 
         if not (constraint_id == 0 and self.constraint.rule is None):
 
-            print("New rule received! Setting mode to '{}'".format(self.constraint.get_name(constraint_id).title()))
+            print("New rule received! Setting mode to '{}'".format(str(self.constraint.get_name(constraint_id)).title()))
         
         self.constraint.set_constraint(constraint_id, dictator_peer)
         
