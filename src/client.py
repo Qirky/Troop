@@ -19,7 +19,7 @@ import sys
 
 class Client:
 
-    version = '0.7'
+    version = '0.8'
     ui   = None
     send = None
     recv = None
@@ -30,6 +30,7 @@ class Client:
         # Start the UI
 
         self.input = ConnectionInput(self, **kwargs)
+        self.input.start()
 
     def setup(self, host="", port="", name="", password="", lang=FOXDOT, logging=False, ipv6=False):
 

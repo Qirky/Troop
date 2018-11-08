@@ -37,7 +37,6 @@ class BasicInterface:
     """ Class for displaying basic text input data.
     """
     def __init__(self):
-        # self.root=Tk()
         self.root = ROOT
         self.root.configure(background=COLOURS["Background"])
 
@@ -58,19 +57,8 @@ class BasicInterface:
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
         # Continually check for messages to be sent
         self.client.update_send()
-
         self.update_graphs()
-
-        if not self.client.mainloop_started:
-
-            try:
-
-                self.root.mainloop()
-
-            except KeyboardInterrupt:
-            
-                self.client.kill()
-        
+        self.client.input.mainloop()
         return
 
     def kill(self):

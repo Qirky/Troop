@@ -1,7 +1,9 @@
 try:
     import Tkinter as Tk
+    import tkMessageBox
 except ImportError:
     import tkinter as Tk
+    from tkinter import messagebox as tkMessageBox
 
 from .interface import ROOT
 
@@ -57,24 +59,20 @@ class ConnectionInput:
             # Enter shortcut
             self.root.bind("<Return>", self.cleanup)
 
-            self.start()  # run
-
-        else:
-
-            self.finish() # skip getting info if we have it already
-
     def start(self):
-        # Start
-        self.center()
-        self.mainloop()
-
+        if self.using_gui_input:
+            self.center()
+            self.mainloop() # calls finish from the OK button
+        else:
+            self.finish()
 
     def mainloop(self):        
-        try:
-            self.client.mainloop_started = True
-            self.root.mainloop()
-        except KeyboardInterrupt:
-            self.client.kill()
+        if self.client.mainloop_started is False:
+            try:
+                self.client.mainloop_started = True
+                self.root.mainloop()
+            except KeyboardInterrupt:
+                self.client.kill()
         return
 
     def quit(self):
@@ -125,7 +123,10 @@ class ConnectionInput:
 
     def exit(self, message):
         """ Exits the interface with an input box but using sys.exit if -i flag was given """
+        import sys
+        err = "Fatal error: {}. Aborting.".format(message)
         if self.using_gui_input:
-            pass # bell
+            tkMessageBox.showerror("Error", err)
         else:
-            sys.exit(message)
+            print(err)
+        sys.exit()
