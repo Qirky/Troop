@@ -49,7 +49,7 @@ class TroopServer(OTServer):
         to the server, which then sends it on to the others
     """
     bytes  = 2048
-    def __init__(self, port=57890, log=False, debug=False):
+    def __init__(self, password="", port=57890, log=False, debug=False):
 
         # Operation al transform info
 
@@ -111,7 +111,7 @@ class TroopServer(OTServer):
         # Set a password for the server
         try:
 
-            self.password = md5(getpass("Password (leave blank for no password): ").encode("utf-8"))
+            self.password = md5(password.encode("utf-8"))
 
         except KeyboardInterrupt:
 

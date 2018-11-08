@@ -10,6 +10,16 @@
     server. 
 
 """
-from src.__main__ import run_server
+from src.server import TroopServer
+from getpass import getpass
 
-run_server()
+try:
+
+    myServer = TroopServer(password=getpass("Password (leave blank for no password): "))
+    myServer.start()
+
+# Exit cleanly on Ctrl + c
+
+except KeyboardInterrupt:
+
+    pass
