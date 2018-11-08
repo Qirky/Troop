@@ -8,7 +8,6 @@ from .config import *
 from .interpreter import *
 
 from time import sleep, time
-from getpass import getpass
 from hashlib import md5
 
 try:
@@ -20,11 +19,23 @@ import sys
 
 class Client:
 
-    version = '0.6'
+    version = '0.7'
+    ui   = None
+    send = None
+    recv = None
+    mainloop_started = False
     
-    def __init__(self, hostname="188.166.144.124", port=57890, name=None, lang=FOXDOT, logging=False, ipv6=False):
+    def __init__(self, **kwargs):
+
+        # Start the UI
+
+        self.input = ConnectionInput(self, **kwargs)
+
+    def setup(self, host="", port="", name="", password="", lang=FOXDOT, logging=False, ipv6=False):
+
+        # ConnectionInput(host, port)
         
-        self.hostname = str(hostname)
+        self.hostname = str(host)
         self.port     = int(port)
         self.name     = str(name if name is not None else hostname)
         self.id       = None
@@ -33,7 +44,7 @@ class Client:
 
         try:
             
-            self.send = Sender().connect(self.hostname, self.port, self.name, ipv6, getpass())
+            self.send = Sender().connect(self.hostname, self.port, self.name, ipv6, password)
 
             if not self.send.connected:
                 
@@ -46,10 +57,12 @@ class Client:
                 print("Password accepted")
 
                 self.send_queue = queue.Queue()
-            
-        except ConnectionError as e:
 
-            sys.exit(e)
+        # Quit with error output if we cannot connect // todo: use GUI
+            
+        except (ConnectionError, ConnectionRefusedError) as e:
+
+            self.input.exit(e)
 
         if self.id is None: # catch -1 error
 
@@ -66,13 +79,15 @@ class Client:
 
         try:
 
-            if lang in langtypes:
+            lang_id = getInterpreter(lang)
 
-                self.lang = langtypes[lang]()
+            if lang_id in langtypes:
+
+                self.lang = langtypes[lang_id]()
 
             else:
 
-                self.lang = Interpreter(lang)
+                self.lang = Interpreter(lang_id)
 
         except ExecutableNotFoundError as e:
 
@@ -97,8 +112,9 @@ class Client:
         # Give the recv / send a reference to the user-interface
         self.recv.ui = self.ui
         self.send.ui = self.ui
-        
+
         self.ui.run()
+
 
     @staticmethod
     def read_configuration_file(filename):
@@ -140,5 +156,16 @@ class Client:
             
         # Recursive call
         self.ui.root.after(30, self.update_send)
+        
         return
             
+    def kill(self):
+        """ Kills the connection sockets and UI correctly """
+
+        for attr in (self.recv, self.send, self.ui):
+
+            if attr is not None:
+
+                attr.kill()
+
+        return

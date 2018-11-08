@@ -23,6 +23,66 @@
         `--mode` flag.
 """
 
-from src.__main__ import run_client
+import argparse
 
-run_client()
+parser = argparse.ArgumentParser(
+    prog="Troop Client", 
+    description="Collaborative interface for Live Coding")
+
+parser.add_argument('-i', '--cli', action='store_true', help="Use the command line to enter connection info")
+parser.add_argument('-p', '--public', action='store_true', help="Connect to public Troop server")
+parser.add_argument('-m', '--mode', action='store', default='foxdot',
+                    help='Name of live coding language (TidalCycles, SonicPi, SuperCollider, FoxDot, or a valid path to an executable')
+parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
+parser.add_argument('-l', '--log', action='store_true')
+
+# Add --host, --port?
+
+args = parser.parse_args()
+
+# Set up client
+
+from src.client import Client
+from src.config import readin
+from getpass import getpass
+
+# Client config options
+
+options = { 'lang': args.mode, 'logging': args.log }
+
+if args.public:
+
+    from src.config import PUBLIC_SERVER_ADDRESS
+    options['host'], options['port'] = PUBLIC_SERVER_ADDRESS  
+
+elif args.cli:
+
+    options['host']     = readin("Troop Server Address", default="localhost")
+    options['port']     = readin("Port Number", default="57890")
+    options['name']     = readin("Enter a name").replace(" ", "_")
+    options['password'] = getpass()
+    options['get_info'] = False
+
+elif args.config:
+
+    import os.path
+
+    if os.path.isfile('client.cfg'):
+
+        """
+        You can set a configuration file if you are connecting to the same
+        server on repeated occasions. A password should not be stored. The
+        file (client.cfg) should look like:
+
+        host=<host_ip>
+        port=<port_no>
+
+        """
+
+        options['host'], options['port'] = Client.read_configuration_file('client.cfg')
+
+    else:
+
+        print("Unable to load configuration from 'client.cfg'")
+
+myClient = Client(**options)

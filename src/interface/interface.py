@@ -31,11 +31,14 @@ import time
 import sys
 import webbrowser
 
+ROOT = Tk()
+
 class BasicInterface:
     """ Class for displaying basic text input data.
     """
     def __init__(self):
-        self.root=Tk()
+        # self.root=Tk()
+        self.root = ROOT
         self.root.configure(background=COLOURS["Background"])
 
         self.whitespace = (" ", "\n")
@@ -55,16 +58,23 @@ class BasicInterface:
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
         # Continually check for messages to be sent
         self.client.update_send()
+
         self.update_graphs()
-        try:
-            self.root.mainloop()
-        except (KeyboardInterrupt, SystemExit):
-            self.kill()
+
+        if not self.client.mainloop_started:
+
+            try:
+
+                self.root.mainloop()
+
+            except KeyboardInterrupt:
+            
+                self.client.kill()
+        
         return
 
     def kill(self):
         """ Terminates cleanly """
-        stdout("Quitting")
         self.root.destroy()
         return
 
@@ -106,24 +116,10 @@ class Interface(BasicInterface):
 
         self.root.title(self.title)
 
-        # Try and start full screen (issues on Linux)
+        self.root.update_idletasks()
 
-        try:
 
-            self.root.state("zoomed")
-
-        except TclError:
-
-            w = 900
-            h = 600
-
-            ws = self.root.winfo_screenwidth()
-            hs = self.root.winfo_screenheight()
-
-            x = int((ws/2) - (w/2))
-            y = int((hs/2) - (h/2))
-
-            self.root.geometry('{}x{}+{}+{}'.format(w, h, x, y))
+        self.center()
 
         self.root.columnconfigure(0, weight=0) # Line numbers
         self.root.columnconfigure(1, weight=2) # Text and console
@@ -134,7 +130,7 @@ class Interface(BasicInterface):
         self.root.rowconfigure(1, weight=0) # Dragbar
         self.root.rowconfigure(2, weight=0) # Console
 
-        self.root.protocol("WM_DELETE_WINDOW", self.kill )
+        self.root.protocol("WM_DELETE_WINDOW", self.client.kill )
 
         icon = os.path.join(os.path.dirname(__file__), "img", "icon")
 
@@ -331,8 +327,6 @@ class Interface(BasicInterface):
     def kill(self):
         """ Close socket connections and terminate the application """
         try:
-            self.client.recv.kill()
-            self.client.send.kill()
             self.lang.kill()
             if self.logfile:
                 self.logfile.stop()
@@ -348,6 +342,31 @@ class Interface(BasicInterface):
         self.console.write(err)
         self.client.send.kill()
         self.client.recv.kill()
+        return
+
+    def center(self):
+
+        w = 1200
+        h = 900
+
+        ws = self.root.winfo_screenwidth()
+        hs = self.root.winfo_screenheight()
+
+        x = int((ws/2) - (w / 2))
+        y = int((hs/2) - (h / 2))
+
+        self.root.geometry('{}x{}+{}+{}'.format(w, h, x, y))
+
+        # Try and start full screen (issues on Linux)
+
+        try:
+
+            self.root.state("zoomed")
+
+        except TclError:
+
+            pass
+
         return
 
     def user_disabled(self):
@@ -368,7 +387,7 @@ class Interface(BasicInterface):
 
         except ValueError:
 
-            self.kill()
+            self.client.kill()
 
             print("Error: Maximum number of clients connected to server, please try again later.")
 
@@ -559,7 +578,7 @@ class Interface(BasicInterface):
 
         elif event.keysym == "F4" and self.last_keypress == "Alt_L":
 
-            self.kill()
+            self.client.kill()
 
             return "break"
 
