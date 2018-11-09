@@ -22,6 +22,7 @@ class ConnectionInput:
 
             self.root.title("Troop v{}".format(client.version))
             self.root.protocol("WM_DELETE_WINDOW", self.quit )
+            self.root.resizable(False, False)
             
             # Host
             lbl = Tk.Label(self.root, text="Host:")
@@ -50,14 +51,19 @@ class ConnectionInput:
             self.password.grid(row=3, column=1)
             
             # Ok button
-            self.button=Tk.Button(self.root, text='Ok',command=self.cleanup)
+            self.button=Tk.Button(self.root, text='Ok',command=self.store_data)
             self.button.grid(row=4, column=0, columnspan=2, sticky=Tk.NSEW)
+
+            self.response = Tk.StringVar()
+            self.lbl_response=Tk.Label(self.root, textvariable=self.response, fg="Red")
+            self.lbl_response.grid(row=5, column=0, columnspan=2)
+            self.lbl_response.grid_remove()
             
             # Value
-            self.value = None
+            self.data = {}
             
             # Enter shortcut
-            self.root.bind("<Return>", self.cleanup)
+            self.root.bind("<Return>", self.store_data)
 
     def start(self):
         if self.using_gui_input:
@@ -76,22 +82,29 @@ class ConnectionInput:
         return
 
     def quit(self):
-        self.value = None
+        self.data = {}
         return self.root.quit()
 
     def finish(self):
-        """ Removes the widgetes from the Tk instance and starts the client connection"""
-        for widget in self.root.winfo_children():
-            widget.grid_forget()
+        """ Starts the client connection"""
         self.client.setup(**self.options)
         return
 
-    def cleanup(self, event=None):
+    def cleanup(self):
+        """ Removes all the widgets from the root """
+        if self.using_gui_input:
+            for widget in self.root.winfo_children():
+                widget.grid_forget()
+        return
+
+    def store_data(self, event=None):
         """ Stores the data in the entry fields then closes the window """
         host = self.host.get()
         port = self.port.get()
         name = self.name.get()
         password = self.password.get()
+
+        # If we have values for name, host, and port then go to "finish"
 
         if name.strip() != "" and host.strip() != "" and port.strip() != "":
 
@@ -112,21 +125,18 @@ class ConnectionInput:
         w = self.root.winfo_screenwidth()
         h = self.root.winfo_screenheight()
         size = tuple(int(_) for _ in self.root.geometry().split('+')[0].split('x'))
-        x = w/2 - size[0]/2
-        y = h/2 - size[1]/2
-        self.root.geometry("%dx%d+%d+%d" % (size + (x, y)))
+        x = int(w/2 - size[0]/2)
+        y = int(h/2 - size[1]/2)
+        self.root.geometry("+{}+{}".format(x, y))
+        self.lbl_response.config(wraplength=size[0])
         self.name.focus()
         return        
 
-    def get_info(self):
-        return self.value
-
-    def exit(self, message):
-        """ Exits the interface with an input box but using sys.exit if -i flag was given """
-        import sys
-        err = "Fatal error: {}. Aborting.".format(message)
+    def print_message(self, message):
+        """ Displays the response message to the user """
         if self.using_gui_input:
-            tkMessageBox.showerror("Error", err)
+            self.response.set(message)
+            self.lbl_response.grid()
         else:
-            print(err)
-        sys.exit()
+            print(message)
+        return

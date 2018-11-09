@@ -39,6 +39,7 @@ class BasicInterface:
     def __init__(self):
         self.root = ROOT
         self.root.configure(background=COLOURS["Background"])
+        self.root.resizable(True, True)
 
         self.whitespace = (" ", "\n")
         self.delimeters = (".", ",", "(", ")", "[","]","{", "}", "=")

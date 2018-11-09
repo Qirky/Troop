@@ -55,20 +55,25 @@ class Client:
 
                 self.id = self.send.conn_id
 
-                print("Password accepted")
+                assert self.id is not None, "No ID number assigned by server"
+
+                self.input.print_message("Password accepted")
 
                 self.send_queue = queue.Queue()
 
-        # Quit with error output if we cannot connect // todo: use GUI
+        # Quit with error output if we cannot connect
             
-        except (ConnectionError, ConnectionRefusedError) as e:
+        except (ConnectionError, ConnectionRefusedError, AssertionError) as e:
 
-            self.input.exit(e)
+            self.input.print_message(e)
 
-        if self.id is None: # catch -1 error
+            return
 
-            print("No ID number assigned by server")
+        # Clean up the user interface
 
+        self.input.cleanup()
+
+        # Continue with set up
         # Set up a receiver on the connected socket
           
         self.recv = Receiver(self.send.conn)

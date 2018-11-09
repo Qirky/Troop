@@ -31,6 +31,8 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-i', '--cli', action='store_true', help="Use the command line to enter connection info")
 parser.add_argument('-p', '--public', action='store_true', help="Connect to public Troop server")
+parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server", default="localhost")
+parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)", default=57890)
 parser.add_argument('-m', '--mode', action='store', default='foxdot',
                     help='Name of live coding language (TidalCycles, SonicPi, SuperCollider, FoxDot, or a valid path to an executable')
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
@@ -48,7 +50,7 @@ from getpass import getpass
 
 # Client config options
 
-options = { 'lang': args.mode, 'logging': args.log }
+options = { 'lang': args.mode, 'logging': args.log, 'host': args.host, 'port': args.port }
 
 if args.public:
 
@@ -61,7 +63,7 @@ elif args.cli:
     options['port']     = readin("Port Number", default="57890")
     options['name']     = readin("Enter a name").replace(" ", "_")
     options['password'] = getpass()
-    options['get_info'] = False
+    options['get_info'] = False # Flag to say we don't need the GUI
 
 elif args.config:
 
