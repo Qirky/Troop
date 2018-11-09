@@ -15,11 +15,12 @@ There are two ways of using Troop; one is to download the latest release and run
 #### Using the downloadable executable
 
 1. Download the latest version for your appropriate operating system [from this page](https://github.com/Qirky/Troop/releases).
-2. Double-click the program to get started or run from the command line with arguments as you would below e.g.
+2. Double-click the program to get started. Enter server connection details then press OK to open the interface.
+3. You can still run Troop from the command line with extra arguments as you would the Python files. Run the following command to find out more (changing the executable name for the version you have downloaded):
 
-```
-Troop-Windows-0.8.0-client.exe --mode TidalCycles
-```
+	Troop-Windows-0.8.0-client.exe -h
+
+See "Running the Troop client" below for more details.
 
 #### Running the Python files
 
@@ -33,7 +34,7 @@ and keep up to date with the project by using `git pull -a`, which automatically
 
 Troop is a client-server application, which means that you need to run a Troop server on a machine that other people on the network using the client (interface) can connect to. Only one person needs to run the server, so decide who will do the "hosting" before getting started. 
 
-Start the Troop Server by running the `run-server.py` Python file. Depending on your O/S and Python installation you can either double click the file or run it from the command prompt. To run from the command prompt you'll need to make sure you're in correct directory: use the 'cd' command followed by the path to where you've extracted Troop. For example if Troop is saved in C:\Users\Guest\Troop then type the following into the command prompt:
+Start the Troop Server by running the `run-server.py` Python file. Depending on your O/S and Python installation you can either double click the file or run it from the command prompt. To run from the command prompt you'll need to make sure you're in correct directory: use the 'cd' command followed by the path to where you've extracted Troop. For example if Troop is saved in `C:\Users\Guest\Troop` then type the following into the command prompt:
 
 	cd C:\Users\Guest\Troop
 	
@@ -41,17 +42,17 @@ Then to run the server application, type in the following and press return:
 
 	python run-server.py
 
+If you don't have Python installed and you have downloaded the executable, simply type the name of the executable and press return:
+
+	Troop-Windows-0.8.0-server.exe
+
 You will be asked to enter a password. You can leave this blank if you wish - but make sure you are on a secure network if you do. Connecting clients will be required to enter the same password when connecting to the server. By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop clients can connect to the server and you're up and running! To stop the server, either close the terminal window it's running in or use the keyboard shorcut `Ctrl+C` to kill the process. 
 
 **Warning:** Code executed by one client is executed on every client, so be careful when using public networks as you will then be susceptible to having malicious code run on your machine. Avoid using public networks and only give your server password to people you trust.
 
 ### Running the Troop Client
 
-To run the client file in its default FoxDot mode you can either double click the `run-client.py` file or run it via the command line as you would do with the server but using:
-
-	python run-client.py
-
-You can change the language after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.
+Once you've opened the Troop client you'll be able to enter the IP address and port number of the  Troop server instance running on your network. Enter the name you want to display and the password for the server and continue by pressing OK. You can change the language to use with Troop after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.
 
 Alternatively you can start Troop in a different "mode" so that it is interpreting another language at startup. To do this, run the following from the command line depending on your desired startup language:
  
@@ -85,20 +86,12 @@ Currently requires Sonic-Pi to be open on your computer.
 
 	python run-client.py --mode path/to/interpreter
 
-On running this script you will be asked for four things:
-
-- The IP address of the Troop Server (default is "localhost")
-- The port of the Troop Server (default is 57890)
-- A name you wish to be identified by while using Troop
-- The password for the Troop Server
-
 If you've connected successfully then you'll greeted with an interface with three boxes. The largest of the boxes is used to input code and the others to display console responses and some stats about character usages. To evaluate a line of code make sure your text cursor is placed in the line you want and press `Ctrl+Return`. If there are any other users connected you should see coloured markers in the text displaying their names. You can even execute code they've written and vice versa.
 
 You can create a `client.cfg` file in the root directory if you have a host / port that you want to connect to regularly. It's contents should contain two lines:
 
 	host=<hostname_or_ip_address>
 	port=<port_number>  
-
 
 ## Troubleshooting
 
