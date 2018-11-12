@@ -25,7 +25,7 @@ try:
 except NameError:  # Python 2
     broken_pipe_exception = IOError
 
-CREATE_NO_WINDOW = 0x08000000
+CREATE_NO_WINDOW = 0x08000000 if SYSTEM == WINDOWS else 0
 
 import sys
 import re
@@ -149,11 +149,12 @@ class Interpreter(DummyInterpreter):
 
     def start(self):
         """ Opens the process with the interpreter language """
+        
         self.lang = Popen(shlex.split(self.path), shell=False, universal_newlines=True, bufsize=1,
                           stdin=PIPE,
                           stdout=self.f_out,
                           stderr=self.f_out,
-                          creationflags=CREATE_NO_WINDOW)
+						  creationflags=CREATE_NO_WINDOW)
 
         self.stdout_thread = threading.Thread(target=self.stdout)
         self.stdout_thread.start()
