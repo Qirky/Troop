@@ -60,7 +60,7 @@ def new_operation(*args):
     return operation
 
 def get_operation_index(ops):
-    """ Returns the index that a marker should be after an operation """
+    """ Returns the index that a marker should be *after* an operation """
 
     # If the last operation is a "skip", offset the index or 
     # else it just moves it to the end of the document

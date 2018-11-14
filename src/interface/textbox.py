@@ -448,6 +448,7 @@ class ThreadSafeText(Text, OTClient):
         shift = get_operation_size(operation)
 
         peer_index = peer.get_index_num()
+        # peer_index = get_operation_index(operation) - shift
 
         doc_size = len(self.read())
 

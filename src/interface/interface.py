@@ -635,7 +635,7 @@ class Interface(BasicInterface):
 
                 char = event.char
 
-            if len(char) > 0 and self.text.constraint():
+            if len(char) > 0:
 
                 if selection:
 
@@ -718,7 +718,7 @@ class Interface(BasicInterface):
 
             self.text.apply_local_operation(operation, index_offset, **kwargs)
 
-            # Handle the operation on the client side (this is just self.text.server_ack?)
+            # Handle the operation on the client side (this is just self.text.server_ack() essentially)
 
             self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
 

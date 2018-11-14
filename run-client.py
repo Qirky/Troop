@@ -31,8 +31,8 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-i', '--cli', action='store_true', help="Use the command line to enter connection info")
 parser.add_argument('-p', '--public', action='store_true', help="Connect to public Troop server")
-parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server", default="localhost")
-parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)", default=57890)
+parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server")#, default="localhost")
+parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)")#, default=57890)
 parser.add_argument('-m', '--mode', action='store', default='foxdot',
                     help='Name of live coding language (TidalCycles, SonicPi, SuperCollider, FoxDot, or a valid path to an executable')
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
@@ -50,17 +50,31 @@ from getpass import getpass
 
 # Client config options
 
-options = { 'lang': args.mode, 'logging': args.log, 'host': args.host, 'port': args.port }
+options = { 'lang': args.mode, 'logging': args.log }
 
 if args.public:
 
     from src.config import PUBLIC_SERVER_ADDRESS
     options['host'], options['port'] = PUBLIC_SERVER_ADDRESS  
 
-elif args.cli:
+if args.host:
 
-    options['host']     = readin("Troop Server Address", default="localhost")
-    options['port']     = readin("Port Number", default="57890")
+    options['host'] = args.host
+
+if args.port:
+
+    options['port'] = args.port
+
+if args.cli:
+
+    if 'host' not in options:
+
+        options['host']     = readin("Troop Server Address", default="localhost")
+
+    if 'port' not in options:
+    
+        options['port']     = readin("Port Number", default="57890")
+
     options['name']     = readin("Enter a name").replace(" ", "_")
     options['password'] = getpass()
     options['get_info'] = False # Flag to say we don't need the GUI
