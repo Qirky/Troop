@@ -317,7 +317,7 @@ class ThreadSafeText(Text, OTClient):
 
                 self.reset_view()
 
-                if get_operation_size(message["operation"]) > 0:
+                if get_operation_size(message["operation"]) != 0:
 
                     # If the operation is delete/insert, change the indexes of peers that are based after this one
 
@@ -326,6 +326,10 @@ class ThreadSafeText(Text, OTClient):
                     # Move the peer marker
 
                     self.active_peer.move(get_operation_index(message["operation"]))
+
+                else:
+
+                    self.refresh_peer_labels() # un-needed?
 
         return
 

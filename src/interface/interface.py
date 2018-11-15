@@ -1115,8 +1115,6 @@ class Interface(BasicInterface):
 
                 self.line_numbers.config(width=self.line_numbers.winfo_width() + shift)
 
-                # self.text.refresh_peer_labels()
-
         return
 
     def decrease_font_size(self, event):
