@@ -387,29 +387,31 @@ class TroopServer(OTServer):
         """ Update all clients with a message. Only sends back messages to
             a client if the `reply` flag is nonzero. """
 
-        if msg is not None:
+        if msg is None:
 
-            for client in list(self.clients.values()):
+            return
 
-                if client.connected:
+        for client in list(self.clients.values()):
 
-                    try:
+            if client.connected:
 
-                        # Send to all other clients and the sender if "reply" flag is true
+                try:
 
-                        if not self.waiting_for_ack:
+                    # Send to all other clients and the sender if "reply" flag is true
 
-                            if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
+                    if not self.waiting_for_ack:
 
-                                client.send(msg)
+                        if (client.id != msg['src_id']) or ('reply' not in msg.data) or (msg['reply'] == 1):
 
-                    except DeadClientError as err:
+                            client.send(msg)
 
-                        # Remove client if no longer contactable
+                except DeadClientError as err:
 
-                        self.remove_client(client.id)
+                    # Remove client if no longer contactable
 
-                        stdout(err)
+                    self.remove_client(client.id)
+
+                    print(err)
 
         return
 
@@ -418,8 +420,6 @@ class TroopServer(OTServer):
         # Remove from list(s)
             
         if client_id in self.clients:
-
-            # del self.clients[client_id]
 
             self.clients[client_id].disconnect()
 
@@ -564,8 +564,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         if self.client_address not in list(self.master.clients.values()):
 
-            # new_client = Client(self.client_address, self.get_client_id(), self.request, self, name=msg['name'])
-
             new_client = Client(self, name=msg['name'])
 
             self.client_name = new_client.name
@@ -591,6 +589,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         # This takes strings read from the socket and returns json objects
 
         self.reader = NetworkMessageReader()
+        
+        # self.messages  = []
+        # self.msg_count = 0
 
         # Password test
 
@@ -601,8 +602,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
             return
 
         # Enter loop
-
-        self.message_counter = 0
         
         while self.master.running:
 
@@ -628,12 +627,6 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
             for msg in packet:
 
-                if msg["msg_id"] > self.message_counter + 1:
-
-                    pass
-
-                    # store the message -- maybe
-
                 if isinstance(msg, MSG_CONNECT):
 
                     # Add the new client
@@ -655,6 +648,28 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                     self.master.msg_queue.put(msg)
 
         return
+
+    # def store_messages(self, packet):
+    #     """ Stores messages to be returned in order with any existing messages in the queue """
+    #     self.messages.extend(packet) 
+    #     self.messages = list(sorted(self.messages, key=lambda msg: msg["src_id"]))
+    #     return
+
+    # def get_message_queue(self):
+    #     """ Returns a list of messages that are sorted in ascending 'msg_id' order 
+    #         up until we don't find items that are in the next position """
+    #     popped = []
+    #     i = 0
+    #     for msg in self.messages:
+    #         if msg["msg_id"] == self.msg_count:
+    #             popped.append(msg)
+    #             i += 1
+    #             self.msg_count += 1
+    #         else:
+    #             i -= 1
+    #             break
+    #     self.messages = self.messages[i+1:]
+    #     return popped
 
     def connect_clients(self, new_client):
         """ Update all other connected clients with info on new client & vice versa """
@@ -718,6 +733,10 @@ class Client:
         self.index = 0
         self.connected = True
 
+        # A list of messages to process
+
+        self.messages = []
+
     def disconnect(self):
         self.connected = False
         self.source.close()
@@ -744,7 +763,7 @@ class Client:
         return
 
     def force_disconnect(self):
-        return self.handler.handle_client_lost(verbose=False)
+        return self.handler.handle_client_lost(verbose=False)        
 
     def __eq__(self, other):
         #return self.address == other
