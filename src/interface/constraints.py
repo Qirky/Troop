@@ -22,11 +22,11 @@ class TextConstraint(object):
         
         self.leader        = None
         self.constraint_id = None
-        self.rule          = None
+        self.rule          = lambda *args: True
 
         self.using = { n: BooleanVar() for n in self.constraints }
 
-        # self.set_constraint(0)
+        self.set_constraint(0)
 
     def __call__(self):
         """ If there are multuple users connected, start to apply rules"""
