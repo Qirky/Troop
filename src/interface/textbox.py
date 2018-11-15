@@ -449,13 +449,21 @@ class ThreadSafeText(Text, OTClient):
 
         shift = get_operation_size(operation)
 
-        # peer_index = peer.get_index_num()
+        if shift == 0:
 
-        peer_index = get_operation_index(operation) - shift # trying this out
+            return
+
+        op_index = get_operation_index(operation)
+
+        peer_index = op_index - shift # trying this out
 
         if peer.get_index_num() != peer_index:
 
-            print("Peer index inconsistency: {} / {}".format(peer.get_index_num(), peer_index))
+            pass
+
+            # print("Peer index inconsistency: {} / {}".format(peer.get_index_num(), peer_index))
+
+            # print("Peer index: {}, Op index: {}, shift: {} === {} ".format(peer.get_index_num(), op_index, shift, peer_index))
 
         doc_size = len(self.read())
 
