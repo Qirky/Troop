@@ -48,6 +48,7 @@ class BasicInterface:
         self.logfile = None
         self.wait_msg = None
         self.waiting  = None
+        self.msg_id   = 0
 
         # Store information about the last key pressed
         self.last_keypress  = ""
@@ -530,6 +531,10 @@ class Interface(BasicInterface):
 
             if self.user_disabled() is False or isinstance(message, MSG_CONNECT_ACK):
 
+                self.msg_id += 1
+
+                message.set_msg_id(self.msg_id)
+
                 self.client.send_queue.put(message)
 
         else:
@@ -669,10 +674,6 @@ class Interface(BasicInterface):
 
         self.last_keypress  = event.keysym
 
-        # Make sure the user sees their cursor
-
-        # self.text.refresh_peer_labels()
-
         return "break"
 
     def remove_highlighted_brackets(self):
@@ -718,7 +719,7 @@ class Interface(BasicInterface):
 
             self.text.apply_local_operation(operation, index_offset, **kwargs)
 
-            # Handle the operation on the client side (this is just self.text.server_ack() essentially)
+            # Handle the operation on the client side (this is just self.text.apply_client(operation) essentially)
 
             self.text.handle_operation(MSG_OPERATION(self.text.marker.id, operation, self.text.revision), client=True)
 

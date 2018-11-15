@@ -20,8 +20,9 @@ class TextConstraint(object):
             3 : dictatorship()
         } 
         
-        self.leader  = None
-        self.rule    = None
+        self.leader        = None
+        self.constraint_id = None
+        self.rule          = None
 
         self.using = { n: BooleanVar() for n in self.constraints }
 
@@ -29,8 +30,14 @@ class TextConstraint(object):
 
     def __call__(self):
         """ If there are multuple users connected, start to apply rules"""
-        # return self.rule() if len(self.text.peers) > 1 else True
-        return self.rule(self.text)
+        return self.rule() if len(self.text.active_peers()) > 1 else True
+        # return self.rule(self.text)
+
+    def __eq__(self, constraint_id):
+        return self.constraint_id == constraint_id
+
+    def __ne__(self, constraint_id):
+        return self.constraint_id != constraint_id
 
     def names(self):
         return [str(c) for c in self.constraints.keys()]
@@ -50,6 +57,8 @@ class TextConstraint(object):
 
     def set_constraint(self, constraint_id, peer_id=None):
         """  """
+        self.constraint_id = constraint_id
+        
         self.rule = self.constraints[constraint_id]
         
         if peer_id is not None and peer_id >= 0:

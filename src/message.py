@@ -73,7 +73,11 @@ class NetworkMessageReader:
 
                 args = [self.convert_to_json(data[n]) for n in range(i+1, i+j)]
 
+                msg_id, args = args[0], args[1:]
+
                 pkg.append(cls(*args))
+
+                pkg[-1].set_msg_id(msg_id)
 
                 # Keep track of how much of the string we have processed
 
@@ -89,8 +93,8 @@ class NetworkMessageReader:
 
                 # Debug info
 
-                stdout( cls.__name__, e )
-                stdout( string )
+                print( cls.__name__, e )
+                print( string )
 
             i += j
 
@@ -106,12 +110,15 @@ class MESSAGE(object):
     data = {}
     keys = []
     type = None
-    def __init__(self, src_id):
-        self.data = {'src_id' : int(src_id), "type" : self.type}
-        self.keys = ['type', 'src_id']
+    def __init__(self, src_id, msg_id=0):
+        self.data = {'src_id' : int(src_id), "type" : self.type, "msg_id": msg_id}
+        self.keys = ['type', 'msg_id', 'src_id']
 
     def __str__(self):
         return "".join([self.format(item) for item in self])
+
+    def set_msg_id(self, value):
+        self.data["msg_id"] = int(value)
 
     @staticmethod
     def format(value):
@@ -172,8 +179,9 @@ class MESSAGE(object):
 
     @classmethod
     def header(cls):
-        args = inspect.getargspec(cls.__init__).args
-        args[0] = 'type'
+        # args = inspect.getargspec(cls.__init__).args
+        # args[0] = 'type'
+        args = ['type', 'msg_id'] + inspect.getargspec(cls.__init__).args[1:]
         return args
 
 # Define types of message
@@ -325,4 +333,6 @@ class DeadClientError(Exception):
 
 if __name__ == "__main__":
 
-    pass
+    msg = MSG_SET_MARK(42, 24)
+    print(msg,)
+    print(msg.header())

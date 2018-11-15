@@ -202,6 +202,7 @@ class Peer:
         self.sel_end   = "0.0"
 
         self.visible = True
+        self.connected = True
 
         # self.move(1,0) # create the peer
 
@@ -393,7 +394,7 @@ class Peer:
         return
 
     def see(self):
-        """ Use text.see to see this peer then redraw """
+        """ Use text.see to see this peer then redraw -- unused?"""
         self.root.see(self.mark)
         self.redraw()
         return
@@ -459,12 +460,14 @@ class Peer:
 
     def remove(self):
         """ Removes the peer from sight, but stays in the address book in case a client reconnects """
+        self.connected = False
         self.hl_select.hide()
         self.hide()
         return
 
     def reconnect(self, name):
         """ Un-hides a peer and updates the name when a client reconnects """
+        self.connected = True
         self.visible = True
         self.name.set(name)
         return

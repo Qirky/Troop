@@ -117,10 +117,6 @@ class ThreadSafeText(Text, OTClient):
         message = MSG_OPERATION(self.marker.id, operation.ops, revision)
         return self.root.add_to_send_queue(message)
 
-    # Override OT
-    # def apply_server(self, server, *args, **kwargs):
-    #     return
-
     def apply_operation(self, operation, peer=None, undo=False):
         """Should apply an operation from the server to the current document."""
 
@@ -173,8 +169,6 @@ class ThreadSafeText(Text, OTClient):
             text = self.read()
 
             # Set the active peer to the local marker and apply operation
-            
-            # self.active_peer = self.marker # I think this is an issue
 
             self.apply_operation(operation, peer=self.marker, undo=undo)
 
@@ -205,6 +199,10 @@ class ThreadSafeText(Text, OTClient):
     def get_state(self):
         """ Returns the state of the OT mechanism as a string """
         return self.state.__class__.__name__
+
+    def active_peers(self):
+        """ Returns a list of peers currently connected """
+        return [peer for peer in self.peers.values() if peer.connected]
 
     def transform(self, op1, op2):
         """ Transforms two TextOperations and adjusts the first for the length of the document"""
@@ -293,7 +291,7 @@ class ThreadSafeText(Text, OTClient):
 
             operation = TextOperation(message["operation"])
 
-            # This *sends* the operation to the server - it does *not* apply it locally
+            # This *sends* the operation to the server using text.send_operation(), it does *not* apply it locally
 
             self.apply_client(operation)
 
@@ -402,13 +400,17 @@ class ThreadSafeText(Text, OTClient):
     def handle_text_constraint(self, message):
         """ A new text constrait is set """ # TODO: implement the constraints again
         constraint_id = message["constraint_id"]
-        dictator_peer   = message["src_id"]
+        dictator_peer = message["src_id"]
 
-        if not (constraint_id == 0 and self.constraint.rule is None):
+        # Don't update if already using
 
-            print("New rule received! Setting mode to '{}'".format(str(self.constraint.get_name(constraint_id)).title()))
-        
-        self.constraint.set_constraint(constraint_id, dictator_peer)
+        if constraint_id != self.constraint:
+
+            if not (constraint_id == 0 and self.constraint.rule is None):
+
+                print("New rule received! Setting mode to '{}'".format(str(self.constraint.get_name(constraint_id)).title()))
+            
+            self.constraint.set_constraint(constraint_id, dictator_peer)
         
         return
 
@@ -447,8 +449,13 @@ class ThreadSafeText(Text, OTClient):
 
         shift = get_operation_size(operation)
 
-        peer_index = peer.get_index_num()
-        # peer_index = get_operation_index(operation) - shift
+        # peer_index = peer.get_index_num()
+
+        peer_index = get_operation_index(operation) - shift # trying this out
+
+        if peer.get_index_num() != peer_index:
+
+            print("Peer index inconsistency: {} / {}".format(peer.get_index_num(), peer_index))
 
         doc_size = len(self.read())
 

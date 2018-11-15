@@ -596,6 +596,8 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
             return
 
         # Enter loop
+
+        self.message_counter = 0
         
         while self.master.running:
 
@@ -620,6 +622,12 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
                 break
 
             for msg in packet:
+
+                if msg["msg_id"] > self.message_counter + 1:
+
+                    pass
+
+                    # store the message -- maybe
 
                 if isinstance(msg, MSG_CONNECT):
 
