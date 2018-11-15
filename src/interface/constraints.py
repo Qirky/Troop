@@ -30,8 +30,7 @@ class TextConstraint(object):
 
     def __call__(self):
         """ If there are multuple users connected, start to apply rules"""
-        return self.rule() if len(self.text.active_peers()) > 1 else True
-        # return self.rule(self.text)
+        return self.rule(self.text)
 
     def __eq__(self, constraint_id):
         return self.constraint_id == constraint_id
