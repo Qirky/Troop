@@ -450,24 +450,21 @@ class ThreadSafeText(Text, OTClient):
             the location of peer tags """
 
         shift = get_operation_size(operation)
+        index = get_operation_index(operation)
 
-        op_index = get_operation_index(operation)
+        peer_index = index - shift 
 
-        peer_index = op_index - shift # trying this out
+        # Un-comment to debug
 
-        if peer.get_index_num() != peer_index:
+        # if peer.get_index_num() != peer_index:
 
-            # print("Peer index inconsistency: {} / {}".format(peer.get_index_num(), peer_index))
-
-            # print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), op_index, shift, peer_index))
-
-            pass
+        #     print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), op_index, shift, peer_index))
 
         doc_size = len(self.read())
 
         for other in self.peers.values():
 
-            if other != peer:
+            if other !=  peer:
 
                 other_index = other.get_index_num()
 
