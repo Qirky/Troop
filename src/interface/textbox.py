@@ -317,13 +317,15 @@ class ThreadSafeText(Text, OTClient):
 
                 self.reset_view()
 
-                # If the operation is delete/insert, change the indexes of peers that are based after this one
+                if get_operation_size(message["operation"]) > 0:
 
-                self.adjust_peer_locations(self.active_peer, message["operation"])
+                    # If the operation is delete/insert, change the indexes of peers that are based after this one
 
-                # Move the peer marker
+                    self.adjust_peer_locations(self.active_peer, message["operation"])
 
-                self.active_peer.move(get_operation_index(message["operation"]))
+                    # Move the peer marker
+
+                    self.active_peer.move(get_operation_index(message["operation"]))
 
         return
 
@@ -449,21 +451,17 @@ class ThreadSafeText(Text, OTClient):
 
         shift = get_operation_size(operation)
 
-        if shift == 0:
-
-            return
-
         op_index = get_operation_index(operation)
 
         peer_index = op_index - shift # trying this out
 
         if peer.get_index_num() != peer_index:
 
-            pass
-
             # print("Peer index inconsistency: {} / {}".format(peer.get_index_num(), peer_index))
 
-            # print("Peer index: {}, Op index: {}, shift: {} === {} ".format(peer.get_index_num(), op_index, shift, peer_index))
+            # print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), op_index, shift, peer_index))
+
+            pass
 
         doc_size = len(self.read())
 
