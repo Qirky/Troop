@@ -445,6 +445,8 @@ class TroopServer(OTServer):
 
                 client.send(outgoing)
 
+                client.force_disconnect()
+
         sleep(0.5)
         
         self.running = False
@@ -547,9 +549,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         data = self.reader.feed(data)
         return data
 
-    def handle_client_lost(self):
+    def handle_client_lost(self, verbose=True):
         """ Terminates cleanly """
-        stdout("Client '{}' @ {} has disconnected".format(self.client_name, self.client_address[0]))
+        if verbose:
+            stdout("Client '{}' @ {} has disconnected".format(self.client_name, self.client_address[0]))
         self.master.remove_client(self.client_id)
         return
 
@@ -561,7 +564,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         if self.client_address not in list(self.master.clients.values()):
 
-            new_client = Client(self.client_address, self.get_client_id(), self.request, name=msg['name'])
+            # new_client = Client(self.client_address, self.get_client_id(), self.request, self, name=msg['name'])
+
+            new_client = Client(self, name=msg['name'])
 
             self.client_name = new_client.name
            
@@ -693,17 +698,19 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
 class Client:
     bytes = TroopServer.bytes
-    def __init__(self, address, id_num, request_handle, name=""):
+    def __init__(self, handler, name=""):
 
-        self.hostname = address[0]
-        self.port     = address[1]
-        self.address  = address
-        
-        self.source = request_handle
+        self.handler = handler
+
+        self.address  = self.handler.client_address
+        self.hostname = self.address[0]
+        self.port     = self.address[1]
+
+        self.source   = self.handler.request
 
         # For identification purposes
 
-        self.id   = int(id_num)
+        self.id   = int(self.handler.get_client_id())
         self.name = name
 
         # Location
@@ -735,6 +742,9 @@ class Client:
             print(e)
             raise DeadClientError(self.hostname)
         return
+
+    def force_disconnect(self):
+        return self.handler.handle_client_lost(verbose=False)
 
     def __eq__(self, other):
         #return self.address == other
