@@ -315,10 +315,6 @@ class ThreadSafeText(Text, OTClient):
 
                 self.apply_server(operation)
 
-                # Return to old view
-
-                self.reset_view()
-
                 if get_operation_size(message["operation"]) != 0:
 
                     # If the operation is delete/insert, change the indexes of peers that are based after this one
@@ -334,6 +330,10 @@ class ThreadSafeText(Text, OTClient):
                     # Still need to update the location
 
                     self.active_peer.refresh()
+
+                # Return to old view
+
+                self.reset_view()
 
         return
 
@@ -644,7 +644,7 @@ class ThreadSafeText(Text, OTClient):
         self.is_refreshing = True
         
         # Store the current "view" to re-apply later
-        self.view = self.root.scroll.get()
+        self.store_view()
         
         # Remove all the text and insert new text
         self.clear()
@@ -729,10 +729,37 @@ class ThreadSafeText(Text, OTClient):
     # Housekeeping
     # ============
 
+    def store_view(self):
+        """ Store the location of the interface view, i.e. scroll, such that the 
+            self.marker.bbox will be the same when self.reset_view() is called """
+    
+        # The index of the top line in the editor
+
+        self.scroll_index = self.index("@0,0")
+        self.scroll_view  = self.bbox(self.scroll_index)
+        
+        return
+
     def reset_view(self):
         """ Sets the view to the last position stored"""
 
-        self.yview('moveto', self.view[0])
+        # Move to top
+
+        self.yview('move', 0.0)
+        
+        # Scroll until the y-value is the same as previous
+
+        for n in range(self.get_num_lines()):
+
+            top_row = int(self.index("@0,0").split(".")[0])
+            scr_row = int(self.scroll_index.split(".")[0])
+            
+            if top_row >= scr_row:
+
+                break
+
+            self.yview('scroll', 1, 'units')
+
         return
 
     def configure_font(self):
@@ -796,6 +823,9 @@ class ThreadSafeText(Text, OTClient):
             if i >= number:
                 break
         return "{}.{}".format(row, col)
+
+    def get_num_lines(self):
+        return int(self.index(END).split(".")[0]) - 1
 
     def number_index_to_row_col(self, number):
         """ Takes an integer number and returns the row and column as integers """
