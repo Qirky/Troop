@@ -163,7 +163,9 @@ class ThreadSafeText(Text, OTClient):
     def apply_local_operation(self, ops, shift_amount, index=None, undo=False, redo=False):
         """ Applies the operation directly after a keypress """
 
-        if len(ops):
+        # Only apply if the operation is not empty
+
+        if get_operation_size(ops) != 0:
 
             operation = TextOperation(ops)
             text = self.read()
@@ -297,7 +299,7 @@ class ThreadSafeText(Text, OTClient):
 
         else:
 
-            # If we recieve a message from the server with our own id, acknowledge
+            # If we recieve a message from the server with our own id, just need acknowledge it
 
             if message["src_id"] == self.marker.id:
 
@@ -329,7 +331,9 @@ class ThreadSafeText(Text, OTClient):
 
                 else:
 
-                    self.refresh_peer_labels() # un-needed?
+                    # Still need to update the location
+
+                    self.active_peer.refresh()
 
         return
 
@@ -456,13 +460,13 @@ class ThreadSafeText(Text, OTClient):
         shift = get_operation_size(operation)
         index = get_operation_index(operation)
 
-        peer_index = index - shift 
+        peer_index = index - shift
 
         # Un-comment to debug
 
         # if peer.get_index_num() != peer_index:
 
-        #     print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), op_index, shift, peer_index))
+        #     print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), index, shift, peer_index))
 
         doc_size = len(self.read())
 

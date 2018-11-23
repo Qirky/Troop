@@ -180,6 +180,7 @@ class Peer:
         self.sel_tag  = self.get_select_tag(self.id)
         self.str_tag  = self.get_string_tag(self.id)
         self.mark     = self.get_mark_tag(self.id)
+        self.bbox     = None
 
         # For refreshing the text
         self.hl_eval    = Highlight(self.root, self.code_tag)
@@ -313,8 +314,6 @@ class Peer:
 
         try:
 
-            # self.root.update_idletasks()
-
             document_length = len(self.root.read())
 
             # Make sure the location is valid
@@ -344,9 +343,9 @@ class Peer:
 
             # Update the Tk text tag and draw the label
 
-            self.root.mark_set(self.mark, index)
+            # print("moving {} to {} / {} ({})".format(str(self), loc, document_length, index))
 
-            # self.redraw() # handles in line_numbers.py now
+            self.root.mark_set(self.mark, index)
 
         except Tk.TclError as e:
 
@@ -361,11 +360,11 @@ class Peer:
 
             return
 
-        bbox = self.root.bbox(self.mark)
+        self.bbox = self.root.bbox(self.mark)
 
-        if bbox is not None:
+        if self.bbox is not None:
 
-            x, y, width, height = bbox
+            x, y, width, height = self.bbox
 
             self.x_val = x - 2
 
