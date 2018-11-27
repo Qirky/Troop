@@ -134,30 +134,25 @@ class Client:
                     conf[line[0]] = line[1]
                 except:
                     pass
-        return conf['host'], int(conf['port'])
+        return str(conf['host']), int(conf['port'])
 
     def update_send(self):
         """ Continually polls the queue and sends any messages to the server """
         try:
-            while True:
+            while self.send.connected:
                 
-                if self.send.connected:
-                
-                    try:
-                        
-                        msg = self.send_queue.get_nowait()
-
-                        self.send( msg )
-
-                    except ConnectionError as e:
-                        
-                        return print(e)
+                try:
                     
-                    self.ui.root.update_idletasks()
+                    msg = self.send_queue.get_nowait()
+
+                    self.send( msg )
+
+                except ConnectionError as e:
+                    
+                    return print(e)
                 
-                else:
+                self.ui.root.update_idletasks()
                 
-                    break
         # Break when the queue is empty
         except queue.Empty:
             pass

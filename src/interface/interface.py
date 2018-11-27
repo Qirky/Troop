@@ -55,6 +55,8 @@ class BasicInterface:
         self.last_row       = 0
         self.last_col       = 0
 
+        self._debug_queue = []
+
     def run(self):
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
         # Continually check for messages to be sent
@@ -186,18 +188,6 @@ class Interface(BasicInterface):
         self.graphs = Canvas(self.root, bg=COLOURS["Stats"], width=350, bd=0, highlightthickness=0)
         self.graphs.grid(row=2, column=3, sticky="nsew")
 
-        
-
-        # Creative constraints - PUT IN OWN CLASS
-
-        # from . import constraints
-        # constraints = vars(constraints)
-
-        # self.default_constraint  = "anarchy"
-        # self.creative_constraints = {name: BooleanVar() for name in constraints if not name.startswith("_")}
-        # self.creative_constraints[self.default_constraint].set(True)
-        # self.__constraint__ = constraints[self.default_constraint]()
-
         # Menubar
 
         self.menu = MenuBar(self, visible = True)
@@ -209,7 +199,6 @@ class Interface(BasicInterface):
         # Key bindings
 
         CtrlKey = "Command" if SYSTEM == MAC_OS else "Control"
-
 
         # Disable by default
 
@@ -523,7 +512,7 @@ class Interface(BasicInterface):
 
         if isinstance(message, list):
 
-            for msg in messages:
+            for msg in message:
 
                 self.add_to_send_queue(msg) # just in case we get nested lists somehow
 
@@ -560,17 +549,25 @@ class Interface(BasicInterface):
         """ 'Pushes' the key-press to the server.
         """
 
+        self.input_blocking = True
+
         # Ignore the CtrlKey and non-ascii chars
 
         if self.user_disabled(): # should be breaking
+
+            self.input_blocking = False
 
             return "break"
 
         elif (event.keysym in self.ignored_keys):
 
+            self.input_blocking = False
+
             return "break"
 
         elif event.keysym == "F4" and self.last_keypress == "Alt_L":
+
+            self.input_blocking = False
 
             self.client.kill()
 
@@ -595,6 +592,8 @@ class Interface(BasicInterface):
         # Key movement
 
         if event.keysym in self.directions:
+
+            self.input_blocking = False
 
             return self.handle_direction.get(event.keysym, lambda: None).__call__()
 
@@ -673,6 +672,8 @@ class Interface(BasicInterface):
         # Store last key press for Alt+F4 etc
 
         self.last_keypress  = event.keysym
+
+        self.input_blocking = False
 
         return "break"
 
@@ -1066,31 +1067,47 @@ class Interface(BasicInterface):
     def single_line_evaluate(self, event=None):
         """ Finds contents of the current line and sends a message to each user (inc. this one) to evaluate """
 
-        row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
-        a, b   = "{}.0".format(row), "{}.end".format(row)
+        if self.input_blocking:
 
-        if self.text.get(a, b).lstrip() != "":
+            # schedule
 
-            self.add_to_send_queue( MSG_EVALUATE_BLOCK(self.text.marker.id, row, row) )
+            self.after(50, lambda: self.evaluate(event))
+
+        else:
+
+            row, _ = self.text.number_index_to_row_col(self.text.marker.get_index_num())
+            a, b   = "{}.0".format(row), "{}.end".format(row)
+
+            if self.text.get(a, b).lstrip() != "":
+
+                self.add_to_send_queue( MSG_EVALUATE_BLOCK(self.text.marker.id, row, row) )
 
         return "break"
 
     def evaluate(self, event=None):
         """ Finds the current block of code to evaluate and tells the server """
 
-        lines = self.get_current_block()
+        if self.input_blocking:
 
-        a, b = ("%d.0" % n for n in lines)
+            # schedule
 
-        string = self.text.get( a , b ).lstrip()
+            self.after(50, lambda: self.evaluate(event))
 
-        if string != "":
+        else:
 
-            #  Send notification to other peers
+            lines = self.get_current_block()
 
-            msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1])
+            a, b = ("%d.0" % n for n in lines)
 
-            self.add_to_send_queue( msg )
+            string = self.text.get( a , b ).lstrip()
+
+            if string != "":
+
+                #  Send notification to other peers
+
+                msg = MSG_EVALUATE_BLOCK(self.text.marker.id, lines[0], lines[1])
+
+                self.add_to_send_queue( msg )
 
         return "break"
 
