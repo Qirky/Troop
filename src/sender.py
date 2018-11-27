@@ -19,7 +19,10 @@ class Sender:
         Sends messages to the Server
 
     """
-    def __init__(self):
+    def __init__(self, client):
+
+        self.client = client
+
         self.hostname = None
         self.port     = None
         self.address  = None
@@ -90,11 +93,21 @@ class Sender:
         return self.connection_errors.get(self.conn_id, "Connected successfully")
 
     def __call__(self, message):
+        """ Send data to the server """
         try:
+
             self.conn.sendall(message.bytes())
+
         except Exception as e:
-            print(e)
-            raise ConnectionError("Can't connect to server")
+
+            # Don't raise exceptions if we already killed client
+
+            if self.client.is_alive:
+            
+                print(e)
+            
+                raise ConnectionError("Can't connect to server")
+        
         return
 
     def kill(self):

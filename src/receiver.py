@@ -21,7 +21,9 @@ class Receiver:
 
     """
 
-    def __init__(self, socket):
+    def __init__(self, client, socket):
+
+        self.client = client
 
         self.sock = socket
         self.address = self.sock.getsockname()
@@ -86,7 +88,7 @@ class Receiver:
 
             except EmptyMessageError as e:
 
-                if self.running:
+                if self.client.is_alive:
 
                     raise(e)
 

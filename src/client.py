@@ -27,6 +27,8 @@ class Client:
     
     def __init__(self, **kwargs):
 
+        self.is_alive = True
+
         # Start the UI
 
         self.input = ConnectionInput(self, **kwargs)
@@ -45,7 +47,7 @@ class Client:
 
         try:
             
-            self.send = Sender().connect(self.hostname, self.port, self.name, ipv6, password)
+            self.send = Sender(self).connect(self.hostname, self.port, self.name, ipv6, password)
 
             if not self.send.connected:
                 
@@ -76,7 +78,7 @@ class Client:
         # Continue with set up
         # Set up a receiver on the connected socket
           
-        self.recv = Receiver(self.send.conn)
+        self.recv = Receiver(self, self.send.conn)
         self.recv.start()
 
         self.address  = (self.send.hostname, self.send.port)
@@ -167,6 +169,8 @@ class Client:
             
     def kill(self):
         """ Kills the connection sockets and UI correctly """
+
+        self.is_alive = False
 
         for attr in (self.recv, self.send, self.ui):
 

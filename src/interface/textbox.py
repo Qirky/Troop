@@ -31,10 +31,11 @@ import json
 class ThreadSafeText(Text, OTClient):
     is_refreshing = False
     def __init__(self, root, **options):
+        
+        # Inheret  from Tk.Text and OT client
+        
         Text.__init__(self, root.root, **options)
         OTClient.__init__(self, revision=0)
-
-        self.operation = TextOperation() # what is this for?
 
         self.constraint = TextConstraint(self)
 
