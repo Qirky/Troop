@@ -78,7 +78,9 @@ class ThreadSafeText(Text, OTClient):
 
         self.marker     = None
         self.local_peer = None
-        self.view       = (0, 0) # where the scroll bar is
+        
+        self.scroll_view  = None
+        self.scroll_index = None
 
         self.configure_font()
 
@@ -733,12 +735,22 @@ class ThreadSafeText(Text, OTClient):
         """ Store the location of the interface view, i.e. scroll, such that the 
             self.marker.bbox will be the same when self.reset_view() is called """
     
-        # The index of the top line in the editor
+        # Store the current distance between top row and marker.mark
 
-        self.scroll_index = self.index("@0,0")
-        self.scroll_view  = self.bbox(self.scroll_index)
-        
+        self.scroll_distance = self.get_scroll_distance()
+
         return
+
+    def get_scroll_distance(self):
+        """ Returns the numbers of rows between the top visible row and the local peer's marker """
+
+        top_index = self.index("@0,0")
+        mrk_index = self.index(self.marker.mark)
+
+        top_row = int(top_index.split(".")[0])
+        mrk_row = int(mrk_index.split(".")[0])
+
+        return top_row - mrk_row
 
     def reset_view(self):
         """ Sets the view to the last position stored"""
@@ -747,14 +759,11 @@ class ThreadSafeText(Text, OTClient):
 
         self.yview('move', 0.0)
         
-        # Scroll until the y-value is the same as previous
+        # Scroll until the scroll-distance is the same as previous (or the end)
 
         for n in range(self.get_num_lines()):
 
-            top_row = int(self.index("@0,0").split(".")[0])
-            scr_row = int(self.scroll_index.split(".")[0])
-            
-            if top_row >= scr_row:
+            if self.get_scroll_distance() >= self.scroll_distance:
 
                 break
 
