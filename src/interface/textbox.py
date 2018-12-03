@@ -735,23 +735,26 @@ class ThreadSafeText(Text, OTClient):
     def store_view(self):
         """ Store the location of the interface view, i.e. scroll, such that the 
             self.marker.bbox will be the same when self.reset_view() is called """
+
+        # If we are at the top of the screen, and the marker is less than 2/3 down the page, keep at top
+
+        top_row    = self.get_visible_row_top()
+        marker_row = self.get_marker_row()
+        bottom_row = self.get_visible_row_bottom()
+
+        if top_row == 1:
+
+            if marker_row < (bottom_row * 0.66):
+
+                self.scroll_distance = self.get_num_lines() * -1
+
+                return
     
         # Store the current distance between top row and marker.mark
 
-        self.scroll_distance = self.get_scroll_distance()
+        self.scroll_distance = top_row - marker_row
 
         return
-
-    def get_scroll_distance(self):
-        """ Returns the numbers of rows between the top visible row and the local peer's marker """
-
-        top_index = self.index("@0,0")
-        mrk_index = self.index(self.marker.mark)
-
-        top_row = int(top_index.split(".")[0])
-        mrk_row = int(mrk_index.split(".")[0])
-
-        return top_row - mrk_row
 
     def reset_view(self):
         """ Sets the view to the last position stored"""
@@ -764,13 +767,27 @@ class ThreadSafeText(Text, OTClient):
 
         for n in range(self.get_num_lines()):
 
-            if self.get_scroll_distance() >= self.scroll_distance:
+            if (self.get_visible_row_top() - self.get_marker_row()) >= self.scroll_distance:
 
                 break
 
             self.yview('scroll', 1, 'units')
 
         return
+
+    def get_visible_row_top(self):
+        """ Returns the row number of the top-most visible line """
+        index = self.index("@0,0")
+        return int(index.split(".")[0])
+
+    def get_visible_row_bottom(self):
+        """ Returns the row number of the bottom-most visible line """
+        index = self.index("@0,{}".format(self.winfo_height()))
+        return int(index.split(".")[0])
+
+    def get_marker_row(self):
+        index = self.index(self.marker.mark)
+        return int(index.split(".")[0])
 
     def configure_font(self):
         """ Sets up font for the editor """
