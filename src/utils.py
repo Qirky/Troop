@@ -86,6 +86,9 @@ def get_operation_size(ops):
             count += op
     return count
 
+def empty_operation(ops):
+    """ Returns True if the operation is an empty list or only contains positive integers """
+    return (ops == [] or all([isinstance(x, int) for x in ops]))
 
 def get_doc_size(ops):
     """ Returns the size of the document this operation is operating on """

@@ -168,7 +168,7 @@ class ThreadSafeText(Text, OTClient):
 
         # Only apply if the operation is not empty
 
-        if get_operation_size(ops) != 0:
+        if not empty_operation(ops):
 
             operation = TextOperation(ops)
             text = self.read()
