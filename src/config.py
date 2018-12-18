@@ -3,10 +3,7 @@ import os, os.path
 
 # Check for location of Python
 
-exec_path = os.path.abspath(os.path.dirname(sys.executable))
-this_path = os.path.abspath(os.path.dirname("."))
-
-if exec_path == this_path:
+if sys.argv[0] == sys.executable: # If this is compiled file, just use python
 
     PYTHON_EXECUTABLE = "python"
 
