@@ -230,7 +230,7 @@ class BuiltinInterpreter(Interpreter):
 
 class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
-    path = "python -u -m FoxDot --pipe"
+    path = "{} -u -m FoxDot --pipe".format(PYTHON_EXECUTABLE)
 
     def setup(self):
         self.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>']

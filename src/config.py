@@ -1,6 +1,7 @@
 import sys
 import os, os.path
 
+PYTHON_EXECUTABLE = os.path.basename(sys.executable)
 PY_VERSION = sys.version_info[0]
 
 # Any Py2to3
