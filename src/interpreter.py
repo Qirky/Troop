@@ -32,6 +32,7 @@ import re
 import time
 import threading
 import shlex
+import tempfile
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -130,36 +131,45 @@ class Interpreter(DummyInterpreter):
     stdout   = None
     stdout_thread = None
     filetype = ".txt"
-    def __init__(self, path):
+    def __init__(self, path, args=""):
 
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
-        if exe_exists(path.split()[0]):
-
-            self.path = path
-
-        else:
-
-            raise ExecutableNotFoundError("'{}' is not a valid executable. Using Dummy Interpreter instead.".format(path))
-
-        import tempfile
+        self.path = shlex.split(path)
+        self.args = shlex.split(args)
 
         self.f_out = tempfile.TemporaryFile("w+", 1) # buffering = 1
         self.is_alive = True
 
+        self.setup()
+
+    def setup(self):
+        """ Overloaded in sub-classes """
+        return
+
     def start(self):
         """ Opens the process with the interpreter language """
-        
-        self.lang = Popen(shlex.split(self.path), shell=False, universal_newlines=True, bufsize=1,
-                          stdin=PIPE,
-                          stdout=self.f_out,
-                          stderr=self.f_out,
-						  creationflags=CREATE_NO_WINDOW)
 
-        self.stdout_thread = threading.Thread(target=self.stdout)
-        self.stdout_thread.start()
+        try:
+        
+            self.lang = Popen(self.path + self.args, shell=False, universal_newlines=True, bufsize=1,
+                              stdin=PIPE,
+                              stdout=self.f_out,
+                              stderr=self.f_out,
+    						  creationflags=CREATE_NO_WINDOW)
+
+            self.stdout_thread = threading.Thread(target=self.stdout)
+            self.stdout_thread.start()
+
+        except FileNotFoundError:
+
+            raise ExecutableNotFoundError(self.get_path_as_string())
 
         return self
+
+    def get_path_as_string(self):
+        """ Returns the executable input as a string """
+        return " ".join(self.path)
 
     def find_keyword(self, string):
         return [(match.start(), match.end()) for match in self.keyword_regex.finditer(string)]
@@ -214,16 +224,16 @@ class CustomInterpreter:
     def __call__(self):
         return Interpreter(*self.args, **self.kwargs)
 
-class FoxDotInterpreter(Interpreter):
+class BuiltinInterpreter(Interpreter):
+    def __init__(self, args):
+        Interpreter.__init__(self, self.path, args)
+
+class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
     path = "python -u -m FoxDot --pipe"
 
-    def __init__(self):
-
-        Interpreter.__init__(self, self.path)
-
+    def setup(self):
         self.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>']
-
         self.keyword_regex = compile_regex(self.keywords)
 
     def __repr__(self):
@@ -262,9 +272,7 @@ class FoxDotInterpreter(Interpreter):
 class OSCInterpreter(Interpreter):
     """ Class for sending messages via OSC instead of using a subprocess """
     def __init__(self):
-
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
-
         self.lang = OSC.OSCClient()
         self.lang.connect((self.host, self.port))
 
@@ -453,17 +461,13 @@ class SonicPiInterpreter(OSCInterpreter):
 
         
 
-class TidalInterpreter(Interpreter):
+class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
-    def __init__(self):
-        # Start haskell interpreter
-        Interpreter.__init__(self, self.path)
 
     def start(self):
 
         Interpreter.start(self)
-
 
         # Import Tidal and set the cps
         self.lang.stdin.write("import Sound.Tidal.Context\n")

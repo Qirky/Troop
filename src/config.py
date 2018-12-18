@@ -167,4 +167,5 @@ def exe_exists(exe):
     )
 
 class ExecutableNotFoundError(Exception):
-    pass
+    def __init__(self, executable):
+        Exception.__init__(self, "{}: '{}' is not a valid executable".format(self.__class__.__name__, executable))

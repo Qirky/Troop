@@ -34,13 +34,14 @@ class Client:
         self.input = ConnectionInput(self, **kwargs)
         self.input.start()
 
-    def setup(self, host="", port="", name="", password="", lang=FOXDOT, logging=False, ipv6=False):
+    def setup(self, host="", port="", name="", password="", lang=FOXDOT, args="", logging=False, ipv6=False):
 
         # ConnectionInput(host, port)
         
         self.hostname = str(host)
         self.port     = int(port)
         self.name     = str(name if name is not None else hostname)
+        self.args     = args
         self.id       = None
 
         # Try and connect to server
@@ -87,15 +88,15 @@ class Client:
 
         try:
 
-            lang_id = getInterpreter(lang)
+            lang = getInterpreter(lang)
 
-            if lang_id in langtypes:
+            if lang in langtypes:
 
-                self.lang = langtypes[lang_id]()
+                self.lang = langtypes[lang](self.args)
 
             else:
 
-                self.lang = Interpreter(lang_id)
+                self.lang = Interpreter(lang, self.args)
 
         except ExecutableNotFoundError as e:
 

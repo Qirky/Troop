@@ -298,7 +298,15 @@ class Interface(BasicInterface):
 
         # Set language -- TODO have knowledge of language and set boolean to True
 
-        self.lang.start()
+        try:
+
+            self.lang.start()
+
+        except ExecutableNotFoundError as e:
+
+            print("{}. Using Dummy Interpreter instead".format(e))
+
+            self.lang = DummyInterpreter()
 
         # Set the window focus
         self.text.focus_force()
