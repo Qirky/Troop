@@ -1,7 +1,20 @@
 import sys
 import os, os.path
 
-PYTHON_EXECUTABLE = os.path.basename(sys.executable)
+# Check for location of Python
+
+exec_path = os.path.abspath(os.path.dirname(sys.executable))
+this_path = os.path.abspath(os.path.dirname("."))
+
+if exec_path == this_path:
+
+    PYTHON_EXECUTABLE = "python"
+
+else:
+
+    PYTHON_EXECUTABLE = os.path.basename(sys.executable)
+
+
 PY_VERSION = sys.version_info[0]
 
 # Any Py2to3
