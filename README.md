@@ -88,7 +88,25 @@ Currently requires Sonic-Pi to be open on your computer.
 
 If you've connected successfully then you'll greeted with an interface with three boxes. The largest of the boxes is used to input code and the others to display console responses and some stats about character usages. To evaluate a line of code make sure your text cursor is placed in the line you want and press `Ctrl+Return`. If there are any other users connected you should see coloured markers in the text displaying their names. You can even execute code they've written and vice versa.
 
-You can create a `client.cfg` file in the root directory if you have a host / port that you want to connect to regularly. It's contents should contain two lines:
+#### Other flags
+
+Other flags can be added to the `run-client.py` command too. Below is an in-depth look at how to use them:
+
+`python  run-client.py -h` / `python run-client.py --help` - Shows the help dialog and exits
+
+`python  run-client.py -i` / `python run-client.py --cli` - Starts Troop with a command line interface
+
+`python  run-client.py -H HOST` / `python run-client.py --host HOST` - Start Troop with the host value set to HOST
+
+`python  run-client.py -P port` / `python run-client.py --port PORT` - Start Troop with the port value set to PORT
+
+`python  run-client.py -m MODE` / `python run-client.py --mode MODE` - Start Troop with the specified mode (see above)
+
+`python  run-client.py -a ARGS` / `python run-client.py --args ARGS` - Supply command line arguments to the executable as a single string e.g:
+
+`python run-client.py --args "--startup path/to/file.py"`
+
+`python  run-client.py -c` / `python run-client.py --config` - Load host/port info from `client.cfg`. You can create a `client.cfg` file in the root directory if you have a host / port that you want to connect to regularly. It's contents should contain two lines:
 
 	host=<hostname_or_ip_address>
 	port=<port_number>  
