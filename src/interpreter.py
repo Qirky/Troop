@@ -136,12 +136,25 @@ class Interpreter(DummyInterpreter):
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
         self.path = shlex.split(path)
-        self.args = shlex.split(args)
+
+        self.args = self._get_args(args)
 
         self.f_out = tempfile.TemporaryFile("w+", 1) # buffering = 1
         self.is_alive = True
 
         self.setup()
+
+    @staticmethod
+    def _get_args(args):
+        if isinstance(args, str):
+    
+            args = shlex.split(args)
+
+        elif isinstance(args, list) and len(args) == 1:
+
+            args = shlex.split(args[0])
+
+        return args
 
     def setup(self):
         """ Overloaded in sub-classes """
