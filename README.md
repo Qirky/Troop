@@ -107,9 +107,9 @@ Other flags can be added to the `run-client.py` command too. Below is an in-dept
 	host=<hostname_or_ip_address>
 	port=<port_number>  
 
-`python run-client.py -a ARG1, ARG2, ...` / `python run-client.py --args ARG1, ARG2, ...` - Supply command line arguments to the executable:
+`python run-client.py -a ARG1, ARG2, ...` / `python run-client.py --args ARG1, ARG2, ...` - Supply remaining command line arguments to the interpreter e.g.
 
-	python run-client.py --args --startup path/to/file.py
+	python run-client.py --args --startup path/to/startup_file.py
 
 ## Troubleshooting
 
