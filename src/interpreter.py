@@ -281,10 +281,12 @@ class FoxDotInterpreter(BuiltinInterpreter):
     def stop_sound(self):
         return "Clock.clear()"
 
+# Interpreters over OSC (e.g. Sonic Pi)
+# -------------------------------------
 
 class OSCInterpreter(Interpreter):
     """ Class for sending messages via OSC instead of using a subprocess """
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
         self.lang = OSC.OSCClient()
         self.lang.connect((self.host, self.port))
