@@ -1,11 +1,14 @@
 try:
     import Tkinter as Tk
     import tkMessageBox
+    import tkFileDialog
 except ImportError:
     import tkinter as Tk
     from tkinter import messagebox as tkMessageBox
+    from tkinter import filedialog as tkFileDialog
 
 from .interface import ROOT
+from ..config import langtitles
 
 class ConnectionInput:
     """ Interface for getting connection info from the user """
@@ -42,21 +45,32 @@ class ConnectionInput:
             lbl = Tk.Label(self.root, text="Name:")
             lbl.grid(row=2, column=0, sticky=Tk.W)
             self.name=Tk.Entry(self.root)
-            self.name.grid(row=2, column=1)
+            self.name.grid(row=2, column=1, sticky=Tk.NSEW)
             
             # Password
             lbl = Tk.Label(self.root, text="Password: ")
             lbl.grid(row=3, column=0, sticky=Tk.W)
             self.password=Tk.Entry(self.root, show="*")
-            self.password.grid(row=3, column=1)
+            self.password.grid(row=3, column=1, sticky=Tk.NSEW)
+
+            # Interpreter
+            lbl = Tk.Label(self.root, text="Language: ")
+            lbl.grid(row=4, column=0, sticky=Tk.W)
+            self.select_path_option = "Select another program..."
+            options = list(langtitles.values()) + [self.select_path_option]
+            self.lang = Tk.StringVar(self.root)
+            self.lang.set("FoxDot")
+            self.drop = Tk.OptionMenu(self.root, self.lang, *list(options), command=self.select_path)
+            self.drop.config(width=5)
+            self.drop.grid(row=4, column=1, sticky=Tk.NSEW)
             
             # Ok button
             self.button=Tk.Button(self.root, text='Ok',command=self.store_data)
-            self.button.grid(row=4, column=0, columnspan=2, sticky=Tk.NSEW)
+            self.button.grid(row=5, column=0, columnspan=2, sticky=Tk.NSEW)
 
             self.response = Tk.StringVar()
             self.lbl_response=Tk.Label(self.root, textvariable=self.response, fg="Red")
-            self.lbl_response.grid(row=5, column=0, columnspan=2)
+            self.lbl_response.grid(row=6, column=0, columnspan=2)
             self.lbl_response.grid_remove()
             
             # Value
@@ -97,12 +111,21 @@ class ConnectionInput:
                 widget.grid_forget()
         return
 
+    def select_path(self, lang):
+        """ If lang is select_path_option, open file dialog and set self.lang to the path """
+        if lang == self.select_path_option:
+            path = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file")
+            self.lang.set(path)
+        return
+
     def store_data(self, event=None):
         """ Stores the data in the entry fields then closes the window """
         host = self.host.get()
         port = self.port.get()
         name = self.name.get()
         password = self.password.get()
+        
+        lang_name = self.lang.get()
 
         # If we have values for name, host, and port then go to "finish"
 
@@ -112,7 +135,8 @@ class ConnectionInput:
                 host = host, 
                 port = port, 
                 name = name, 
-                password = password
+                password = password,
+                lang = lang_name
             )
 
             self.finish()
