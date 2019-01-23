@@ -33,6 +33,7 @@ import time
 import threading
 import shlex
 import tempfile
+import os.path
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -126,6 +127,7 @@ class DummyInterpreter:
 class Interpreter(DummyInterpreter):
     lang     = None
     clock    = None
+    bootfile = None
     keyword_regex = compile_regex([])
     comment_regex = compile_regex([])
     stdout   = None
@@ -177,6 +179,17 @@ class Interpreter(DummyInterpreter):
         except FileNotFoundError:
 
             raise ExecutableNotFoundError(self.get_path_as_string())
+
+        # Load bootfile
+
+        if self.bootfile is not None:
+
+            with open(os.path.join(CONF_DIR, self.bootfile)) as f:
+
+                for line in f.readlines():
+
+                    self.lang.stdin.write(line.rstrip() + "\n")
+                    self.lang.stdin.flush()
 
         return self
 
@@ -479,35 +492,16 @@ class SonicPiInterpreter(OSCInterpreter):
 class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
+    bootfile = "tidal.boot"
 
     def start(self):
 
         Interpreter.start(self)
 
-        # Import Tidal and set the cps
-        self.lang.stdin.write("import Sound.Tidal.Context\n")
-        self.lang.stdin.flush()
-        self.lang.stdin.write(":set -XOverloadedStrings\n")
-        self.lang.stdin.flush()
-        self.lang.stdin.write("(cps, getNow) <- bpsUtils\n")
-        self.lang.stdin.flush()
-
-        # Not always necessary but some versions of windows need setting d1-9
-        d_vals = range(1,10)
-        
-        for n in d_vals:
-            self.lang.stdin.write("(d{}, t{}) <- superDirtSetters getNow\n".format(n, n))
-            self.lang.stdin.flush()
-
-        # Define hush
-
-        self.lang.stdin.write("let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]\n")
-        self.lang.stdin.flush()
-
         # Set any keywords e.g. d1 and $
 
-        self.keywords  = ["d{}".format(n) for n in d_vals]
-        self.keywords += ["\$", "#", "hush"]
+        self.keywords  = ["d{}".format(n) for n in range(1,17)] # update
+        self.keywords.extend( ["\$", "#", "hush"] )
 
         self.keyword_regex = compile_regex(self.keywords)
 

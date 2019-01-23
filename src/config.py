@@ -53,6 +53,7 @@ def readin(prompt="", default=None):
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 SRC_DIR = os.path.join(os.path.dirname(__file__))
 
+
 # Check for OS -> mac, linux, win
 
 SYSTEM  = 0
@@ -125,11 +126,14 @@ def getInterpreter(path):
 global COLOUR_INFO_FILE
 global COLOURS
 
-# to avoid putting CONF_DIR into the namespace
-if not os.path.exists(os.path.join(SRC_DIR, "conf")):
-    os.makedirs(os.path.join(SRC_DIR, "conf"))
+# to avoid putting CONF_DIR into the namespace -- why?
 
-COLOUR_INFO_FILE = os.path.join(SRC_DIR, "conf/colours.txt")
+CONF_DIR = os.path.join(SRC_DIR, "conf")
+
+if not os.path.exists(CONF_DIR):
+    os.makedirs(CONF_DIR)
+
+COLOUR_INFO_FILE = os.path.join(CONF_DIR, "colours.txt")
 
 COLOURS = { "Background" : "#272822",
             "Console"    : "#151613",
