@@ -18,7 +18,7 @@ There are two ways of using Troop; one is to download the latest release and run
 2. Double-click the program to get started. Enter server connection details then press OK to open the interface.
 3. You can still run Troop from the command line with extra arguments as you would the Python files. Run the following command to find out more (changing the executable name for the version you have downloaded):
 
-	Troop-Windows-0.8.0-client.exe -h
+	Troop-Windows-0.9.1-client.exe -h
 
 See "Running the Troop client" below for more details.
 
@@ -42,7 +42,7 @@ Then to run the server application, type in the following and press return:
 
 	python run-server.py
 
-If you don't have Python installed and you have downloaded the executable, simply type the name of the executable and press return:
+If you don't have Python installed and you have downloaded the executable, simply type the name of the executable and press return (or double clicking on it):
 
 	Troop-Windows-0.8.0-server.exe
 
@@ -52,7 +52,7 @@ You will be asked to enter a password. You can leave this blank if you wish - bu
 
 ### Running the Troop Client
 
-Once you've opened the Troop client you'll be able to enter the IP address and port number of the  Troop server instance running on your network. Enter the name you want to display and the password for the server and continue by pressing OK. You can change the language to use with Troop after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.
+Once you've opened the Troop client you'll be able to enter the IP address and port number of the Troop server instance running on your network. Enter the name you want to display and the password for the server and select the interpreter you want to use (requires installation and setup - see below). Press OK to open the editor. You can also change the interpreter to use with Troop after you've opened the editor by going to `Code -> Choose Language` and selecting the language of choice.
 
 Alternatively you can start Troop in a different "mode" so that it is interpreting another language at startup. To do this, run the following from the command line depending on your desired startup language:
  
@@ -80,7 +80,7 @@ Once this is done you'll need to make SuperCollider listen for Troop messages by
 
 	python run-client.py --mode SonicPi  
 
-Currently requires Sonic-Pi to be open on your computer.
+Requires Sonic-Pi to be open on your computer.
 
 **Other**
 
