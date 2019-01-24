@@ -44,7 +44,7 @@ Then to run the server application, type in the following and press return:
 
 If you don't have Python installed and you have downloaded the executable, simply type the name of the executable and press return (or double clicking on it):
 
-	Troop-Windows-0.8.0-server.exe
+	Troop-Windows-0.9.1-server.exe
 
 You will be asked to enter a password. You can leave this blank if you wish - but make sure you are on a secure network if you do. Connecting clients will be required to enter the same password when connecting to the server. By default the server will run on port 57890 but this isn't always the case. Make a note of the address and port number so that Troop clients can connect to the server and you're up and running! To stop the server, either close the terminal window it's running in or use the keyboard shorcut `Ctrl+C` to kill the process. 
 

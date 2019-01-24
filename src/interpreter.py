@@ -182,14 +182,12 @@ class Interpreter(DummyInterpreter):
 
         # Load bootfile
 
-        if self.bootfile is not None:
+        if self.bootstrap is not None:
 
-            with open(os.path.join(CONF_DIR, self.bootfile)) as f:
+            for line in self.bootstrap.split("\n"):
 
-                for line in f.readlines():
-
-                    self.lang.stdin.write(line.rstrip() + "\n")
-                    self.lang.stdin.flush()
+                self.lang.stdin.write(line.rstrip() + "\n")
+                self.lang.stdin.flush()
 
         return self
 
@@ -492,9 +490,14 @@ class SonicPiInterpreter(OSCInterpreter):
 class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
-    bootfile = "tidal.boot"
 
     def start(self):
+
+        # Import boot up code
+
+        from .boot.tidal import bootstrap
+
+        self.bootstrap = bootstrap
 
         Interpreter.start(self)
 
