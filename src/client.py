@@ -19,7 +19,7 @@ import sys
 
 class Client:
 
-    version = '0.8'
+    version = '0.9.1'
     ui   = None
     send = None
     recv = None
