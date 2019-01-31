@@ -127,7 +127,7 @@ class DummyInterpreter:
 class Interpreter(DummyInterpreter):
     lang     = None
     clock    = None
-    bootfile = None
+    bootstrap = None
     keyword_regex = compile_regex([])
     comment_regex = compile_regex([])
     stdout   = None
