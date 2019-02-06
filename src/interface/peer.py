@@ -143,6 +143,7 @@ class Highlight:
         return
 
     def clear(self):
+        """ Removes the Tk text tag from the document """
         self.text.tag_remove(self.tag, "1.0", Tk.END)
         return
 

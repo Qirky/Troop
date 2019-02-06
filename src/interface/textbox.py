@@ -161,6 +161,8 @@ class ThreadSafeText(Text, OTClient):
 
             self.insert_peer_id(peer, operation.ops)
 
+            peer.de_select()
+
             # -- new
 
             self.refresh()
