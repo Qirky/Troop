@@ -56,7 +56,7 @@ class LineNumbers(Tk.Canvas):
 
         # Draw a line
 
-        self.create_line(w, 0, w, self.winfo_height(), fill="gray50")#COLOURS["Background"])
+        self.create_line(w, 0, w, self.winfo_height(), fill="gray50")
 
         # Draw peer_lables
 

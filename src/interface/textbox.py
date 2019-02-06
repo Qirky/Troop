@@ -161,6 +161,10 @@ class ThreadSafeText(Text, OTClient):
 
             self.insert_peer_id(peer, operation.ops)
 
+            # -- new
+
+            self.refresh()
+
         return
 
     def apply_local_operation(self, ops, shift_amount, index=None, undo=False, redo=False):
@@ -438,7 +442,7 @@ class ThreadSafeText(Text, OTClient):
     def set_text(self, string):
         """ Sets the contents of the textbox to string"""
         self.document = string
-        self.refresh()
+        # self.refresh()
         return
 
     def read(self):
@@ -470,6 +474,8 @@ class ThreadSafeText(Text, OTClient):
         # if peer.get_index_num() != peer_index:
 
         #     print("{} index: {}, Op index: {}, shift: {} === {} ".format(str(peer), peer.get_index_num(), index, shift, peer_index))
+
+        # print("Peer '{}' applying operation of size '{}' at index '{}'".format(str(peer), shift, index))
 
         doc_size = len(self.read())
 
@@ -662,9 +668,12 @@ class ThreadSafeText(Text, OTClient):
         return
 
     def refresh_peer_labels(self):
-        ''' Updates the locations of the peers to their marks'''
+        ''' Updates the locations of the peers to their marks. Called from line_numbers on repeat '''
+        
         for peer_id, peer in self.peers.items():
+             
              peer.redraw()
+        
         return
 
     # handling key events

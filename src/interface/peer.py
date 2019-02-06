@@ -341,9 +341,7 @@ class Peer:
 
             index = "{}.{}".format(self.row, self.col)
 
-            # Update the Tk text tag and draw the label
-
-            # print("moving {} to {} / {} ({})".format(str(self), loc, document_length, index))
+            # Update the Tk text tag -- currently not used
 
             self.root.mark_set(self.mark, index)
 
@@ -360,7 +358,7 @@ class Peer:
 
             return
 
-        self.bbox = self.root.bbox(self.mark)
+        self.bbox = self.root.bbox(self.get_tcl_index())
 
         if self.bbox is not None:
 
