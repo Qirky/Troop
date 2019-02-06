@@ -1,6 +1,8 @@
 import sys
 import os, os.path
 
+VERSION = "0.9.2"
+
 # Check for location of Python
 
 if sys.argv[0] == sys.executable: # If this is compiled file, just use python

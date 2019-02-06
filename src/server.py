@@ -48,7 +48,8 @@ class TroopServer(OTServer):
         network connect to it and send their keypress information
         to the server, which then sends it on to the others
     """
-    bytes  = 2048
+    bytes   = 2048
+    version = VERSION
     def __init__(self, password="", port=57890, log=False, debug=False):
 
         # Operation al transform info
@@ -256,13 +257,13 @@ class TroopServer(OTServer):
         self.server_thread.start()
         self.msg_queue_thread.start()
 
-        stdout("Server running @ {} on port {}\n".format(self.ip_pub, self.port))
+        stdout("Server running @ {} on port {}. Ver. {}\n".format(self.ip_pub, self.port, self.version))
 
         while True:
 
             try:
 
-                sleep(0.5)
+                sleep(1)
 
             except KeyboardInterrupt:
 
