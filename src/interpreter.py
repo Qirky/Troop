@@ -122,7 +122,7 @@ class DummyInterpreter:
     @staticmethod
     def format(string):
         """ Method to be overloaded in sub-classes for formatting strings to be evaluated """
-        return string
+        return str(string) + "\n"
     
 class Interpreter(DummyInterpreter):
     lang     = None
