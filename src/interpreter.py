@@ -301,6 +301,7 @@ class OSCInterpreter(Interpreter):
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
         self.lang = OSC.OSCClient()
         self.lang.connect((self.host, self.port))
+        self._osc_error = False
 
     # Overload to not activate a server
     def start(self):
@@ -315,11 +316,21 @@ class OSCInterpreter(Interpreter):
         """ Overload in sub-class, return OSC.OSCMessage"""
         return
 
+    def print_osc_warning_message(self):
+        print("Warning: No connection made to local {} OSC server instance.".format(self.__repr__()))
+        return
+
     def evaluate(self, string, *args, **kwargs):
         # Print to the console the message
         Interpreter.print_stdin(self, string, *args, **kwargs)
         # Create an osc message and send to the server
-        self.lang.send(self.new_osc_message(string))
+        try:
+            self.lang.send(self.new_osc_message(string))
+            self._osc_error = False
+        except OSC.OSCClientError:
+            if not self._osc_error:
+                self.print_osc_warning_message()
+            self._osc_error = True
         return
 
 class SuperColliderInterpreter(OSCInterpreter):
