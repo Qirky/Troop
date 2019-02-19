@@ -108,14 +108,14 @@ langnames = { "foxdot"           : FOXDOT,
               "tidalcycles"      : TIDAL,
               "tidalcyclesstack" : TIDALSTACK,
               "supercollider"    : SUPERCOLLIDER,
-              "sonicpi"          : SONICPI,
+              "sonic-pi"          : SONICPI,
               "none"             : DUMMY }
 
 langtitles = { "foxdot"           : "FoxDot",
                "tidalcycles"      : "TidalCycles",
                "supercollider"    : "SuperCollider",
                "tidalcyclesstack" : "TidalCycles (stack)",
-               "sonicpi"          : "Sonic-Pi",
+               "sonic-pi"          : "Sonic-Pi",
                "none"             : "No Interpreter" }
 
 def getInterpreter(path):

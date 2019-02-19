@@ -292,6 +292,63 @@ class FoxDotInterpreter(BuiltinInterpreter):
     def stop_sound(self):
         return "Clock.clear()"
 
+class TidalInterpreter(BuiltinInterpreter):
+    path = 'ghci'
+    filetype = ".tidal"
+
+    def start(self):
+
+        # Import boot up code
+
+        from .boot.tidal import bootstrap
+
+        self.bootstrap = bootstrap
+
+        Interpreter.start(self)
+
+        # Set any keywords e.g. d1 and $
+
+        self.keywords  = ["d{}".format(n) for n in range(1,17)] # update
+        self.keywords.extend( ["\$", "#", "hush"] )
+
+        self.keyword_regex = compile_regex(self.keywords)
+
+        # threading.Thread(target=self.stdout).start()
+        
+        return self
+
+    def __repr__(self):
+        return "TidalCycles"
+
+    @classmethod
+    def find_comment(cls, string):        
+        instring, instring_char = False, ""
+        for i, char in enumerate(string):
+            if char in ('"', "'"):
+                if instring:
+                    if char == instring_char:
+                        instring = False
+                        instring_char = ""
+                else:
+                    instring = True
+                    instring_char = char
+            elif char == "-":
+                if not instring and (i + 1) < len(string) and string[i + 1] == "-":
+                    return [(i, len(string))]
+        return []
+    
+    @staticmethod
+    def format(string):
+        """ Used to formant multiple lines in haskell """
+        return ":{\n"+string+"\n:}\n"
+
+    def stop_sound(self):
+        """ Triggers the 'hush' command using Ctrl+. """
+        return "hush"
+
+class StackTidalInterpreter(TidalInterpreter):
+    path = "stack ghci"
+
 # Interpreters over OSC (e.g. Sonic Pi)
 # -------------------------------------
 
@@ -497,63 +554,6 @@ class SonicPiInterpreter(OSCInterpreter):
         return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(self.host, self.port)
 
         
-
-class TidalInterpreter(BuiltinInterpreter):
-    path = 'ghci'
-    filetype = ".tidal"
-
-    def start(self):
-
-        # Import boot up code
-
-        from .boot.tidal import bootstrap
-
-        self.bootstrap = bootstrap
-
-        Interpreter.start(self)
-
-        # Set any keywords e.g. d1 and $
-
-        self.keywords  = ["d{}".format(n) for n in range(1,17)] # update
-        self.keywords.extend( ["\$", "#", "hush"] )
-
-        self.keyword_regex = compile_regex(self.keywords)
-
-        # threading.Thread(target=self.stdout).start()
-        
-        return self
-
-    def __repr__(self):
-        return "TidalCycles"
-
-    @classmethod
-    def find_comment(cls, string):        
-        instring, instring_char = False, ""
-        for i, char in enumerate(string):
-            if char in ('"', "'"):
-                if instring:
-                    if char == instring_char:
-                        instring = False
-                        instring_char = ""
-                else:
-                    instring = True
-                    instring_char = char
-            elif char == "-":
-                if not instring and (i + 1) < len(string) and string[i + 1] == "-":
-                    return [(i, len(string))]
-        return []
-    
-    @staticmethod
-    def format(string):
-        """ Used to formant multiple lines in haskell """
-        return ":{\n"+string+"\n:}\n"
-
-    def stop_sound(self):
-        """ Triggers the 'hush' command using Ctrl+. """
-        return "hush"
-
-class StackTidalInterpreter(TidalInterpreter):
-    path = "stack ghci"
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
