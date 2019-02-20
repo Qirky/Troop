@@ -523,7 +523,7 @@ class SonicPiInterpreter(OSCInterpreter):
         return "Sonic-Pi"
 
     def new_osc_message(self, string):
-        """ Returns OSC message for Troop Quark """
+        """ Returns OSC message for Sonic Pi """
         msg = OSC.OSCMessage("/run-code")
         msg.append(["0", string])
         return msg
