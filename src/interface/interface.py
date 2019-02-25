@@ -250,7 +250,7 @@ class Interface(BasicInterface):
         self.text.bind("<{}-x>".format(CtrlKey), self.cut)
         self.text.bind("<{}-v>".format(CtrlKey), self.paste)
 
-        # # Undo -- not implemented
+        # # Undo
         self.text.bind("<{}-z>".format(CtrlKey), self.undo)
         self.text.bind("<{}-y>".format(CtrlKey), self.redo)
 
