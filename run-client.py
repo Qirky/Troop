@@ -34,12 +34,10 @@ parser.add_argument('-p', '--public', action='store_true', help="Connect to publ
 parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server")#, default="localhost")
 parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)")#, default=57890)
 parser.add_argument('-m', '--mode', action='store', default='foxdot',
-                    help='Name of live coding language (TidalCycles, SonicPi, SuperCollider, FoxDot, or a valid executable')
+                    help='Name of live coding language (TidalCycles, SonicPi, SuperCollider, FoxDot, None, or a valid executable')
 parser.add_argument('-a', '--args', action='store', help="Add extra arguments to supply to the interpreter", nargs=argparse.REMAINDER, type=str)
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
 parser.add_argument('-l', '--log', action='store_true')
-
-# Add --host, --port?
 
 args = parser.parse_args()
 
@@ -96,7 +94,7 @@ elif args.config:
 
         """
 
-        options['host'], options['port'] = Client.read_configuration_file('client.cfg')
+        options.update(Client.read_configuration_file('client.cfg'))
 
     else:
 

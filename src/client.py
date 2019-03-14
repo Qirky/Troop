@@ -132,10 +132,10 @@ class Client:
             for line in f.readlines():
                 try:
                     line = line.strip().split("=")
-                    conf[line[0]] = line[1]
+                    conf[line[0].strip()] = line[1].strip()
                 except:
                     pass
-        return str(conf['host']), int(conf['port'])
+        return conf
 
     def update_send(self):
         """ Continually polls the queue and sends any messages to the server """

@@ -59,7 +59,7 @@ class ConnectionInput:
             self.select_path_option = "Select another program..."
             options = list(langtitles.values()) + [self.select_path_option]
             self.lang = Tk.StringVar(self.root)
-            self.lang.set("FoxDot")
+            self.lang.set(langtitles.get(kwargs.get('lang', 'foxdot').lower(), 'FoxDot'))
             self.drop = Tk.OptionMenu(self.root, self.lang, *list(options), command=self.select_path)
             self.drop.config(width=5)
             self.drop.grid(row=4, column=1, sticky=Tk.NSEW)
