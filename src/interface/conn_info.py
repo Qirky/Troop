@@ -124,8 +124,16 @@ class ConnectionInput:
         port = self.port.get()
         name = self.name.get()
         password = self.password.get()
+
+        # Use correct formatting of lang_name
         
         lang_name = self.lang.get()
+
+        for short_name, long_name in langtitles.items():
+
+            if long_name == lang_name:
+
+                lang_name = short_name
 
         # If we have values for name, host, and port then go to "finish"
 
