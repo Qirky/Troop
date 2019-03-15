@@ -171,7 +171,7 @@ class Interpreter(DummyInterpreter):
                               stdin=PIPE,
                               stdout=self.f_out,
                               stderr=self.f_out,
-    						  creationflags=CREATE_NO_WINDOW)
+    						  creationflags=CREATE_NO_WINDOW, close_fds=False)
 
             self.stdout_thread = threading.Thread(target=self.stdout)
             self.stdout_thread.start()
@@ -209,6 +209,7 @@ class Interpreter(DummyInterpreter):
 
     def evaluate(self, string, *args, **kwargs):
         """ Sends a string to the stdin and prints the text to the console """
+        # TODO -- get control of stdout
         # Print to console
         self.print_stdin(string, *args, **kwargs)
         # Pipe to the subprocess
@@ -217,12 +218,14 @@ class Interpreter(DummyInterpreter):
 
     def stdout(self, text=""):
         """ Continually reads the stdout from the self.lang process """
+
         while self.is_alive:
             if self.lang.poll():
                 self.is_alive = False
                 break
             try:
                 # Check contents of file
+                # TODO -- get control of f_out and stdout
                 self.f_out.seek(0)
                 for stdout_line in iter(self.f_out.readline, ""):
                     sys.stdout.write(stdout_line.rstrip())                
