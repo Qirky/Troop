@@ -1378,7 +1378,7 @@ class Interface(BasicInterface):
         self.lang.kill()
 
         try:
-            self.lang=langtypes[name]()
+            self.lang=langtypes[name](self.client.args)
 
         except ExecutableNotFoundError as e:
 
