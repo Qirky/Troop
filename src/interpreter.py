@@ -171,7 +171,7 @@ class Interpreter(DummyInterpreter):
                               stdin=PIPE,
                               stdout=self.f_out,
                               stderr=self.f_out,
-    						  creationflags=CREATE_NO_WINDOW, close_fds=False)
+    						  creationflags=CREATE_NO_WINDOW)
 
             self.stdout_thread = threading.Thread(target=self.stdout)
             self.stdout_thread.start()
