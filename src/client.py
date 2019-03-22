@@ -66,7 +66,8 @@ class Client:
 
         # Quit with error output if we cannot connect
             
-        except (ConnectionError, ConnectionRefusedError, AssertionError) as e:
+        # except (ConnectionError, ConnectionRefusedError, AssertionError) as e:
+        except Exception as e:
 
             self.input.print_message(e)
 
