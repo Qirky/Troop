@@ -176,7 +176,7 @@ class Interpreter(DummyInterpreter):
             self.stdout_thread = threading.Thread(target=self.stdout)
             self.stdout_thread.start()
 
-        except FileNotFoundError:
+        except OSError:
 
             raise ExecutableNotFoundError(self.get_path_as_string())
 
