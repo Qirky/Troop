@@ -58,7 +58,8 @@ class TroopServer(OTServer):
         self.peer_tag_doc = ""
           
         # Address information
-        self.hostname = str(socket.gethostname())
+        # self.hostname = str(socket.gethostname())
+        self.hostname = socket.gethostbyname("localhost")
 
         # Listen on any IP
         self.ip_addr  = "0.0.0.0"
