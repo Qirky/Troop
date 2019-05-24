@@ -1,7 +1,7 @@
 import sys
 import os, os.path
 
-VERSION = "0.9.4"
+VERSION = "0.9.5"
 
 # Check for location of Python
 
@@ -32,6 +32,15 @@ try:
         pass
 except ImportError:
     pass
+
+# Apparently this  fixes some issues
+
+try:
+    import matplotlib
+    matplotlib.use('TkAgg')
+except ImportError:
+    pass
+
 
 def stdout(*args):
     """ Forces prints to server-side """
