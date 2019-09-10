@@ -72,6 +72,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_RESET,              self.handle_soft_reset)
         self.add_handle(MSG_REQUEST_ACK,        self.handle_request_ack)
         self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
+        self.add_handle(MSG_CONSOLE,            self.handle_console_message)
 
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -275,11 +276,11 @@ class ThreadSafeText(Text, OTClient):
 
             if message["src_id"] in self.peers:
 
-                self.root.reconnect_user(message['src_id'], message['name'])
+                self.root.reconnect_user(message['src_id'], message['name'], message['dummy'])
 
             else:
 
-                self.root.add_new_user(message['src_id'], message['name'])
+                self.root.add_new_user(message['src_id'], message['name'], message['dummy'])
 
             print("Peer '{}' has joined the session".format(message['name']))
 
@@ -431,6 +432,12 @@ class ThreadSafeText(Text, OTClient):
             
             self.constraint.set_constraint(constraint_id, dictator_peer)
         
+        return
+
+    def handle_console_message(self, message):
+        """ Prints another user's console message if this is a dummy interpreter """
+        if self.root.lang.id == -1:
+            print(message["string"])
         return
 
 

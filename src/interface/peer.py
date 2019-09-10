@@ -150,11 +150,13 @@ class Highlight:
 class Peer:
     """ Class representing the connected performers within the Tk Widget
     """
-    def __init__(self, id_num, name, widget, row=1, col=0):
+    def __init__(self, id_num, name, is_dummy, widget, row=1, col=0):
         self.id = id_num
         self.char = get_peer_char(self.id)
         self.root = widget # Text
         self.root_parent = widget.root
+
+        self.is_dummy = is_dummy # using a language or not
 
         self.name = Tk.StringVar()
         self.name.set(name)
@@ -463,10 +465,11 @@ class Peer:
         self.hide()
         return
 
-    def reconnect(self, name):
+    def reconnect(self, name, is_dummy=False):
         """ Un-hides a peer and updates the name when a client reconnects """
         self.connected = True
         self.visible = True
+        self.is_dummy = is_dummy
         self.name.set(name)
         return
 

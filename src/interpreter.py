@@ -8,6 +8,7 @@
 """
 from __future__ import absolute_import
 from .config import *
+from .message import MSG_CONSOLE
 
 from subprocess import Popen
 from subprocess import PIPE, STDOUT
@@ -125,6 +126,7 @@ class DummyInterpreter:
         return str(string) + "\n"
     
 class Interpreter(DummyInterpreter):
+    id       = 99
     lang     = None
     clock    = None
     bootstrap = None
@@ -133,7 +135,10 @@ class Interpreter(DummyInterpreter):
     stdout   = None
     stdout_thread = None
     filetype = ".txt"
-    def __init__(self, path, args=""):
+    client   = None
+    def __init__(self, client, path, args=""):
+
+        self.client = client
 
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
@@ -227,10 +232,24 @@ class Interpreter(DummyInterpreter):
                 # Check contents of file
                 # TODO -- get control of f_out and stdout
                 self.f_out.seek(0)
+                
+                message = []
+                
                 for stdout_line in iter(self.f_out.readline, ""):
-                    sys.stdout.write(stdout_line.rstrip())                
+                
+                    line = stdout_line.rstrip()
+                    sys.stdout.write(line)
+                    message.append(line)
+                
                 # clear tmpfile
                 self.f_out.truncate(0)
+
+                # Send console contents to the server
+
+                if len(message) > 0 and self.client.is_master():
+                    
+                    self.client.send(MSG_CONSOLE(self.client.id, "\n".join(message)))
+
                 time.sleep(0.05)
             except ValueError as e:
                 print(e)
@@ -252,8 +271,8 @@ class CustomInterpreter:
         return Interpreter(*self.args, **self.kwargs)
 
 class BuiltinInterpreter(Interpreter):
-    def __init__(self, args):
-        Interpreter.__init__(self, self.path, args)
+    def __init__(self, client, args):   
+        Interpreter.__init__(self, client, self.path, args)
 
 class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
@@ -557,6 +576,7 @@ class SonicPiInterpreter(OSCInterpreter):
         return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(self.host, self.port)
 
         
+# Set up ID system
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
@@ -564,3 +584,6 @@ langtypes = { FOXDOT        : FoxDotInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter,
               SONICPI       : SonicPiInterpreter,
               DUMMY         : DummyInterpreter }
+
+for lang_id, lang_cls in langtypes.items():
+    lang_cls.id = lang_id

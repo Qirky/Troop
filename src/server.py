@@ -566,7 +566,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         if self.client_address not in list(self.master.clients.values()):
 
-            new_client = Client(self, name=msg['name'])
+            new_client = Client(self, name=msg['name'], is_dummy=msg['dummy'])
 
             self.client_name = new_client.name
            
@@ -682,7 +682,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         # Connect each client
 
-        msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port)
+        msg1 = MSG_CONNECT(new_client.id, new_client.name, new_client.hostname, new_client.port, new_client.is_dummy)
 
         for client in list(self.master.clients.values()):
 
@@ -696,7 +696,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 if client != self.client_info:
 
-                    msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port)
+                    msg2 = MSG_CONNECT(client.id, client.name, client.hostname, client.port, client.is_dummy)
 
                     new_client.send(msg2)
 
@@ -715,9 +715,11 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
 class Client:
     bytes = TroopServer.bytes
-    def __init__(self, handler, name=""):
+    def __init__(self, handler, name="", is_dummy=False):
 
         self.handler = handler
+
+        self.is_dummy = is_dummy
 
         self.address  = self.handler.client_address
         self.hostname = self.address[0]

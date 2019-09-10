@@ -188,11 +188,12 @@ class MESSAGE(object):
         
 class MSG_CONNECT(MESSAGE):
     type = 1
-    def __init__(self, src_id, name, hostname, port):
+    def __init__(self, src_id, name, hostname, port, dummy=False):
         MESSAGE.__init__(self, src_id)
         self['name']      = str(name)
         self['hostname']  = str(hostname)
         self['port']      = int(port)
+        self['dummy']     = int(dummy)
 
 class MSG_OPERATION(MESSAGE):
     type = 2
@@ -285,8 +286,11 @@ class MSG_CONSTRAINT(MESSAGE):
         self['constraint_id'] = int(constraint_id) 
         # self.peer_id = int(peer) # 
 
-
-
+class MSG_CONSOLE(MESSAGE):
+    type = 16
+    def __init__(self, src_id, string):
+        MESSAGE.__init__(self, src_id)
+        self['string'] = str(string)
  
 # Create a dictionary of message type to message class 
 
@@ -306,6 +310,7 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_CONNECT_ACK,
         MSG_REQUEST_ACK,
         MSG_CONSTRAINT,
+        MSG_CONSOLE,
     ]
 }
 
