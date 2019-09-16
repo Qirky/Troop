@@ -1,4 +1,4 @@
-# Troop v0.9
+# Troop v0.9.6
 
 ## Real-time collaborative live coding
 
@@ -87,6 +87,10 @@ Requires Sonic-Pi to be open on your computer.
 	python run-client.py --mode path/to/interpreter
 
 If you've connected successfully then you'll greeted with an interface with three boxes. The largest of the boxes is used to input code and the others to display console responses and some stats about character usages. To evaluate a line of code make sure your text cursor is placed in the line you want and press `Ctrl+Return`. If there are any other users connected you should see coloured markers in the text displaying their names. You can even execute code they've written and vice versa.
+
+#### Running multiple instances in the same location
+
+If you are and your fellow live coders are in the same room using Troop, it's often most convenient for only one laptop to produce sound (the master). When one user logs in using an interpreter, such as TidalCycles, all others can log in using the "No Interpreter" option or `--mode none` flag. When the "master" laptop receives text in the console, it is sent to all of the other users so you can see exactly what your code  is doing. Futhermore, you can select the language for syntax highlighting / keyboard short-cuts at the log in window or use the `--syntax` flag to choose the language you wish to emulate.
 
 #### Other flags
 
