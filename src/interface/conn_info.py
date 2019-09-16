@@ -68,12 +68,14 @@ class ConnectionInput:
             self.syntax_label = Tk.Label(self.root, text="Syntax: ")
             options = list(langtitles.values())
             self.syntax = Tk.StringVar(self.root)
-            self.syntax.set(langtitles.get(kwargs.get('lang', 'foxdot').lower(), 'FoxDot'))
+            self.syntax.set(langtitles.get(kwargs.get('syntax', 'foxdot').lower(), 'FoxDot'))
             self.syntax_drop = Tk.OptionMenu(self.root, self.syntax, *options)
             self.syntax_drop.config(width=5)
-            # self.syntax_drop.grid(row=5, column=1, sticky=Tk.NSEW)
-            # self.syntax_label.grid(row=5, column=0, sticky=Tk.W)
-            self.hide_syntax_options() # show when selecting "no interpreter"
+
+            if "syntax" in self.options:
+                self.show_syntax_options()
+            else:
+                self.hide_syntax_options() 
 
             # Ok button
             self.button=Tk.Button(self.root, text='Ok',command=self.store_data)
