@@ -92,7 +92,7 @@ class Client:
 
             if lang in langtypes:
 
-                if lang > 0:
+                if lang >= 0:
 
                     # Use a known interpreter
 
