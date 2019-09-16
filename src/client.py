@@ -34,7 +34,7 @@ class Client:
         self.input = ConnectionInput(self, **kwargs)
         self.input.start()
 
-    def setup(self, host="", port="", name="", password="", lang=FOXDOT, args="", logging=False, ipv6=False):
+    def setup(self, host="", port="", name="", password="", lang=FOXDOT, syntax=FOXDOT, args="", logging=False, ipv6=False):
 
         # ConnectionInput(host, port)
         
@@ -92,9 +92,17 @@ class Client:
 
             if lang in langtypes:
 
-                # Use a known interpreter
+                if lang > 0:
 
-                self.lang = langtypes[lang](self, self.args)
+                    # Use a known interpreter
+
+                    self.lang = langtypes[lang](self, self.args)
+
+                else:
+
+                    # Use dummy interpreter  with specific syntax highlighting
+
+                    self.lang = langtypes[lang](self, self.args, syntax=getInterpreter(syntax))
 
             else:
 

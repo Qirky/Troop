@@ -63,14 +63,25 @@ class ConnectionInput:
             self.drop = Tk.OptionMenu(self.root, self.lang, *list(options), command=self.select_path)
             self.drop.config(width=5)
             self.drop.grid(row=4, column=1, sticky=Tk.NSEW)
-            
+
+            # Invisible syntax highlighting option
+            self.syntax_label = Tk.Label(self.root, text="Syntax: ")
+            options = list(langtitles.values())
+            self.syntax = Tk.StringVar(self.root)
+            self.syntax.set(langtitles.get(kwargs.get('lang', 'foxdot').lower(), 'FoxDot'))
+            self.syntax_drop = Tk.OptionMenu(self.root, self.syntax, *options)
+            self.syntax_drop.config(width=5)
+            # self.syntax_drop.grid(row=5, column=1, sticky=Tk.NSEW)
+            # self.syntax_label.grid(row=5, column=0, sticky=Tk.W)
+            self.hide_syntax_options() # show when selecting "no interpreter"
+
             # Ok button
             self.button=Tk.Button(self.root, text='Ok',command=self.store_data)
-            self.button.grid(row=5, column=0, columnspan=2, sticky=Tk.NSEW)
+            self.button.grid(row=6, column=0, columnspan=2, sticky=Tk.NSEW)
 
             self.response = Tk.StringVar()
             self.lbl_response=Tk.Label(self.root, textvariable=self.response, fg="Red")
-            self.lbl_response.grid(row=6, column=0, columnspan=2)
+            self.lbl_response.grid(row=7, column=0, columnspan=2)
             self.lbl_response.grid_remove()
             
             # Value
@@ -116,6 +127,26 @@ class ConnectionInput:
         if lang == self.select_path_option:
             path = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file")
             self.lang.set(path)
+        elif lang == langtitles["none"]:
+            self.show_syntax_options()
+        else:
+            self.hide_syntax_options()
+        return
+
+    def show_syntax_options(self):
+        """ Use 'grid' to show options for selecting syntax highlighting """
+        self.syntax_drop.grid(row=5, column=1, sticky=Tk.NSEW)
+        self.syntax_label.grid(row=5, column=0, sticky=Tk.W)
+        return
+
+    def hide_syntax_options(self):
+        """ Use 'grid_forget' to hide syntax options """
+        self.syntax_drop.grid_forget()
+        self.syntax_label.grid_forget()
+        return
+
+    def select_syntax(self, lang):
+        """ Store the name of the interpreter syntax highlighting to use """
         return
 
     def store_data(self, event=None):
@@ -125,15 +156,20 @@ class ConnectionInput:
         name = self.name.get()
         password = self.password.get()
 
-        # Use correct formatting of lang_name
+        # Use correct formatting of lang_name and syntax_name
         
         lang_name = self.lang.get()
+        syntax_name = self.syntax.get()
 
         for short_name, long_name in langtitles.items():
 
             if long_name == lang_name:
 
                 lang_name = short_name
+
+            if long_name == syntax_name:
+
+                syntax_name = short_name
 
         # If we have values for name, host, and port then go to "finish"
 
@@ -144,7 +180,8 @@ class ConnectionInput:
                 port = port, 
                 name = name, 
                 password = password,
-                lang = lang_name
+                lang = lang_name,
+                syntax = syntax_name
             )
 
             self.finish()

@@ -53,6 +53,20 @@ def colour_format(text, colour):
 class DummyInterpreter:
     def __init__(self, *args, **kwargs):
         self.re={}
+        
+        self.syntax_lang = langtypes[kwargs.get("syntax", -1)]
+
+        # If using another snytax, use the appropriate regex
+
+        if self.syntax_lang != self.__class__:
+        
+            self.re = {"tag_bold": self.syntax_lang.find_keyword, "tag_italic": self.syntax_lang.find_comment}
+
+            self.syntax_lang.setup()
+
+        else:
+
+            self.syntax_lang = None
 
     def __repr__(self):
         return repr(self.__class__.__name__)
@@ -115,10 +129,18 @@ class DummyInterpreter:
                 sys.stdout.write(colour_format("." * n, colour) + _ + string[i])
                 sys.stdout.flush()
         return
-    
+
+    # Syntax highlighting methods
+
+    def find_keyword(self, string):
+        return self.syntax_lang.find_keyword(string)
+
+    def find_comment(self, string):
+        return self.syntax_lang.find_comment(string)
+
     def stop_sound(self):
         """ Returns the string for stopping all sound in a language """
-        return ""
+        return self.syntax_lang.stop_sound() if self.syntax_lang != None else ""
     
     @staticmethod
     def format(string):
@@ -136,6 +158,7 @@ class Interpreter(DummyInterpreter):
     stdout_thread = None
     filetype = ".txt"
     client   = None
+
     def __init__(self, client, path, args=""):
 
         self.client = client
@@ -200,11 +223,13 @@ class Interpreter(DummyInterpreter):
         """ Returns the executable input as a string """
         return " ".join(self.path)
 
-    def find_keyword(self, string):
-        return [(match.start(), match.end()) for match in self.keyword_regex.finditer(string)]
+    @classmethod
+    def find_keyword(cls, string):
+        return [(match.start(), match.end()) for match in cls.keyword_regex.finditer(string)]
 
-    def find_comment(self, string):
-        return [(match.start(), match.end()) for match in self.comment_regex.finditer(string)]
+    @classmethod
+    def find_comment(cls, string):
+        return [(match.start(), match.end()) for match in cls.comment_regex.finditer(string)]
 
     def write_stdout(self, string):
         if self.is_alive:
@@ -278,9 +303,10 @@ class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
     path = "{} -u -m FoxDot --pipe".format(PYTHON_EXECUTABLE)
 
-    def setup(self):
-        self.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>']
-        self.keyword_regex = compile_regex(self.keywords)
+    @classmethod
+    def setup(cls):
+        cls.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>', 'print']
+        cls.keyword_regex = compile_regex(cls.keywords)
 
     def __repr__(self):
         return "FoxDot"
@@ -311,13 +337,14 @@ class FoxDotInterpreter(BuiltinInterpreter):
         Interpreter.kill(self)
         return
 
-    def stop_sound(self):
+    @classmethod
+    def stop_sound(cls):
         return "Clock.clear()"
 
 class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
-
+    
     def start(self):
 
         # Import boot up code
@@ -327,20 +354,17 @@ class TidalInterpreter(BuiltinInterpreter):
         self.bootstrap = bootstrap
 
         Interpreter.start(self)
-
-        # Set any keywords e.g. d1 and $
-
-        self.keywords  = ["d{}".format(n) for n in range(1,17)] # update
-        self.keywords.extend( ["\$", "#", "hush"] )
-
-        self.keyword_regex = compile_regex(self.keywords)
-
-        # threading.Thread(target=self.stdout).start()
         
         return self
 
     def __repr__(self):
         return "TidalCycles"
+
+    @classmethod
+    def setup(cls):
+        cls.keywords  = ["d{}".format(n) for n in range(1,17)] + ["\$", "#", "hush", "solo", "silence"]
+        cls.keyword_regex = compile_regex(cls.keywords)
+        return
 
     @classmethod
     def find_comment(cls, string):        
@@ -364,7 +388,8 @@ class TidalInterpreter(BuiltinInterpreter):
         """ Used to formant multiple lines in haskell """
         return ":{\n"+string+"\n:}\n"
 
-    def stop_sound(self):
+    @classmethod
+    def stop_sound(cls):
         """ Triggers the 'hush' command using Ctrl+. """
         return "hush"
 
@@ -443,7 +468,8 @@ class SuperColliderInterpreter(OSCInterpreter):
                     return [(i, len(string))]
         return []
 
-    def get_block_of_code(self, text, index):
+    @classmethod
+    def get_block_of_code(cls, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
 
         # Get start and end of the buffer
@@ -464,8 +490,8 @@ class SuperColliderInterpreter(OSCInterpreter):
 
         while True:
 
-            new_left_cur_y,  new_left_cur_x  = self.get_left_bracket(text, left_cur_y, left_cur_x)
-            new_right_cur_y, new_right_cur_x = self.get_right_bracket(text, right_cur_y, right_cur_x)
+            new_left_cur_y,  new_left_cur_x  = cls.get_left_bracket(text, left_cur_y, left_cur_x)
+            new_right_cur_y, new_right_cur_x = cls.get_right_bracket(text, right_cur_y, right_cur_x)
 
             if new_left_cur_y is None or new_right_cur_y is None:
 
@@ -480,7 +506,8 @@ class SuperColliderInterpreter(OSCInterpreter):
 
         return block
 
-    def get_left_bracket(self, text, cur_y, cur_x):
+    @classmethod
+    def get_left_bracket(cls, text, cur_y, cur_x):
         count = 0
         line_text = text.get("{}.{}".format(cur_y, 0), "{}.{}".format(cur_y, "end"))
         for line_num in range(cur_y, 0, -1):
@@ -505,7 +532,8 @@ class SuperColliderInterpreter(OSCInterpreter):
             cur_x     = len(line_text)
         return None, None
 
-    def get_right_bracket(self, text, cur_y, cur_x):
+    @classmethod
+    def get_right_bracket(cls, text, cur_y, cur_x):
         num_lines = int(text.index("end").split(".")[0]) + 1
         count = 0
         for line_num in range(cur_y, num_lines):
@@ -531,8 +559,8 @@ class SuperColliderInterpreter(OSCInterpreter):
         else:
             return None, None
 
-
-    def stop_sound(self):
+    @classmethod
+    def stop_sound(cls):
         return "s.freeAll"
 
 
@@ -567,13 +595,15 @@ class SonicPiInterpreter(OSCInterpreter):
                   return [(i, len(string))]
         return []
 
-    def get_block_of_code(self, text, index):
+    @classmethod
+    def get_block_of_code(cls, text, index):
         """ Returns first and last line as Sonic Pi evaluates the whole code """
         start, end = "1.0", text.index("end")
         return [int(index.split(".")[0]) for index in (start, end)]
 
-    def stop_sound(self):
-        return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(self.host, self.port)
+    @classmethod
+    def stop_sound(cls):
+        return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(cls.host, cls.port)
 
         
 # Set up ID system
