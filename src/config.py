@@ -1,7 +1,7 @@
 import sys
 import os, os.path
 
-VERSION = "0.9.5"
+VERSION = "0.9.6"
 
 # Check for location of Python
 
