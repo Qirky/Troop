@@ -36,7 +36,7 @@ parser.add_argument('-H', '--host', action='store', help="IP Address of the mach
 parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)")#, default=57890)
 parser.add_argument('-m', '--mode', action='store', default='foxdot',
                     help='Name of live coding language ({}) or a valid executable'.format(', '.join(langnames.keys())))
-parser.add_argument('-s', '--syntax', action='store', default='none',
+parser.add_argument('-s', '--syntax', action='store',
                     help='Name of live coding language syntax to use when selecting "No Interpreter" option.')
 parser.add_argument('-a', '--args', action='store', help="Add extra arguments to supply to the interpreter", nargs=argparse.REMAINDER, type=str)
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
@@ -52,7 +52,11 @@ from getpass import getpass
 
 # Client config options
 
-options = { 'lang': args.mode, 'logging': args.log, 'syntax': args.syntax }
+options = { 'lang': args.mode, 'logging': args.log }
+
+if args.syntax:
+
+    options['syntax'] = args.syntax
 
 if args.public:
 
