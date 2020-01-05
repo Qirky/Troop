@@ -51,6 +51,7 @@ def colour_format(text, colour):
 ## dummy interpreter
 
 class DummyInterpreter:
+    name = None
     def __init__(self, *args, **kwargs):
         self.re={}
         
@@ -69,7 +70,7 @@ class DummyInterpreter:
             self.syntax_lang = None
 
     def __repr__(self):
-        return repr(self.__class__.__name__)
+        return self.name if name is not None else repr(self.__class__.__name__)
 
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
@@ -151,7 +152,7 @@ class Interpreter(DummyInterpreter):
     id       = 99
     lang     = None
     clock    = None
-    bootstrap = None
+    boot_file = None
     keyword_regex = compile_regex([])
     comment_regex = compile_regex([])
     stdout   = None
@@ -208,16 +209,43 @@ class Interpreter(DummyInterpreter):
 
             raise ExecutableNotFoundError(self.get_path_as_string())
 
-        # Load bootfile
+        self.load_bootfile()
 
-        if self.bootstrap is not None:
+        return self
 
-            for line in self.bootstrap.split("\n"):
+    def load_bootfile(self):
+        """ 
+        Loads the specified boot file. If it exists, it is defined
+        in the class but can be overridden in conf/boot.txt.
+        """
+        # Check boot file for overload
+        if self.name is not None:
+            
+            with open(BOOT_CONFIG_FILE) as f:
+
+                for line in f.readlines():
+
+                    if line.startswith(self.name):
+
+                        data = line.split("=")
+
+                        path = data[-1].strip()
+
+                        if path not in ("''", '""'):
+
+                            with open(path) as f:
+
+                                self.boot_file = f.read()
+
+        # Load data
+        if self.boot_file is not None:
+
+            for line in self.boot_file.split("\n"):
 
                 self.lang.stdin.write(line.rstrip() + "\n")
                 self.lang.stdin.flush()
 
-        return self
+        return
 
     def get_path_as_string(self):
         """ Returns the executable input as a string """
@@ -302,14 +330,12 @@ class BuiltinInterpreter(Interpreter):
 class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
     path = "{} -u -m FoxDot --pipe".format(PYTHON_EXECUTABLE)
+    name = "FoxDot"
 
     @classmethod
     def setup(cls):
         cls.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>', 'print']
         cls.keyword_regex = compile_regex(cls.keywords)
-
-    def __repr__(self):
-        return "FoxDot"
 
     @staticmethod
     def format(string):
@@ -344,21 +370,47 @@ class FoxDotInterpreter(BuiltinInterpreter):
 class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
+    name = "TidalCycles"
     
     def start(self):
 
         # Import boot up code
 
-        from .boot.tidal import bootstrap
+        if SYSTEM == WINDOWS:
 
-        self.bootstrap = bootstrap
+            import os, os.path
+
+            tidal_root = os.path.join(os.getenv("APPDATA"), "cabal/packages/hackage.haskell.org/tidal")
+
+        else:
+
+            tidal_root = "~/.cabal/packages/hackage.haskell.org/tidal"
+
+        # Get the last item
+
+        try:
+
+            package = os.listdir(tidal_root)[-1]
+
+        except IndexError:
+
+            raise ModuleNotFoundError("Tidal not installed")
+
+        import tarfile
+
+        path = os.path.join(tidal_root, package)
+
+        tar_file = os.path.join(path, os.listdir(path)[0])
+
+        tar = tarfile.open(tar_file)
+
+        boot = tar.getmember("tidal-{}/BootTidal.hs".format(package))
+
+        self.boot_file = tar.extractfile(boot).read().decode()
 
         Interpreter.start(self)
         
         return self
-
-    def __repr__(self):
-        return "TidalCycles"
 
     @classmethod
     def setup(cls):
@@ -441,9 +493,7 @@ class SuperColliderInterpreter(OSCInterpreter):
     filetype = ".scd"
     host = 'localhost'
     port = 57120
-
-    def __repr__(self):
-        return "SuperCollider"
+    name = "SuperCollider"
 
     def new_osc_message(self, string):
         """ Returns OSC message for Troop Quark """
@@ -568,9 +618,7 @@ class SonicPiInterpreter(OSCInterpreter):
     filetype = ".rb"
     host = 'localhost'
     port = 4557
-    
-    def __repr__(self):
-        return "Sonic-Pi"
+    name = "Sonic-Pi"
 
     def new_osc_message(self, string):
         """ Returns OSC message for Sonic Pi """
