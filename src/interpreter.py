@@ -34,7 +34,7 @@ import time
 import threading
 import shlex
 import tempfile
-import os.path
+import os, os.path
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -377,8 +377,6 @@ class TidalInterpreter(BuiltinInterpreter):
         # Import boot up code
 
         if SYSTEM == WINDOWS:
-
-            import os, os.path
 
             tidal_root = os.path.join(os.getenv("APPDATA"), "cabal/packages/hackage.haskell.org/tidal")
 
