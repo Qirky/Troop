@@ -8,6 +8,10 @@ Troop is not a language for live coding but a tool for connecting multiple live 
 
 Troop is compatible with both Python 2 and 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
 
+Linux users may need to install `python-tk` if you have not done so already:
+
+`apt-get install python-tk`
+
 ## Getting started
 
 There are two ways of using Troop; one is to download the latest release and run it as you would any other program on your computer, and the other is two run the files using Python. The first option does not require Python to be installed on your machine, but you do need to have correctly configured your live coding language of choice first e.g. FoxDot, which uses Python to run.
