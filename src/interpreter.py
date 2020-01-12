@@ -34,7 +34,7 @@ import time
 import threading
 import shlex
 import tempfile
-import os.path
+import os, os.path
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -51,6 +51,7 @@ def colour_format(text, colour):
 ## dummy interpreter
 
 class DummyInterpreter:
+    name = None
     def __init__(self, *args, **kwargs):
         self.re={}
         
@@ -69,7 +70,7 @@ class DummyInterpreter:
             self.syntax_lang = None
 
     def __repr__(self):
-        return repr(self.__class__.__name__)
+        return self.name if name is not None else repr(self.__class__.__name__)
 
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
@@ -151,7 +152,7 @@ class Interpreter(DummyInterpreter):
     id       = 99
     lang     = None
     clock    = None
-    bootstrap = None
+    boot_file = None
     keyword_regex = compile_regex([])
     comment_regex = compile_regex([])
     stdout   = None
@@ -208,16 +209,55 @@ class Interpreter(DummyInterpreter):
 
             raise ExecutableNotFoundError(self.get_path_as_string())
 
-        # Load bootfile
-
-        if self.bootstrap is not None:
-
-            for line in self.bootstrap.split("\n"):
-
-                self.lang.stdin.write(line.rstrip() + "\n")
-                self.lang.stdin.flush()
+        self.load_bootfile()
 
         return self
+
+    def load_bootfile(self):
+        """ 
+        Loads the specified boot file. If it exists, it is defined
+        in the class but can be overridden in conf/boot.txt.
+        """
+
+        self.boot_file = self.get_custom_bootfile()
+
+        # Load data
+        if self.boot_file is not None:
+
+            with open(self.boot_file) as f:
+
+                for line in f.split("\n"):
+
+                    self.lang.stdin.write(line.rstrip() + "\n")
+                    self.lang.stdin.flush()
+
+        return
+
+    def get_custom_bootfile(self):
+        """
+        Get the path of a specific custom bootfile or None if it
+        does not exist.
+        """
+
+        # Check boot file for overload
+
+        if self.name is not None and os.path.exists(BOOT_CONFIG_FILE):
+
+            with open(BOOT_CONFIG_FILE) as f:
+
+                for line in f.readlines():
+
+                    if line.startswith(self.name):
+
+                        data = line.split("=")
+
+                        path = data[-1].strip()
+
+                        if path not in ("''", '""'):
+
+                            return path
+
+        return None
 
     def get_path_as_string(self):
         """ Returns the executable input as a string """
@@ -302,14 +342,12 @@ class BuiltinInterpreter(Interpreter):
 class FoxDotInterpreter(BuiltinInterpreter):
     filetype=".py"
     path = "{} -u -m FoxDot --pipe".format(PYTHON_EXECUTABLE)
+    name = "FoxDot"
 
     @classmethod
     def setup(cls):
         cls.keywords = ["Clock", "Scale", "Root", "var", "linvar", '>>', 'print']
         cls.keyword_regex = compile_regex(cls.keywords)
-
-    def __repr__(self):
-        return "FoxDot"
 
     @staticmethod
     def format(string):
@@ -344,21 +382,50 @@ class FoxDotInterpreter(BuiltinInterpreter):
 class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
+    name = "TidalCycles"
     
     def start(self):
 
-        # Import boot up code
+        # Use ghc-pkg to find location of boot-tidal
 
-        from .boot.tidal import bootstrap
+        try:
 
-        self.bootstrap = bootstrap
+            process = Popen(["ghc-pkg", "field", "tidal", "data-dir"], stdout=PIPE, universal_newlines=True)
+
+            output = process.communicate()[0]
+
+            data_dir = output.split("\n")[0].replace("data-dir:", "").strip()
+
+            self.boot_file = os.path.join(data_dir, "BootTidal.hs")
+
+        except FileNotFoundError:
+
+            # Set to None - might be defined in bootup file
+
+            self.boot_file = None
 
         Interpreter.start(self)
         
         return self
 
-    def __repr__(self):
-        return "TidalCycles"
+    def load_bootfile(self):
+        """
+        Overload for Tidal to use :script /path/to/file
+        instead of loading each line of a boot file one by
+        one
+        """
+        self.boot_file = (self.get_custom_bootfile() or self.boot_file)
+
+        if self.boot_file:
+
+            self.write_stdout(":script {}".format(self.boot_file))
+
+        else:
+
+            err = "Could not find BootTidal.hs! You can specify the path in your Troop boot config file: {}".format(BOOT_CONFIG_FILE)
+            raise(FileNotFoundError(err))
+
+        return
 
     @classmethod
     def setup(cls):
@@ -441,9 +508,7 @@ class SuperColliderInterpreter(OSCInterpreter):
     filetype = ".scd"
     host = 'localhost'
     port = 57120
-
-    def __repr__(self):
-        return "SuperCollider"
+    name = "SuperCollider"
 
     def new_osc_message(self, string):
         """ Returns OSC message for Troop Quark """
@@ -568,9 +633,7 @@ class SonicPiInterpreter(OSCInterpreter):
     filetype = ".rb"
     host = 'localhost'
     port = 4557
-    
-    def __repr__(self):
-        return "Sonic-Pi"
+    name = "Sonic-Pi"
 
     def new_osc_message(self, string):
         """ Returns OSC message for Sonic Pi """
