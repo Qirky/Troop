@@ -241,8 +241,8 @@ class Interpreter(DummyInterpreter):
 
         # Check boot file for overload
 
-        if self.name is not None:
-            
+        if self.name is not None and os.path.exists(BOOT_CONFIG_FILE):
+
             with open(BOOT_CONFIG_FILE) as f:
 
                 for line in f.readlines():

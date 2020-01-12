@@ -308,7 +308,7 @@ class Interface(BasicInterface):
 
             self.lang = DummyInterpreter()
 
-        except FileNotFoundError as e:
+        except Exception as e:
 
             self.kill()
 
