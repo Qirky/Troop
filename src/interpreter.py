@@ -218,7 +218,29 @@ class Interpreter(DummyInterpreter):
         Loads the specified boot file. If it exists, it is defined
         in the class but can be overridden in conf/boot.txt.
         """
+
+        self.boot_file = self.get_custom_bootfile()
+
+        # Load data
+        if self.boot_file is not None:
+
+            with open(self.boot_file) as f:
+
+                for line in f.split("\n"):
+
+                    self.lang.stdin.write(line.rstrip() + "\n")
+                    self.lang.stdin.flush()
+
+        return
+
+    def get_custom_bootfile(self):
+        """
+        Get the path of a specific custom bootfile or None if it
+        does not exist.
+        """
+
         # Check boot file for overload
+
         if self.name is not None:
             
             with open(BOOT_CONFIG_FILE) as f:
@@ -233,19 +255,9 @@ class Interpreter(DummyInterpreter):
 
                         if path not in ("''", '""'):
 
-                            with open(path) as f:
+                            return path
 
-                                self.boot_file = f.read()
-
-        # Load data
-        if self.boot_file is not None:
-
-            for line in self.boot_file.split("\n"):
-
-                self.lang.stdin.write(line.rstrip() + "\n")
-                self.lang.stdin.flush()
-
-        return
+        return None
 
     def get_path_as_string(self):
         """ Returns the executable input as a string """
@@ -374,41 +386,46 @@ class TidalInterpreter(BuiltinInterpreter):
     
     def start(self):
 
-        # Import boot up code
-
-        if SYSTEM == WINDOWS:
-
-            tidal_root = os.path.join(os.getenv("APPDATA"), "cabal/packages/hackage.haskell.org/tidal")
-
-        else:
-
-            tidal_root = "~/.cabal/packages/hackage.haskell.org/tidal"
-
-        # Get the last item
+        # Use ghc-pkg to find location of boot-tidal
 
         try:
 
-            package = os.listdir(tidal_root)[-1]
+            process = Popen(["ghc-pkg", "field", "tidal", "data-dir"], stdout=PIPE, universal_newlines=True)
 
-        except IndexError:
+            output = process.communicate()[0]
 
-            raise ModuleNotFoundError("Tidal not installed")
+            data_dir = output.split("\n")[0].replace("data-dir:", "").strip()
 
-        import tarfile
+            self.boot_file = os.path.join(data_dir, "BootTidal.hs")
 
-        path = os.path.join(tidal_root, package)
+        except FileNotFoundError:
 
-        tar_file = os.path.join(path, os.listdir(path)[0])
+            # Set to None - might be defined in bootup file
 
-        tar = tarfile.open(tar_file)
-
-        boot = tar.getmember("tidal-{}/BootTidal.hs".format(package))
-
-        self.boot_file = tar.extractfile(boot).read().decode()
+            self.boot_file = None
 
         Interpreter.start(self)
         
         return self
+
+    def load_bootfile(self):
+        """
+        Overload for Tidal to use :script /path/to/file
+        instead of loading each line of a boot file one by
+        one
+        """
+        self.boot_file = (self.get_custom_bootfile() or self.boot_file)
+
+        if self.boot_file:
+
+            self.write_stdout(":script {}".format(self.boot_file))
+
+        else:
+
+            err = "Could not find BootTidal.hs! You can specify the path in your Troop boot config file: {}".format(BOOT_CONFIG_FILE)
+            raise(FileNotFoundError(err))
+
+        return
 
     @classmethod
     def setup(cls):

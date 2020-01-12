@@ -308,6 +308,12 @@ class Interface(BasicInterface):
 
             self.lang = DummyInterpreter()
 
+        except FileNotFoundError as e:
+
+            self.kill()
+
+            raise(e)
+
         # Set the window focus
         self.text.focus_force()
 
