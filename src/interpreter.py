@@ -70,7 +70,7 @@ class DummyInterpreter:
             self.syntax_lang = None
 
     def __repr__(self):
-        return self.name if name is not None else repr(self.__class__.__name__)
+        return self.name if self.name is not None else repr(self.__class__.__name__)
 
     def get_block_of_code(self, text, index):
         """ Returns the start and end line numbers of the text to evaluate when pressing Ctrl+Return. """
