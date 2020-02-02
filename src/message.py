@@ -291,6 +291,12 @@ class MSG_CONSOLE(MESSAGE):
     def __init__(self, src_id, string):
         MESSAGE.__init__(self, src_id)
         self['string'] = str(string)
+
+
+class MSG_POLL(MESSAGE):
+    type = 17
+    def __init__(self, src_id=-1):
+        MESSAGE.__init__(self, src_id)
  
 # Create a dictionary of message type to message class 
 
@@ -311,6 +317,7 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_REQUEST_ACK,
         MSG_CONSTRAINT,
         MSG_CONSOLE,
+        MSG_POLL,
     ]
 }
 

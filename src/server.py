@@ -264,6 +264,10 @@ class TroopServer(OTServer):
 
             try:
 
+                # Poll users to make sure they are connected
+
+                self.msg_queue.put(MSG_POLL())
+
                 sleep(1)
 
             except KeyboardInterrupt:
@@ -766,7 +770,9 @@ class Client:
     def send(self, message):
         try:
             _, ready_to_write, _ = select.select([], [self.source], [], 5)
-            self.source.sendall(message.bytes())
+            print(ready_to_write)
+            if ready_to_write:
+                self.source.sendall(message.bytes())
         except select.error:
             raise DeadClientError(self.hostname)
         except Exception as e:

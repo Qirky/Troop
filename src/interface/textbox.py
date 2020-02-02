@@ -73,6 +73,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_REQUEST_ACK,        self.handle_request_ack)
         self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
         self.add_handle(MSG_CONSOLE,            self.handle_console_message)
+        self.add_handle(MSG_POLL,               self.handle_poll)
 
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -438,6 +439,10 @@ class ThreadSafeText(Text, OTClient):
         """ Prints another user's console message if this is a dummy interpreter """
         if self.root.lang.id == -1:
             print(message["string"])
+        return
+
+    def handle_poll(self, message):
+        """ Receives a poll message, does nothing but can be useful for debugging """
         return
 
 
