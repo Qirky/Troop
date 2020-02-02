@@ -268,6 +268,8 @@ class TroopServer(OTServer):
 
                 self.msg_queue.put(MSG_KEEP_ALIVE())
 
+                self.purge_client_timeouts()
+
                 sleep(1)
 
             except KeyboardInterrupt:
@@ -341,6 +343,18 @@ class TroopServer(OTServer):
     def connected_clients(self):
         """ Returns a list of all the connected clients_id's """
         return (client_id for client_id, client in self.clients.items() if client.connected)
+
+    def purge_client_timeouts(self):
+        """
+        Iterate over connected client and check if they have
+        received keepalive messages recently. Disconnect those
+        that has passed the timeout periods
+        """
+        for client_id in self.connected_clients():
+            client = self.get_client(client_id)
+            if client.has_timedout():
+                self.remove_client(client_id)
+        return
 
     @staticmethod
     def read_configuration_file(filename):
@@ -786,12 +800,13 @@ class Client:
         Raises an error if it's been more than 3 seconds
         since the last keepalive message was received
         """
-        now = time.time()
-        if self.keepalive:
-            if now > self.keepalive + self.timeout:
-                raise DeadClientError(self.hostname)
-        self.keepalive = now
+        self.keepalive = time.time()
         return
+
+    def has_timedout(self):
+        if self.keepalive:
+            return (time.time() > self.keepalive + self.timeout)
+        return False
 
     def force_disconnect(self):
         return self.handler.handle_client_lost(verbose=False)        
