@@ -173,8 +173,7 @@ class Client:
             pass
             
         # Recursive call
-        self.ui.root.after(30, self.update_send)
-        self.ui.root.after(500, self.check_for_timeout)        
+        self.ui.root.after(30, self.update_send)        
         return
 
     def is_master(self):
@@ -200,6 +199,7 @@ class Client:
         return
 
     def check_for_timeout(self):
-        if self.keepalive and (time.time() > self.keepalive + self.timeout):
-            self.ui.freeze_kill('Connection lost to server. Please close the application')
-        self.ui.root.after(500, self.check_for_timeout)
+        if self.keepalive and (time() > self.keepalive + self.timeout):
+            self.ui.freeze_kill('Warning: connection lost.')
+        else:
+            self.ui.root.after(1000, self.check_for_timeout)

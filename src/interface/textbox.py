@@ -416,7 +416,6 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_kill(self, message):
         ''' Cleanly terminates the session '''
-        self.root.keepalive = time.time()
         return self.root.freeze_kill(message['string'])
 
     def handle_text_constraint(self, message):
@@ -444,6 +443,7 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_keep_alive(self, message):
         """ Receives a keep alive message and responds to it. """
+        self.root.client.keepalive = time.time()
         return self.root.add_to_send_queue(MSG_KEEP_ALIVE(self.marker.id))
 
     # Reading and writing to the text box

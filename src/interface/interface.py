@@ -61,6 +61,7 @@ class BasicInterface:
         """ Starts the Tkinter loop and exits cleanly if interrupted"""
         # Continually check for messages to be sent
         self.client.update_send()
+        self.client.check_for_timeout()
         self.update_graphs()
         self.client.input.mainloop()
         return
