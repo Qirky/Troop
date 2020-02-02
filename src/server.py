@@ -763,8 +763,14 @@ class Client:
 
     def send(self, message):
         try:
-            num_bytes = self.source.sendall(message.bytes())
-            print(self.name, num_bytes)
+            b = message.bytes()
+            sent = 0
+            while sent != len(b):
+                num_bytes = self.source.send(b[sent:])
+                print(self.name, num_bytes)
+                if num_bytes == 0:
+                    raise DeadClientError("No bytes sent to {}@{}".format(self.name, self.hostname))
+                sent += num_bytes
         except Exception as e:
             print(e)
             raise DeadClientError(self.hostname)
