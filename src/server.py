@@ -395,6 +395,9 @@ class TroopServer(OTServer):
 
         for client in list(self.clients.values()):
 
+            print(msg)
+            print(client, client.connected)
+
             if client.connected:
 
                 try:
@@ -760,7 +763,8 @@ class Client:
 
     def send(self, message):
         try:
-            self.source.sendall(message.bytes())
+            num_bytes = self.source.sendall(message.bytes())
+            print(self.name, num_bytes)
         except Exception as e:
             print(e)
             raise DeadClientError(self.hostname)
