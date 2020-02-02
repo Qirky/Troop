@@ -416,6 +416,7 @@ class ThreadSafeText(Text, OTClient):
 
     def handle_kill(self, message):
         ''' Cleanly terminates the session '''
+        self.root.keepalive = time.time()
         return self.root.freeze_kill(message['string'])
 
     def handle_text_constraint(self, message):

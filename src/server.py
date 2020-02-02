@@ -411,11 +411,7 @@ class TroopServer(OTServer):
 
             return
 
-        print(msg)
-
         for client in list(self.clients.values()):
-
-            print(client, client.connected)
 
             if client.connected:
 

@@ -24,7 +24,9 @@ class Client:
     send = None
     recv = None
     mainloop_started = False
-    
+    keepalive = None
+    timeout = 3
+
     def __init__(self, **kwargs):
 
         self.is_alive = True
@@ -172,7 +174,7 @@ class Client:
             
         # Recursive call
         self.ui.root.after(30, self.update_send)
-        
+        self.ui.root.after(500, self.check_for_timeout)        
         return
 
     def is_master(self):
@@ -196,3 +198,8 @@ class Client:
                 attr.kill()
 
         return
+
+    def check_for_timeout(self):
+        if self.keepalive and (time.time() > self.keepalive + self.timeout):
+            self.ui.freeze_kill('Connection lost to server. Please close the application')
+        self.ui.root.after(500, self.check_for_timeout)
