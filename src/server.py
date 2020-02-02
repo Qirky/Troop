@@ -266,7 +266,7 @@ class TroopServer(OTServer):
 
                 # Poll users to make sure they are connected
 
-                self.msg_queue.put(MSG_POLL())
+                self.msg_queue.put(MSG_KEEP_ALIVE())
 
                 sleep(1)
 
@@ -398,7 +398,7 @@ class TroopServer(OTServer):
             return
 
         print(msg)
-        
+
         for client in list(self.clients.values()):
 
             print(client, client.connected)
@@ -647,6 +647,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.clear_history()
 
+                elif isinstance(msg, MSG_KEEP_ALIVE):
+
+                    self.client().recv_keepalive()
+
                 elif self.master.waiting_for_ack and isinstance(msg, MSG_CONNECT_ACK):
 
                     self.master.connect_ack(msg)
@@ -721,10 +725,9 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
     
 # Keeps information about each connected client
 
-import select
-
 class Client:
     bytes = TroopServer.bytes
+    timeout = 3
     def __init__(self, handler, name="", is_dummy=False):
 
         self.handler = handler
@@ -736,6 +739,8 @@ class Client:
         self.port     = self.address[1]
 
         self.source   = self.handler.request
+
+        self.keepalive = None
 
         # For identification purposes
 
@@ -770,16 +775,22 @@ class Client:
 
     def send(self, message):
         try:
-            ready_to_read, ready_to_write, _ = select.select([], [self.source], [], 5)
-            print(self.name, len(ready_to_read), len(ready_to_write))
-            if len(ready_to_write) and len(ready_to_read):
-                self.source.sendall(message.bytes())
-                print("data sent")
-        except select.error:
-            raise DeadClientError(self.hostname)
+            self.source.sendall(message.bytes())
         except Exception as e:
             print(e)
             raise DeadClientError(self.hostname)
+        return
+
+    def recv_keepalive(self):
+        """
+        Raises an error if it's been more than 3 seconds
+        since the last keepalive message was received
+        """
+        now = time.time()
+        if self.keepalive:
+            if now > self.keepalive + self.timeout:
+                raise DeadClientError(self.hostname)
+        self.keepalive = now
         return
 
     def force_disconnect(self):

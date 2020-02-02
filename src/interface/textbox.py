@@ -73,7 +73,7 @@ class ThreadSafeText(Text, OTClient):
         self.add_handle(MSG_REQUEST_ACK,        self.handle_request_ack)
         self.add_handle(MSG_CONSTRAINT,         self.handle_text_constraint)
         self.add_handle(MSG_CONSOLE,            self.handle_console_message)
-        self.add_handle(MSG_POLL,               self.handle_poll)
+        self.add_handle(MSG_KEEP_ALIVE,         self.handle_keep_alive)
 
         # Information about other connected users
         self.peers      = self.root.client.peers
@@ -441,10 +441,9 @@ class ThreadSafeText(Text, OTClient):
             print(message["string"])
         return
 
-    def handle_poll(self, message):
-        """ Receives a poll message, does nothing but can be useful for debugging """
-        return
-
+    def handle_keep_alive(self, message):
+        """ Receives a keep alive message and responds to it. """
+        return self.root.add_to_send_queue(MSG_KEEP_ALIVE(self.marker.id))
 
     # Reading and writing to the text box
     # ===================================

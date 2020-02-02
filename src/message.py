@@ -293,7 +293,7 @@ class MSG_CONSOLE(MESSAGE):
         self['string'] = str(string)
 
 
-class MSG_POLL(MESSAGE):
+class MSG_KEEP_ALIVE(MESSAGE):
     type = 17
     def __init__(self, src_id=-1):
         MESSAGE.__init__(self, src_id)
@@ -317,7 +317,7 @@ MESSAGE_TYPE = {msg.type : msg for msg in [
         MSG_REQUEST_ACK,
         MSG_CONSTRAINT,
         MSG_CONSOLE,
-        MSG_POLL,
+        MSG_KEEP_ALIVE,
     ]
 }
 
