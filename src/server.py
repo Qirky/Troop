@@ -264,6 +264,12 @@ class TroopServer(OTServer):
 
             try:
 
+                # Poll users to make sure they are connected
+
+                self.msg_queue.put(MSG_KEEP_ALIVE())
+
+                self.purge_client_timeouts()
+
                 sleep(1)
 
             except KeyboardInterrupt:
@@ -337,6 +343,18 @@ class TroopServer(OTServer):
     def connected_clients(self):
         """ Returns a list of all the connected clients_id's """
         return (client_id for client_id, client in self.clients.items() if client.connected)
+
+    def purge_client_timeouts(self):
+        """
+        Iterate over connected client and check if they have
+        received keepalive messages recently. Disconnect those
+        that has passed the timeout periods
+        """
+        for client_id in self.connected_clients():
+            client = self.get_client(client_id)
+            if client.has_timedout():
+                self.remove_client(client_id)
+        return
 
     @staticmethod
     def read_configuration_file(filename):
@@ -639,6 +657,10 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     self.master.clear_history()
 
+                elif isinstance(msg, MSG_KEEP_ALIVE):
+
+                    self.client().recv_keepalive()
+
                 elif self.master.waiting_for_ack and isinstance(msg, MSG_CONNECT_ACK):
 
                     self.master.connect_ack(msg)
@@ -715,6 +737,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
 class Client:
     bytes = TroopServer.bytes
+    timeout = 3
     def __init__(self, handler, name="", is_dummy=False):
 
         self.handler = handler
@@ -726,6 +749,8 @@ class Client:
         self.port     = self.address[1]
 
         self.source   = self.handler.request
+
+        self.keepalive = None
 
         # For identification purposes
 
@@ -765,6 +790,19 @@ class Client:
             print(e)
             raise DeadClientError(self.hostname)
         return
+
+    def recv_keepalive(self):
+        """
+        Raises an error if it's been more than 3 seconds
+        since the last keepalive message was received
+        """
+        self.keepalive = time.time()
+        return
+
+    def has_timedout(self):
+        if self.keepalive:
+            return (time.time() > self.keepalive + self.timeout)
+        return False
 
     def force_disconnect(self):
         return self.handler.handle_client_lost(verbose=False)        
