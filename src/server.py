@@ -716,6 +716,8 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
     
 # Keeps information about each connected client
 
+import select
+
 class Client:
     bytes = TroopServer.bytes
     def __init__(self, handler, name="", is_dummy=False):
@@ -763,14 +765,10 @@ class Client:
 
     def send(self, message):
         try:
-            b = message.bytes()
-            sent = 0
-            while sent != len(b):
-                num_bytes = self.source.send(b[sent:])
-                print(self.name, num_bytes)
-                if num_bytes == 0:
-                    raise DeadClientError("No bytes sent to {}@{}".format(self.name, self.hostname))
-                sent += num_bytes
+            _, ready_to_write, _ = select.select([], [self.source], [], 5)
+            self.source.sendall(message.bytes())
+        except select.error:
+            raise DeadClientError(self.hostname)
         except Exception as e:
             print(e)
             raise DeadClientError(self.hostname)
