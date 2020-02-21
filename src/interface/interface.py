@@ -265,6 +265,11 @@ class Interface(BasicInterface):
         self.text.bind("<Double-Button-1>", self.mouse_left_double_click)
         self.text.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
         self.text.bind("<Button-2>" if SYSTEM!=MAC_OS else "<Button-3>", lambda *e: "break") # disable middle button
+        if SYSTEM == WINDOWS or SYSTEM == MAC_OS:
+            self.text.bind("<{}-MouseWheel>".format(CtrlKey), self.mouse_wheel)
+        else:
+            self.text.bind("<{}-Button-4>".format(CtrlKey), self.mouse_wheel_up)
+            self.text.bind("<{}-Button-5>".format(CtrlKey), self.mouse_wheel_down)
 
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
@@ -1300,6 +1305,24 @@ class Interface(BasicInterface):
         """ Displays popup menu"""
         self.popup.show(event)
         return "break"
+
+    def mouse_wheel(self, event):
+        """ Changes font size; called by Tk on Windows and Mac """
+        delta = event.delta
+        if SYSTEM == WINDOWS:
+            delta = int(delta / 120)
+        if (delta > 0):
+            return self.mouse_wheel_up()
+        else:
+            return self.mouse_wheel_down()
+
+    def mouse_wheel_up(self, event=None):
+        """ Increase font size; called by Tk on X11 """
+        return self.increase_font_size()
+
+    def mouse_wheel_down(self, event=None):
+        """ Decrease font size; called by Tk on X11 """
+        return self.decrease_font_size()
 
     # Copy, paste, undo etc
     # =====================
