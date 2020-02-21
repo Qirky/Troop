@@ -1219,7 +1219,7 @@ class Interface(BasicInterface):
 
         return
 
-    def decrease_font_size(self, event):
+    def decrease_font_size(self, event=None):
         """ Calls `self.ChangeFontSize(-1)` and then resizes the line numbers bar accordingly """
         self.change_font_size(-1)
         return 'break'
