@@ -222,6 +222,8 @@ class Interface(BasicInterface):
 
         self.text.bind("<{}-Right>".format(CtrlKey),    self.key_ctrl_right)
         self.text.bind("<{}-Left>".format(CtrlKey),     self.key_ctrl_left)
+        self.text.bind("<{}-Up>".format(CtrlKey),       self.key_ctrl_up)
+        self.text.bind("<{}-Down>".format(CtrlKey),     self.key_ctrl_down)
         self.text.bind("<{}-Home>".format(CtrlKey),     self.key_ctrl_home)
         self.text.bind("<{}-End>".format(CtrlKey),      self.key_ctrl_end)
         self.text.bind("<{}-period>".format(CtrlKey),   self.stop_sound)
@@ -827,6 +829,14 @@ class Interface(BasicInterface):
         """ Called when the user pressed Ctrl+Left. Sets the local peer index to right of the next word """
         return self.key_direction(self.move_marker_ctrl_right)
 
+    def key_ctrl_up(self, event):
+        """ Called when the user pressed Ctrl+Up. Sets the local peer index to previous blank line """
+        return self.key_direction(self.move_marker_ctrl_up)
+
+    def key_ctrl_down(self, event):
+        """ Called when the user pressed Ctrl+Down. Sets the local peer index to next blank line """
+        return self.key_direction(self.move_marker_ctrl_down)
+
     # Deleting multiple characters
 
     def key_ctrl_backspace(self, event):
@@ -947,6 +957,18 @@ class Interface(BasicInterface):
         self.text.marker.move(index)
         return
 
+    def move_marker_ctrl_up(self):
+        """ Moves the cursor to the previous blank line """
+        index = self.get_blank_line_up_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
+    def move_marker_ctrl_down(self):
+        """ Moves the cursor to the next blank line """
+        index = self.get_blank_line_down_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
     def get_word_left_index(self, index):
         """ Returns the index of the start of the current word """
         text  = self.text.read()
@@ -976,6 +998,28 @@ class Interface(BasicInterface):
             i = len(text)
         return i
         
+    def get_blank_line_up_index(self, index):
+        """ Returns the index of the start of the previous blank line """
+        text  = self.text.read()
+        for i in range(index - 1, 0, -1):
+            if text[i - 1] == '\n' and text[i] == '\n':
+                break
+        else:
+            i = 0
+        return i
+
+    def get_blank_line_down_index(self, index):
+        """ Returns the index of the start of the next blank line """
+        text  = self.text.read()
+        if index < len(text) and text[index] == '\n':
+            index += 1
+        for i in range(index, len(text) - 1):
+            if text[i - 1] == '\n' and text[i] in '\n':
+                break
+        else:
+            i = len(text)
+        return i
+
 
     # Selection handling
     # ==================
