@@ -283,7 +283,7 @@ class Interface(BasicInterface):
 
         # Directional commands
 
-        self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
+        self.directions = ("Left", "Right", "Up", "Down", "Home", "End", "Next", "Prior")
 
         self.handle_direction = {}
         self.handle_direction["Left"]  = self.key_left
@@ -292,6 +292,8 @@ class Interface(BasicInterface):
         self.handle_direction["Up"]    = self.key_up
         self.handle_direction["Home"]  = self.key_home
         self.handle_direction["End"]   = self.key_end
+        self.handle_direction["Next"]  = self.key_page_down
+        self.handle_direction["Prior"] = self.key_page_up
 
         self.block_messages = False # flag to stop sending messages
 
@@ -813,6 +815,16 @@ class Interface(BasicInterface):
             with the new location """
         return self.key_direction(self.move_marker_end)
 
+    def key_page_down(self):
+        """ Called when the Page Down key is pressed.  Increases local peer index
+            to correspond to a screenful of text """
+        return self.key_direction(self.move_marker_page_down)
+
+    def key_page_up(self):
+        """ Called when the Page Up key is pressed.  Decreases local peer index
+            to correspond to a screenful of text """
+        return self.key_direction(self.move_marker_page_up)
+
     def key_ctrl_home(self, event):
         """ Called when the user pressed Ctrl+Home. Sets the local peer index to 0 """
         return self.key_direction(self.move_marker_ctrl_home)
@@ -932,6 +944,20 @@ class Interface(BasicInterface):
         new_x = self.text.winfo_width()
         index = self.text.tcl_index_to_number( self.text.index("@{},{}".format(new_x, y)) ) # TODO: This goes one char short?
         self.text.marker.move(index)
+        return
+
+    def move_marker_page_up(self):
+        """ Moves the cursor up one page """
+        lines_per_page = self.get_lines_per_page()
+        for i in range(lines_per_page):
+            self.move_marker_up()
+        return
+
+    def move_marker_page_down(self):
+        """ Moves the cursor down one page """
+        lines_per_page = self.get_lines_per_page()
+        for i in range(lines_per_page):
+            self.move_marker_down()
         return
 
     def move_marker_ctrl_home(self):
@@ -1202,6 +1228,10 @@ class Interface(BasicInterface):
         """ Calls `self.ChangeFontSize(+1)` and then resizes the line numbers bar accordingly """
         self.change_font_size(+1)
         return 'break'
+
+    def get_lines_per_page(self):
+        """ Returns the number of lines visible in the window """
+        return int(self.text.winfo_height() / self.text.char_h)
 
     # Mouse Clicks
     # ============
