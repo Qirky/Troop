@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     Troop-Server
@@ -10,16 +10,28 @@
     server. 
 
 """
+
+from argparse import ArgumentParser
 from src.server import TroopServer
 from getpass import getpass
 
-try:
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--port", help="Specify a port to use (default is 57890, auto-increments when multiple instances are running.)", default=57890, type=int)
+    parser.add_argument("-P", "--password", help="Set a password. If not specified, you will be prompted for it.")
+    parser.add_argument("-d", "--debug", help="Run the server in debug mode.", default=False, action='store_true')
+    parser.add_argument("-l", "--log", help="Turn the logging on. The logs will be saved to the 'logs' directory.", default=False, action='store_true')
+    args = parser.parse_args()
 
-    myServer = TroopServer(password=getpass("Password (leave blank for no password): "))
-    myServer.start()
+    if args.password is None:
+        password = getpass("Password (leave blank for no password): ")
+    else:
+        password = args.password
 
-# Exit cleanly on Ctrl + c
+    try:
+        myServer = TroopServer(password=password, port=args.port, debug=args.debug, log=args.log)
+        myServer.start()
+    except KeyboardInterrupt:
+        # Exit cleanly on Ctrl + c
+        pass
 
-except KeyboardInterrupt:
-
-    pass
