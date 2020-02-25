@@ -340,11 +340,11 @@ class Interface(BasicInterface):
 
     def center(self):
 
-        w = 1200
-        h = 900
-
         ws = self.root.winfo_screenwidth()
         hs = self.root.winfo_screenheight()
+
+        w = int(ws * 0.75)
+        h = int(hs * 0.75)
 
         x = int((ws/2) - (w / 2))
         y = int((hs/2) - (h / 2))
