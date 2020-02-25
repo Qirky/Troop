@@ -517,7 +517,7 @@ class SuperColliderInterpreter(OSCInterpreter):
         return msg
 
     @classmethod
-    def find_comment(cls, string):        
+    def find_comment(cls, string):
         instring, instring_char = False, ""
         for i, char in enumerate(string):
             if char in ('"', "'"):
@@ -529,7 +529,7 @@ class SuperColliderInterpreter(OSCInterpreter):
                     instring = True
                     instring_char = char
             elif char == "/":
-                if not instring and i < len(string) and string[i + 1] == "/":
+                if not instring and (i + 1) < len(string) and string[i + 1] == "/":
                     return [(i, len(string))]
         return []
 
