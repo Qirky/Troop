@@ -222,6 +222,8 @@ class Interface(BasicInterface):
 
         self.text.bind("<{}-Right>".format(CtrlKey),    self.key_ctrl_right)
         self.text.bind("<{}-Left>".format(CtrlKey),     self.key_ctrl_left)
+        self.text.bind("<{}-Up>".format(CtrlKey),       self.key_ctrl_up)
+        self.text.bind("<{}-Down>".format(CtrlKey),     self.key_ctrl_down)
         self.text.bind("<{}-Home>".format(CtrlKey),     self.key_ctrl_home)
         self.text.bind("<{}-End>".format(CtrlKey),      self.key_ctrl_end)
         self.text.bind("<{}-period>".format(CtrlKey),   self.stop_sound)
@@ -263,6 +265,11 @@ class Interface(BasicInterface):
         self.text.bind("<Double-Button-1>", self.mouse_left_double_click)
         self.text.bind("<Button-2>" if SYSTEM==MAC_OS else "<Button-3>", self.mouse_press_right)
         self.text.bind("<Button-2>" if SYSTEM!=MAC_OS else "<Button-3>", lambda *e: "break") # disable middle button
+        if SYSTEM == WINDOWS or SYSTEM == MAC_OS:
+            self.text.bind("<{}-MouseWheel>".format(CtrlKey), self.mouse_wheel)
+        else:
+            self.text.bind("<{}-Button-4>".format(CtrlKey), self.mouse_wheel_up)
+            self.text.bind("<{}-Button-5>".format(CtrlKey), self.mouse_wheel_down)
 
         # select_background
         self.text.tag_configure(SEL, background=COLOURS["Background"])   # Temporary fix - set normal highlighting to background colour
@@ -281,7 +288,7 @@ class Interface(BasicInterface):
 
         # Directional commands
 
-        self.directions = ("Left", "Right", "Up", "Down", "Home", "End")
+        self.directions = ("Left", "Right", "Up", "Down", "Home", "End", "Next", "Prior")
 
         self.handle_direction = {}
         self.handle_direction["Left"]  = self.key_left
@@ -290,6 +297,8 @@ class Interface(BasicInterface):
         self.handle_direction["Up"]    = self.key_up
         self.handle_direction["Home"]  = self.key_home
         self.handle_direction["End"]   = self.key_end
+        self.handle_direction["Next"]  = self.key_page_down
+        self.handle_direction["Prior"] = self.key_page_up
 
         self.block_messages = False # flag to stop sending messages
 
@@ -811,6 +820,16 @@ class Interface(BasicInterface):
             with the new location """
         return self.key_direction(self.move_marker_end)
 
+    def key_page_down(self):
+        """ Called when the Page Down key is pressed.  Increases local peer index
+            to correspond to a screenful of text """
+        return self.key_direction(self.move_marker_page_down)
+
+    def key_page_up(self):
+        """ Called when the Page Up key is pressed.  Decreases local peer index
+            to correspond to a screenful of text """
+        return self.key_direction(self.move_marker_page_up)
+
     def key_ctrl_home(self, event):
         """ Called when the user pressed Ctrl+Home. Sets the local peer index to 0 """
         return self.key_direction(self.move_marker_ctrl_home)
@@ -826,6 +845,14 @@ class Interface(BasicInterface):
     def key_ctrl_right(self, event):
         """ Called when the user pressed Ctrl+Left. Sets the local peer index to right of the next word """
         return self.key_direction(self.move_marker_ctrl_right)
+
+    def key_ctrl_up(self, event):
+        """ Called when the user pressed Ctrl+Up. Sets the local peer index to previous blank line """
+        return self.key_direction(self.move_marker_ctrl_up)
+
+    def key_ctrl_down(self, event):
+        """ Called when the user pressed Ctrl+Down. Sets the local peer index to next blank line """
+        return self.key_direction(self.move_marker_ctrl_down)
 
     # Deleting multiple characters
 
@@ -924,6 +951,20 @@ class Interface(BasicInterface):
         self.text.marker.move(index)
         return
 
+    def move_marker_page_up(self):
+        """ Moves the cursor up one page """
+        lines_per_page = self.get_lines_per_page()
+        for i in range(lines_per_page):
+            self.move_marker_up()
+        return
+
+    def move_marker_page_down(self):
+        """ Moves the cursor down one page """
+        lines_per_page = self.get_lines_per_page()
+        for i in range(lines_per_page):
+            self.move_marker_down()
+        return
+
     def move_marker_ctrl_home(self):
         """ Moves the cursor the beginning of the document """
         self.text.marker.move(0)
@@ -944,6 +985,18 @@ class Interface(BasicInterface):
         """ Moves the cursor to the end of the current word, or next word if we are at the end.
             Left must be non-space, and right must be space"""
         index = self.get_word_right_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
+    def move_marker_ctrl_up(self):
+        """ Moves the cursor to the previous blank line """
+        index = self.get_blank_line_up_index(self.text.marker.get_index_num())
+        self.text.marker.move(index)
+        return
+
+    def move_marker_ctrl_down(self):
+        """ Moves the cursor to the next blank line """
+        index = self.get_blank_line_down_index(self.text.marker.get_index_num())
         self.text.marker.move(index)
         return
 
@@ -976,6 +1029,28 @@ class Interface(BasicInterface):
             i = len(text)
         return i
         
+    def get_blank_line_up_index(self, index):
+        """ Returns the index of the start of the previous blank line """
+        text  = self.text.read()
+        for i in range(index - 1, 0, -1):
+            if text[i - 1] == '\n' and text[i] == '\n':
+                break
+        else:
+            i = 0
+        return i
+
+    def get_blank_line_down_index(self, index):
+        """ Returns the index of the start of the next blank line """
+        text  = self.text.read()
+        if index < len(text) and text[index] == '\n':
+            index += 1
+        for i in range(index, len(text) - 1):
+            if text[i - 1] == '\n' and text[i] in '\n':
+                break
+        else:
+            i = len(text)
+        return i
+
 
     # Selection handling
     # ==================
@@ -1149,7 +1224,7 @@ class Interface(BasicInterface):
 
         return
 
-    def decrease_font_size(self, event):
+    def decrease_font_size(self, event=None):
         """ Calls `self.ChangeFontSize(-1)` and then resizes the line numbers bar accordingly """
         self.change_font_size(-1)
         return 'break'
@@ -1158,6 +1233,10 @@ class Interface(BasicInterface):
         """ Calls `self.ChangeFontSize(+1)` and then resizes the line numbers bar accordingly """
         self.change_font_size(+1)
         return 'break'
+
+    def get_lines_per_page(self):
+        """ Returns the number of lines visible in the window """
+        return int(self.text.winfo_height() / self.text.char_h)
 
     # Mouse Clicks
     # ============
@@ -1226,6 +1305,24 @@ class Interface(BasicInterface):
         """ Displays popup menu"""
         self.popup.show(event)
         return "break"
+
+    def mouse_wheel(self, event):
+        """ Changes font size; called by Tk on Windows and Mac """
+        delta = event.delta
+        if SYSTEM == WINDOWS:
+            delta = int(delta / 120)
+        if (delta > 0):
+            return self.mouse_wheel_up()
+        else:
+            return self.mouse_wheel_down()
+
+    def mouse_wheel_up(self, event=None):
+        """ Increase font size; called by Tk on X11 """
+        return self.increase_font_size()
+
+    def mouse_wheel_down(self, event=None):
+        """ Decrease font size; called by Tk on X11 """
+        return self.decrease_font_size()
 
     # Copy, paste, undo etc
     # =====================
