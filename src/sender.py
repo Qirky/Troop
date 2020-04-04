@@ -34,7 +34,8 @@ class Sender:
         self.connection_errors = {
             ERR_LOGIN_FAIL : "Login attempt failed",
             ERR_MAX_LOGINS : "Failed to connect: Maximum number of users connected. Please try again later.",
-            ERR_NAME_TAKEN : "A user with that name has already connected from your location."
+            ERR_NAME_TAKEN : "A user with that name has already connected from your location.",
+            ERR_VERSION_MISMATCH: "Your client, Troop v{}, does not match the version of the server. Please update your versions to match before connecting.".format(self.client.version)
         }
 
         self.ui        = None
@@ -77,7 +78,7 @@ class Sender:
 
             # Send the password
 
-            self.conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest(), self.name)
+            self.conn_msg = MSG_PASSWORD(-1, md5(password.encode("utf-8")).hexdigest(), self.name, self.client.version)
 
             self.send( self.conn_msg )
 

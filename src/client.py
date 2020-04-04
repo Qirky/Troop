@@ -124,7 +124,7 @@ class Client:
 
         # Set up a user interface
 
-        title = "Troop - {}@{}:{}".format(self.name, self.send.hostname, self.send.port)
+        title = "Troop - {}@{}:{}. v{}".format(self.name, self.send.hostname, self.send.port, self.version)
         self.ui = Interface(self, title, self.lang, logging)
         self.ui.init_local_user(self.id, self.name)
 

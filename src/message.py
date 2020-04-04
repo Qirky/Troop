@@ -211,10 +211,11 @@ class MSG_SET_MARK(MESSAGE):
 
 class MSG_PASSWORD(MESSAGE):
     type = 4
-    def __init__(self, src_id, password, name):
+    def __init__(self, src_id, password, name, version):
         MESSAGE.__init__(self, src_id)
         self['password']=str(password)
         self['name']=str(name)
+        self['version']=str(version)
 
 class MSG_REMOVE(MESSAGE):
     type = 5
