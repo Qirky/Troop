@@ -511,6 +511,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
         password = packet[0]['password']
         username = packet[0]['name']
+        version  = packet[0]['version']
         
         if password == self.master.password.hexdigest():
 
@@ -544,9 +545,19 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                 # Reply with the client id
 
-                stdout("New connected user '{}' from {}".format(username, addr))
+                if version != self.master.version:
 
-                self.client_id = self.master.get_next_id()
+                    stdout("User '{}' attempted connection with wrong version".format(username))
+
+                    self.client_id = ERR_VERSION_MISMATCH
+
+                else:
+
+                    self.client_id = self.master.get_next_id()
+
+                    if self.client_id > 0:
+
+                        stdout("New connected user '{}' from {}".format(username, addr))                
 
         else:
 

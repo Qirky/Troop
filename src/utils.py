@@ -3,6 +3,7 @@
 ERR_LOGIN_FAIL = -1
 ERR_MAX_LOGINS = -2
 ERR_NAME_TAKEN = -3
+ERR_VERSION_MISMATCH = -4
 
 # List of all the possible characters used to represent peers in the document
 
