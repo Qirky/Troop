@@ -2,6 +2,8 @@
 
 ## Real-time collaborative live coding
 
+*Please note*: I am no longer actively maintaining Troop and will only be making minor changes to the code in response to issues / pull requests at this time.
+
 Troop is a real-time collaborative tool that enables group live coding within the same document across multiple computers. Hypothetically Troop can talk to any interpreter that can take input as a string from the command line but it is already configured to work with live coding languages [FoxDot](https://github.com/Qirky/FoxDot), [TidalCycles](https://tidalcycles.org/), and [SuperCollider](http://supercollider.github.io/). 
 
 Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/) and [SuperCollider](http://supercollider.github.io/). Click the links to find out more about installing. Both TidalCycles and FoxDot require [SuperCollider](http://supercollider.github.io/) to work, so it's a good bet you'll need it.
