@@ -379,7 +379,7 @@ class TroopServer(OTServer):
 
                 if self.is_logging:
 
-                    self.log_file.write("%.4f" % time.clock() + " " + repr(str(msg)) + "\n")
+                    self.log_file.write("%.4f" % time.time() + " " + repr(str(msg)) + "\n")
 
                 # Store the response of the messages
                 

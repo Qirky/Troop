@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from ..config import *
 from ..message import *
-from ..logfile import Log
+from ..logfile import Log, Timer
 from ..utils import *
 from ..interpreter import *
 
@@ -1512,6 +1512,8 @@ class Interface(BasicInterface):
 
         log_folder = os.path.join(ROOT_DIR, "logs")
 
+        self.timer = Timer()
+
         if not os.path.exists(log_folder):
 
             os.mkdir(log_folder)
@@ -1526,7 +1528,7 @@ class Interface(BasicInterface):
 
     def log_message(self, message):
         """ Logs a message to the widget's log_file with a timestamp """
-        self.log_file.write("%.4f" % time.time() + " " + repr(str(message)) + "\n")
+        self.log_file.write("%.4f" % self.timer.get_time() + " " + repr(str(message)) + "\n")
         return
 
     def ImportLog(self):

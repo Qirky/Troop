@@ -2,15 +2,24 @@
 
 from __future__ import absolute_import
 
+import time
 from threading import Thread
-from time import sleep
 from .message import *
+
+class Timer:
+    def __init__(self):
+        self.start = time.time()
+
+    def get_time(self):
+        return time.time() - self.start
 
 class Log:
     text = None
     def __init__(self, filename):
         self.time = []
         self.data = []
+        self.reader = NetworkMessageReader()
+        self.msg_id = 0
         with open(filename) as f:
 
             for line in f.readlines():
@@ -19,9 +28,9 @@ class Log:
 
                 time    = float(time)
                 
-                message = message.strip()[1:-1].decode('string_escape')
+                message = bytes(message.strip()[1:-1], "utf-8").decode('unicode_escape')
 
-                message = NetworkMessage(message)[0]
+                message = self.reader.feed(message)[0]
 
                 if len(self.time) == 0:
                 
@@ -59,8 +68,9 @@ class Log:
 
     def __run(self):
         for i in range(len(self)):
-            sleep(self.time[i])
-            self.text.push_queue.put(self.data[i])
+            time.sleep(self.time[i])
+            # Change names in future
+            self.text.text.handle(self.data[i])
 
 if __name__ == "__main__":
 
