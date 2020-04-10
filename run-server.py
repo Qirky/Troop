@@ -11,17 +11,17 @@
 
 """
 
-from argparse import ArgumentParser
+import argparse
 from src.server import TroopServer
 from getpass import getpass
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", help="Specify a port to use (default is 57890, auto-increments when multiple instances are running.)", default=57890, type=int)
     parser.add_argument("-P", "--password", help="Set a password. If not specified, you will be prompted for it.")
     parser.add_argument("-d", "--debug", help="Run the server in debug mode.", default=False, action='store_true')
     parser.add_argument("-l", "--log", help="Turn the logging on. The logs will be saved to the 'logs' directory.", default=False, action='store_true')
-    parser.add_argument("-H", "--hub", help="Create a public Troop server via the Troop Hub Service.")
+    parser.add_argument("--hub", help="Create a public Troop server via the Troop Hub Service.")
     args = parser.parse_args()
 
     if args.password is None:
@@ -31,8 +31,8 @@ if __name__ == '__main__':
 
     try:
         if args.hub:
-            from src.hub import HubClient
-            myServer = HubClient(name=args.hub, password=password, host='127.0.0.1')
+            from src.hub import HubClient, HubParser
+            myServer = HubClient(password=password, **HubParser(args.hub))
         else:
             myServer = TroopServer(password=password, port=args.port, debug=args.debug, log=args.log)
         myServer.start()

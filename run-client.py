@@ -74,11 +74,12 @@ if args.port:
 
 if args.hub:
 
-    from src.hub import HubClient
+    from src.hub import HubClient, HubParser
 
     print("Troop Hub Service | Collecting details for '{}'".format(args.hub))
 
-    address = HubClient(host='127.0.0.1').query(args.hub)
+    hub = HubParser(args.hub)
+    address = HubClient(**hub).query(hub.get('name'))
 
     print("Troop Hub Service | Success.")
 

@@ -30,7 +30,7 @@ class HubClient:
     def __init__(self, *args, **kwargs):
         self.name = kwargs.get('name')
         self.hostname = kwargs.get('host', '188.166.144.124')
-        self.port = kwargs.get('port', 57990)
+        self.port = int(kwargs.get('port', 57990))
         self.address = (self.hostname, self.port)
         self.password = kwargs.get('password', '')
 
@@ -39,6 +39,7 @@ class HubClient:
             self.socket.connect(self.address)
         except socket.error:
             sys.exit("Troop Hub Service | Error: could not connect to service")
+
         self.running = False
 
     def start(self):
@@ -84,18 +85,20 @@ class HubClient:
         ''' Used when polling socket, handles errors '''
         data = self.recv()
         if not data:
-            self.handle_error("Broken pipe")
-        if 'error' in data:
-            self.handle_error(data['error'])
+            return self.handle_error("Broken pipe")
+        elif 'error' in data:
+            return self.handle_error(data['error'])
         return data
 
     def handle_error(self, message):
-        print(message)
+        print("Error: {}".format(message))
         self.running = False
+        return {}
+
 
     def kill(self, message=""):
         self.handle_error(message)
-        self.send({'kill': message})
+        self.send({'kill': str(message)})
 
     def recv(self):
         """ Reads data from the socket """
