@@ -1,7 +1,7 @@
 import json
 import socket
 import time
-from hashlib import md5
+import sys
 
 class JSONMessage:
     """ Wrapper for JSON messages sent to the server """
@@ -28,13 +28,17 @@ class JSONMessage:
 
 class HubClient:
     def __init__(self, *args, **kwargs):
+        self.name = kwargs.get('name')
         self.hostname = kwargs.get('host', '188.166.144.124')
         self.port = kwargs.get('port', 57990)
         self.address = (self.hostname, self.port)
         self.password = kwargs.get('password', '')
 
-        self.socket = socket.socket()
-        self.socket.connect(self.address)
+        try:
+            self.socket = socket.socket()
+            self.socket.connect(self.address)
+        except socket.error:
+            sys.exit("Troop Hub Service | Error: could not connect to service")
         self.running = False
 
     def start(self):
@@ -49,12 +53,32 @@ class HubClient:
         return
 
     def connect(self):
-        self.send({'password': self.password})
+        if not self.name:
+            raise ValueError("Server name cannot be 'None'")
+        self.send({
+            'type': 'server',
+            'name': self.name,
+            'password': self.password
+        })
         data = self.poll()
         if 'address' in data:
             print("Server running @ {} on port {}.".format(*data['address']))
             return True
         return False
+
+    def query(self, name):
+        '''
+        Get the hostname and port for a named Troop server withing the Hub Service
+        '''
+        self.send({
+            'type': 'query',
+            'name': name
+        })
+        data = self.poll()
+        result = data.get('result')
+        if result is None:
+            sys.exit("Troop Hub Service | Error: '{}' not found".format(name))
+        return result
 
     def poll(self):
         ''' Used when polling socket, handles errors '''

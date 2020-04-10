@@ -9,10 +9,10 @@
       must be able to connect to a running Troop Server instance on
       your network. Running `python run-client.py` will start the process
       of connecting to the server by asking for a host and port (defaults
-      are localhost and port 57890). 
+      are localhost and port 57890).
 
     - Using other Live Coding Languages:
-    
+
         Troop is designed to be used with FoxDot (http://foxdot.org) but
         is also configured to work with Tidal Cycles (http://tidalcycles.org).
         You can run this file with the `--mode` flag followed by "tidalcycles"
@@ -27,7 +27,7 @@ import argparse
 from src.config import langnames
 
 parser = argparse.ArgumentParser(
-    prog="Troop Client", 
+    prog="Troop Client",
     description="Collaborative interface for Live Coding")
 
 parser.add_argument('-i', '--cli', action='store_true', help="Use the command line to enter connection info")
@@ -41,6 +41,7 @@ parser.add_argument('-s', '--syntax', action='store',
 parser.add_argument('-a', '--args', action='store', help="Add extra arguments to supply to the interpreter", nargs=argparse.REMAINDER, type=str)
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
 parser.add_argument('-l', '--log', action='store_true')
+parser.add_argument('--hub', help="Connect to a named Troop server running on the Troop Hub Service")
 
 args = parser.parse_args()
 
@@ -61,7 +62,7 @@ if args.syntax:
 if args.public:
 
     from src.config import PUBLIC_SERVER_ADDRESS
-    options['host'], options['port'] = PUBLIC_SERVER_ADDRESS  
+    options['host'], options['port'] = PUBLIC_SERVER_ADDRESS
 
 if args.host:
 
@@ -71,17 +72,30 @@ if args.port:
 
     options['port'] = args.port
 
+if args.hub:
+
+    from src.hub import HubClient
+
+    print("Troop Hub Service | Collecting details for '{}'".format(args.hub))
+
+    address = HubClient(host='127.0.0.1').query(args.hub)
+
+    print("Troop Hub Service | Success.")
+
+    options['host'], options['port'] = address
+
+
 if args.cli:
 
     if 'host' not in options:
 
-        options['host']     = readin("Troop Server Address", default="localhost")
+        options['host'] = readin("Troop Server Address", default="localhost")
 
     if 'port' not in options:
-    
-        options['port']     = readin("Port Number", default="57890")
 
-    options['name']     = readin("Enter a name").replace(" ", "_")
+        options['port'] = readin("Port Number", default="57890")
+
+    options['name'] = readin("Enter a name").replace(" ", "_")
     options['password'] = getpass()
     options['get_info'] = False # Flag to say we don't need the GUI
 
