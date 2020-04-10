@@ -56,7 +56,7 @@ class TroopServer(OTServer):
 
         OTServer.__init__(self, "", MemoryBackend())
         self.peer_tag_doc = ""
-          
+
         # Address information
         # self.hostname = str(socket.gethostname())
         self.hostname = socket.gethostbyname("localhost")
@@ -81,7 +81,7 @@ class TroopServer(OTServer):
 
         # Look for an empty port
         port_found = False
-        
+
         while not port_found:
 
             try:
@@ -99,7 +99,7 @@ class TroopServer(OTServer):
         self.waiting_for_ack = False # Flagged True after new connected client
 
         self.text_constraint = MSG_CONSTRAINT(-1, 0) # default
-        
+
         # Dict of IDs to Client instances
         self.clients = {}
 
@@ -126,7 +126,7 @@ class TroopServer(OTServer):
         # Set up log for logging a performance
 
         if log:
-            
+
             # Check if there is a logs folder, if not create it
 
             log_folder = os.path.join(ROOT_DIR, "logs")
@@ -136,13 +136,13 @@ class TroopServer(OTServer):
                 os.mkdir(log_folder)
 
             # Create filename based on date and times
-            
+
             self.fn = time.strftime("server-log-%d%m%y_%H%M%S.txt", time.localtime())
             path    = os.path.join(log_folder, self.fn)
-            
+
             self.log_file   = open(path, "w")
             self.is_logging = True
-            
+
         else:
 
             self.is_logging = False
@@ -210,16 +210,16 @@ class TroopServer(OTServer):
     def handle_operation(self, message):
         """ Handles a new MSG_OPERATION by updating the document, performing operational transformation
             (if necessary) on it and storing it. """
-        
+
         # Apply to document
         try:
             op = self.receive_operation(message["src_id"], message["revision"], TextOperation(message["operation"]))
-        
+
         # debug
         except OTError as err:
-        
+
             print(self.document, message["operation"])
-        
+
             raise err
 
         # Returns None if there are inconsistencies in revision numbers
@@ -227,7 +227,7 @@ class TroopServer(OTServer):
         if op is None:
 
             return
-        
+
         message["operation"] = op.ops
 
         # Apply to peer tags
@@ -282,7 +282,7 @@ class TroopServer(OTServer):
         return
 
     def get_next_id(self):
-        """ Increases the ID counter and returns it. If it goes over the maximum number allowed, it tries to go to back to the start and 
+        """ Increases the ID counter and returns it. If it goes over the maximum number allowed, it tries to go to back to the start and
             checks if that client is connected. If all clients are connected, it returns -1, signalling the client to terminate """
         if self.last_id < self.max_id:
             self.last_id += 1
@@ -291,7 +291,7 @@ class TroopServer(OTServer):
                 if n not in self.clients:
                     self.last_id = n
             else:
-                return ERR_MAX_LOGINS # error message for max clients exceeded                   
+                return ERR_MAX_LOGINS # error message for max clients exceeded
         return self.last_id
 
     def clear_history(self):
@@ -303,7 +303,7 @@ class TroopServer(OTServer):
     def wait_for_ack(self, flag):
         """ Sets flag to disregard messages that are not MSG_CONNECT_ACK until all clients have responded """
         if flag == True:
-        
+
             self.waiting_for_ack = True
             self.acknowledged_clients = []
 
@@ -317,13 +317,13 @@ class TroopServer(OTServer):
 
     def connect_ack(self, message):
         """ Handle response from clients confirming the new connected client """
-        
+
         client_id = message["src_id"]
-        
+
         self.acknowledged_clients.append(client_id)
 
         # When we have all clients acknowledged, stop waiting
-        
+
         if all([client_id in self.acknowledged_clients for client_id in self.connected_clients()]):
 
             # Send set_text to all to reset the text
@@ -331,13 +331,13 @@ class TroopServer(OTServer):
             self.update_all_clients()
 
             # Stop waiting
-        
+
             self.waiting_for_ack = False
-            
+
             self.acknowledged_clients = []
-            
+
             self.wait_for_ack(False)
-        
+
         return
 
     def connected_clients(self):
@@ -382,7 +382,7 @@ class TroopServer(OTServer):
                     self.log_file.write("%.4f" % time.clock() + " " + repr(str(msg)) + "\n")
 
                 # Store the response of the messages
-                
+
                 if isinstance(msg, MSG_OPERATION):
 
                     msg = self.handle_operation(msg)
@@ -438,7 +438,7 @@ class TroopServer(OTServer):
     def remove_client(self, client_id):
 
         # Remove from list(s)
-            
+
         if client_id in self.clients:
 
             self.clients[client_id].disconnect()
@@ -448,11 +448,11 @@ class TroopServer(OTServer):
         for client in list(self.clients.values()):
 
             if client.connected:
-                   
+
                 client.send(MSG_REMOVE(client_id))
 
         return
-        
+
     def kill(self):
         """ Properly terminates the server """
         if self.log_file is not None: self.log_file.close()
@@ -468,11 +468,11 @@ class TroopServer(OTServer):
                 client.force_disconnect()
 
         sleep(0.5)
-        
+
         self.running = False
         self.server.shutdown()
         self.server.server_close()
-        
+
         return
 
     def write(self, string):
@@ -484,19 +484,19 @@ class TroopServer(OTServer):
             for client in list(self.clients.values()):
 
                 if client.connected:
-                
+
                   client.send(outgoing)
-                    
+
         return
 
-# Request Handler for TroopServer 
+# Request Handler for TroopServer
 
 class TroopRequestHandler(socketserver.BaseRequestHandler):
     master = None
     name = None
     client_name = ""
 
-    def client(self):        
+    def client(self):
         return self.get_client(self.get_client_id())
 
     def get_client(self, client_id):
@@ -512,7 +512,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         password = packet[0]['password']
         username = packet[0]['name']
         version  = packet[0]['version']
-        
+
         if password == self.master.password.hexdigest():
 
             # See if this is a reconnecting client
@@ -531,7 +531,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     stdout("User already connected: {}@{}".format(username, addr))
 
-                    self.client_id = ERR_NAME_TAKEN 
+                    self.client_id = ERR_NAME_TAKEN
 
                 else:
 
@@ -557,7 +557,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
                     if self.client_id > 0:
 
-                        stdout("New connected user '{}' from {}".format(username, addr))                
+                        stdout("New connected user '{}' from {}".format(username, addr))
 
         else:
 
@@ -598,19 +598,19 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
             new_client = Client(self, name=msg['name'], is_dummy=msg['dummy'])
 
             self.client_name = new_client.name
-           
+
             self.connect_clients(new_client) # Contacts other clients
 
             # Don't accept more messages while connecting
 
             self.master.wait_for_ack(True)
-           
+
             return new_client
 
     def leader(self):
         """ Returns the peer client that is "leading" """
         return self.master.leader()
-    
+
     def handle(self):
         """ self.request = socket
             self.server  = ThreadedServer
@@ -620,7 +620,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         # This takes strings read from the socket and returns json objects
 
         self.reader = NetworkMessageReader()
-        
+
         # self.messages  = []
         # self.msg_count = 0
 
@@ -633,7 +633,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
             return
 
         # Enter loop
-        
+
         while self.master.running:
 
             try:
@@ -686,12 +686,12 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
     # def store_messages(self, packet):
     #     """ Stores messages to be returned in order with any existing messages in the queue """
-    #     self.messages.extend(packet) 
+    #     self.messages.extend(packet)
     #     self.messages = list(sorted(self.messages, key=lambda msg: msg["src_id"]))
     #     return
 
     # def get_message_queue(self):
-    #     """ Returns a list of messages that are sorted in ascending 'msg_id' order 
+    #     """ Returns a list of messages that are sorted in ascending 'msg_id' order
     #         up until we don't find items that are in the next position """
     #     popped = []
     #     i = 0
@@ -743,7 +743,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
         client.send(self.master.get_text_constraint())
 
         return
-    
+
 # Keeps information about each connected client
 
 class Client:
@@ -784,7 +784,7 @@ class Client:
     def connect(self, socket):
         self.connected = True
         self.source = socket
-        
+
     def get_index(self):
         return self.index
 
@@ -816,7 +816,7 @@ class Client:
         return False
 
     def force_disconnect(self):
-        return self.handler.handle_client_lost(verbose=False)        
+        return self.handler.handle_client_lost(verbose=False)
 
     def __eq__(self, other):
         #return self.address == other
@@ -827,4 +827,3 @@ class Client:
         #return self.address != other
         #return self.hostname != other
         return (self.hostname, self.name) != other
-

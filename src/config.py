@@ -1,7 +1,7 @@
 import sys
 import os, os.path
 
-VERSION = "0.9.7"
+VERSION = "0.9.8"
 
 # Check for location of Python
 
@@ -180,10 +180,10 @@ def LoadColours():
 LoadColours()
 
 def exe_exists(exe):
-    if SYSTEM == WINDOWS: 
+    if SYSTEM == WINDOWS:
         exe = "{}.exe".format(exe)
     return any(
-        os.access(os.path.join(path, exe), os.X_OK) 
+        os.access(os.path.join(path, exe), os.X_OK)
         for path in os.environ["PATH"].split(os.pathsep)
     )
 
