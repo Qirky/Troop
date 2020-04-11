@@ -132,7 +132,9 @@ langtitles = { "foxdot"           : "FoxDot",
 def getInterpreter(path):
     """ Returns the integer representing the specified interpreter unless
         a custom path is used, which is returned """
-    return langnames.get(path.lower(), path)
+    if isinstance(path, str):
+        path = path.lower()
+    return langnames.get(path, path)
 
 # Sorting colours
 
