@@ -7,7 +7,7 @@ except ImportError:
     from tkinter import messagebox as tkMessageBox
     from tkinter import filedialog as tkFileDialog
 
-from .interface import ROOT
+from .interface import Window
 from ..config import langtitles
 
 class ConnectionInput:
@@ -17,11 +17,12 @@ class ConnectionInput:
         self.client  = client
         self.using_gui_input = get_info
         self.options = kwargs
-        self.root=ROOT
 
         # If there is all the info, go straight to main interface
 
         if self.using_gui_input:
+
+            self.root=Window.root
 
             self.root.title("Troop v{}".format(client.version))
             self.root.protocol("WM_DELETE_WINDOW", self.quit )
@@ -45,7 +46,6 @@ class ConnectionInput:
             lbl = Tk.Label(self.root, text="Name:")
             lbl.grid(row=2, column=0, sticky=Tk.W)
             self.name=Tk.Entry(self.root)
-            self.name.insert(0, kwargs.get("name", ""))
             self.name.grid(row=2, column=1, sticky=Tk.NSEW)
 
             # Password
@@ -102,8 +102,8 @@ class ConnectionInput:
 
     def mainloop(self):
         if self.client.mainloop_started is False:
+            self.client.mainloop_started = True
             try:
-                self.client.mainloop_started = True
                 self.root.mainloop()
             except KeyboardInterrupt:
                 self.client.kill()

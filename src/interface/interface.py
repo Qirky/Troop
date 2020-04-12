@@ -31,13 +31,22 @@ import time
 import sys
 import webbrowser
 
-ROOT = Tk()
+class _Window:
+    def __init__(self):
+        self._tk = Tk
+    @property
+    def root(self):
+        if not hasattr(self, '_root'):
+            self._root = self._tk()
+        return self._root
+
+Window = _Window()
 
 class BasicInterface:
     """ Class for displaying basic text input data.
     """
     def __init__(self):
-        self.root = ROOT
+        self.root = Window.root
         self.root.configure(background=COLOURS["Background"])
         self.root.resizable(True, True)
 
@@ -63,7 +72,15 @@ class BasicInterface:
         self.client.update_send()
         self.client.check_for_timeout()
         self.update_graphs()
-        self.client.input.mainloop()
+        if not self.client.mainloop_started:
+            self.mainloop()
+        return
+
+    def mainloop(self):
+        try:
+            self.root.mainloop()
+        except KeyboardInterrupt:
+            self.client.kill()
         return
 
     def kill(self):
@@ -86,7 +103,7 @@ class DummyInterface(BasicInterface):
         self.lang.start()
 
 class Interface(BasicInterface):
-    def __init__(self, client, title, language):
+    def __init__(self, client, title, language, logging=False):
 
         # Inherit
 
@@ -96,6 +113,12 @@ class Interface(BasicInterface):
         self.interpreters = {name: BooleanVar() for name in langnames}
 
         self.client = client
+
+        # Set logging
+
+        if logging:
+
+            self.set_up_logging()
 
         # Set title and configure the interface grid
 
@@ -1502,10 +1525,7 @@ class Interface(BasicInterface):
     # ===============
 
     def set_up_logging(self):
-        """
-        DEPRECATED
-        Checks if there is a logs folder, if not this creates it
-        """
+        """ Checks if there is a logs folder, if not this creates it """
 
         log_folder = os.path.join(ROOT_DIR, "logs")
 

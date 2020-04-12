@@ -4,6 +4,7 @@ __pycache__/*
 setup.py
 dist/*
 build/*
+env/*
 *.spec
 
 # Create logs
