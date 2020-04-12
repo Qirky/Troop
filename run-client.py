@@ -32,15 +32,15 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-i', '--cli', action='store_true', help="Use the command line to enter connection info")
 parser.add_argument('-p', '--public', action='store_true', help="Connect to public Troop server")
-parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server")#, default="localhost")
-parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)")#, default=57890)
+parser.add_argument('-H', '--host', action='store', help="IP Address of the machine running the Troop server")
+parser.add_argument('-P', '--port', action='store', help="Port for Troop server (default 57890)")
+parser.add_argument('-n', '--name', action='store', help="Display name to use")
 parser.add_argument('-m', '--mode', action='store', default='foxdot',
                     help='Name of live coding language ({}) or a valid executable'.format(', '.join(langnames.keys())))
 parser.add_argument('-s', '--syntax', action='store',
                     help='Name of live coding language syntax to use when selecting "No Interpreter" option.')
 parser.add_argument('-a', '--args', action='store', help="Add extra arguments to supply to the interpreter", nargs=argparse.REMAINDER, type=str)
 parser.add_argument('-c', '--config', action='store_true', help="Load connection info from 'client.cfg'")
-parser.add_argument('-l', '--log', action='store_true')
 parser.add_argument('--hub', help="Connect to a named Troop server running on the Troop Hub Service")
 
 args = parser.parse_args()
@@ -51,26 +51,15 @@ from src.client import Client
 from src.config import readin
 from getpass import getpass
 
-# Client config options
+# Language and syntax
 
-options = { 'lang': args.mode, 'logging': args.log }
+options = { 'lang': args.mode }
 
 if args.syntax:
 
     options['syntax'] = args.syntax
 
-if args.public:
-
-    from src.config import PUBLIC_SERVER_ADDRESS
-    options['host'], options['port'] = PUBLIC_SERVER_ADDRESS
-
-if args.host:
-
-    options['host'] = args.host
-
-if args.port:
-
-    options['port'] = args.port
+# Server address
 
 if args.hub:
 
@@ -85,6 +74,28 @@ if args.hub:
 
     options['host'], options['port'] = address
 
+elif args.public:
+
+    from src.config import PUBLIC_SERVER_ADDRESS
+    options['host'], options['port'] = PUBLIC_SERVER_ADDRESS
+
+else:
+
+    if args.host:
+
+        options['host'] = args.host
+
+    if args.port:
+
+        options['port'] = args.port
+
+# User name
+
+if args.name:
+
+    options['name'] = args.name
+
+# Non-gui startup
 
 if args.cli:
 
@@ -96,7 +107,10 @@ if args.cli:
 
         options['port'] = readin("Port Number", default="57890")
 
-    options['name'] = readin("Enter a name").replace(" ", "_")
+    if 'name' not in options:
+
+        options['name'] = readin("Enter a name")
+
     options['password'] = getpass()
     options['get_info'] = False # Flag to say we don't need the GUI
 

@@ -26,7 +26,7 @@ class ConnectionInput:
             self.root.title("Troop v{}".format(client.version))
             self.root.protocol("WM_DELETE_WINDOW", self.quit )
             self.root.resizable(False, False)
-            
+
             # Host
             lbl = Tk.Label(self.root, text="Host:")
             lbl.grid(row=0, column=0, stick=Tk.W)
@@ -40,13 +40,14 @@ class ConnectionInput:
             self.port=Tk.Entry(self.root)
             self.port.insert(0, kwargs.get("port", "57890"))
             self.port.grid(row=1, column=1, sticky=Tk.NSEW)
-            
+
             # Name
             lbl = Tk.Label(self.root, text="Name:")
             lbl.grid(row=2, column=0, sticky=Tk.W)
             self.name=Tk.Entry(self.root)
+            self.name.insert(0, kwargs.get("name", ""))
             self.name.grid(row=2, column=1, sticky=Tk.NSEW)
-            
+
             # Password
             lbl = Tk.Label(self.root, text="Password: ")
             lbl.grid(row=3, column=0, sticky=Tk.W)
@@ -75,7 +76,7 @@ class ConnectionInput:
             if "syntax" in self.options:
                 self.show_syntax_options()
             else:
-                self.hide_syntax_options() 
+                self.hide_syntax_options()
 
             # Ok button
             self.button=Tk.Button(self.root, text='Ok',command=self.store_data)
@@ -85,10 +86,10 @@ class ConnectionInput:
             self.lbl_response=Tk.Label(self.root, textvariable=self.response, fg="Red")
             self.lbl_response.grid(row=7, column=0, columnspan=2)
             self.lbl_response.grid_remove()
-            
+
             # Value
             self.data = {}
-            
+
             # Enter shortcut
             self.root.bind("<Return>", self.store_data)
 
@@ -99,7 +100,7 @@ class ConnectionInput:
         else:
             self.finish()
 
-    def mainloop(self):        
+    def mainloop(self):
         if self.client.mainloop_started is False:
             try:
                 self.client.mainloop_started = True
@@ -159,7 +160,7 @@ class ConnectionInput:
         password = self.password.get()
 
         # Use correct formatting of lang_name and syntax_name
-        
+
         lang_name = self.lang.get()
         syntax_name = self.syntax.get()
 
@@ -177,10 +178,10 @@ class ConnectionInput:
 
         if name.strip() != "" and host.strip() != "" and port.strip() != "":
 
-            self.options.update(  
-                host = host, 
-                port = port, 
-                name = name, 
+            self.options.update(
+                host = host,
+                port = port,
+                name = name,
                 password = password,
                 lang = lang_name,
                 syntax = syntax_name
@@ -201,7 +202,7 @@ class ConnectionInput:
         self.root.geometry("+{}+{}".format(x, y))
         self.lbl_response.config(wraplength=size[0])
         self.name.focus()
-        return        
+        return
 
     def print_message(self, message):
         """ Displays the response message to the user """

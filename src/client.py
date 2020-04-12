@@ -36,24 +36,24 @@ class Client:
         self.input = ConnectionInput(self, **kwargs)
         self.input.start()
 
-    def setup(self, host="", port="", name="", password="", lang=FOXDOT, syntax=FOXDOT, args="", logging=False, ipv6=False):
+    def setup(self, host="", port="", name="", password="", lang=FOXDOT, syntax=FOXDOT, args="", ipv6=False):
 
         # ConnectionInput(host, port)
-        
+
         self.hostname = str(host)
         self.port     = int(port)
-        self.name     = str(name if name is not None else hostname)
+        self.name     = str(name if name is not None else hostname).replace(" ", "_")
         self.args     = args
         self.id       = None
 
         # Try and connect to server
 
         try:
-            
+
             self.send = Sender(self).connect(self.hostname, self.port, self.name, ipv6, password)
 
             if not self.send.connected:
-                
+
                 raise ConnectionError(self.send.error_message())
 
             else:
@@ -67,7 +67,7 @@ class Client:
                 self.send_queue = queue.Queue()
 
         # Quit with error output if we cannot connect
-            
+
         except Exception as e:
 
             self.input.print_message(e)
@@ -80,7 +80,7 @@ class Client:
 
         # Continue with set up
         # Set up a receiver on the connected socket
-          
+
         self.recv = Receiver(self, self.send.conn)
         self.recv.start()
 
@@ -125,7 +125,7 @@ class Client:
         # Set up a user interface
 
         title = "Troop - {}@{}:{}. v{}".format(self.name, self.send.hostname, self.send.port, self.version)
-        self.ui = Interface(self, title, self.lang, logging)
+        self.ui = Interface(self, title, self.lang)
         self.ui.init_local_user(self.id, self.name)
 
         # Send information about this client to the server
@@ -155,36 +155,36 @@ class Client:
         """ Continually polls the queue and sends any messages to the server """
         try:
             while self.send.connected:
-                
+
                 try:
-                    
+
                     msg = self.send_queue.get_nowait()
 
                     self.send( msg )
 
                 except ConnectionError as e:
-                    
+
                     return print(e)
-                
+
                 self.ui.root.update_idletasks()
-                
+
         # Break when the queue is empty
         except queue.Empty:
             pass
-            
+
         # Recursive call
-        self.ui.root.after(30, self.update_send)        
+        self.ui.root.after(30, self.update_send)
         return
 
     def is_master(self):
-        """ Returns True if this client has the lowest ID number and is not 
+        """ Returns True if this client has the lowest ID number and is not
             using a dummy interpreter """
         for peer_id, peer in self.peers.items():
             if not peer.is_dummy:
                 if peer_id < self.id:
                     return False
         return True
-            
+
     def kill(self):
         """ Kills the connection sockets and UI correctly """
 

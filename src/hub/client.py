@@ -3,6 +3,8 @@ import socket
 import time
 import sys
 
+from ..config import PUBLIC_SERVER_ADDRESS
+
 class JSONMessage:
     """ Wrapper for JSON messages sent to the server """
     def __init__(self, data):
@@ -29,7 +31,7 @@ class JSONMessage:
 class HubClient:
     def __init__(self, *args, **kwargs):
         self.name = kwargs.get('name')
-        self.hostname = kwargs.get('host', '188.166.144.124')
+        self.hostname = kwargs.get('host', PUBLIC_SERVER_ADDRESS[0])
         self.port = int(kwargs.get('port', 57990))
         self.address = (self.hostname, self.port)
         self.password = kwargs.get('password', '')

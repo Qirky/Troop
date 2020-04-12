@@ -86,7 +86,7 @@ class DummyInterface(BasicInterface):
         self.lang.start()
 
 class Interface(BasicInterface):
-    def __init__(self, client, title, language, logging=False):
+    def __init__(self, client, title, language):
 
         # Inherit
 
@@ -96,12 +96,6 @@ class Interface(BasicInterface):
         self.interpreters = {name: BooleanVar() for name in langnames}
 
         self.client = client
-
-        # Set logging
-
-        if logging:
-
-            self.set_up_logging()
 
         # Set title and configure the interface grid
 
@@ -173,13 +167,13 @@ class Interface(BasicInterface):
         self.c_scroll = Scrollbar(self.root)
         self.c_scroll.grid(row=2, column=4, sticky='nsew')
 
-        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=50, font="Font", 
+        self.console = Console(self.root, bg=COLOURS["Console"], fg="white", height=5, width=50, font="Font",
                             highlightthickness=0, yscrollcommand=self.c_scroll.set)
 
         self.console.grid(row=2, column=0, columnspan=2, stick="nsew")
 
         self.c_scroll.config(command=self.console.yview)
-        
+
         sys.stdout = self.console # routes stdout to print to console
 
         self.console_drag = ConsoleDragbar(self, bg="white", width=2)
@@ -766,7 +760,7 @@ class Interface(BasicInterface):
         return self.see_peer(self.text.marker)
 
     def see_peer(self, peer):
-        """ If the peer label (the peer's current tcl index +- 2 lines worth) is not 
+        """ If the peer label (the peer's current tcl index +- 2 lines worth) is not
             visible, make sure we can see it. """
         index        = peer.get_tcl_index()
         top_index    = "{}-2lines".format(index)
@@ -1028,7 +1022,7 @@ class Interface(BasicInterface):
         else:
             i = len(text)
         return i
-        
+
     def get_blank_line_up_index(self, index):
         """ Returns the index of the start of the previous blank line """
         text  = self.text.read()
@@ -1094,7 +1088,7 @@ class Interface(BasicInterface):
     def select_right(self, event):
         """ Finds the currently selected portion of text of the local peer
             and the row/col to update it to and calls self.UpdateSelect  """
-            
+
         self.update_select( *self.get_movement_index(self.move_marker_right) )
 
         return "break"
@@ -1247,7 +1241,7 @@ class Interface(BasicInterface):
 
         # If we click somewhere, remove the closed brackets tag
 
-        self.remove_highlighted_brackets() 
+        self.remove_highlighted_brackets()
 
         # Get location and process
 
@@ -1508,7 +1502,10 @@ class Interface(BasicInterface):
     # ===============
 
     def set_up_logging(self):
-        """ Checks if there is a logs folder, if not this creates it """
+        """
+        DEPRECATED
+        Checks if there is a logs folder, if not this creates it
+        """
 
         log_folder = os.path.join(ROOT_DIR, "logs")
 
