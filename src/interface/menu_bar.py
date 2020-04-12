@@ -8,7 +8,7 @@ except ImportError:
     from tkinter import Menu, DISABLED, NORMAL, StringVar
     from tkinter import filedialog as tkFileDialog
     from tkinter import messagebox as tkMessageBox
-    
+
 from functools import partial
 
 from ..config import *
@@ -28,8 +28,7 @@ class MenuBar(Menu):
         filemenu.add_command(label="Save",          command=self.save_file,   accelerator="Ctrl+S")
         filemenu.add_command(label="Open",          command=self.open_file,   accelerator="Ctrl+O")
         filemenu.add_separator()
-        filemenu.add_command(label="Start logging performance", command=lambda: "break")
-        filemenu.add_command(label="Import logged performance", command=self.root.ImportLog)
+        filemenu.add_command(label="Exit", command=self.root.client.kill)
         self.add_cascade(label="File", menu=filemenu)
 
         # Edit menu
@@ -66,7 +65,7 @@ class MenuBar(Menu):
             constmenu.add_checkbutton(label=str(name).title(),
                                       command  = partial(self.root.set_constraint, i),
                                       variable = self.root.text.constraint.using[i])
-            
+
         codemenu.add_cascade(label="Set Constraint", menu=constmenu)
 
         codemenu.add_separator()
@@ -80,9 +79,9 @@ class MenuBar(Menu):
             langmenu.add_checkbutton(label=langtitles[name],
                                      command  = partial(self.root.set_interpreter, interpreter),
                                      variable = self.root.interpreters[name])
-            
+
         codemenu.add_cascade(label="Choose language", menu=langmenu)
-        
+
         self.add_cascade(label="Code", menu=codemenu)
 
         # Help
@@ -94,9 +93,9 @@ class MenuBar(Menu):
         # Add to root
 
         self.visible = visible
-        
+
         if self.visible:
-            
+
             master.root.config(menu=self)
 
     def toggle(self, *args, **kwargs):
@@ -124,7 +123,7 @@ class MenuBar(Menu):
         lang_files = ("{} files".format(repr(self.root.lang)), self.root.lang.filetype )
         all_files = ("All files", "*.*")
         fn = tkFileDialog.askopenfilename(title="Open file", filetypes=(lang_files, all_files))
-        
+
         if len(fn):
 
             with open(fn) as f:
@@ -139,7 +138,7 @@ class PopupMenu(Menu):
     def __init__(self, master):
         self.root = master
         Menu.__init__(self, master.root, tearoff=0, postcommand=self.update)
-        self.add_command(label="Undo", command=self.root.undo, accelerator="Ctrl+Z") 
+        self.add_command(label="Undo", command=self.root.undo, accelerator="Ctrl+Z")
         self.add_command(label="Redo", command=self.root.redo, accelerator="Ctrl+Y")
         self.add_separator()
         self.add_command(label="Copy", command=self.root.copy, accelerator="Ctrl+C")
@@ -179,7 +178,7 @@ class ConsolePopupMenu(PopupMenu):
         self.root = master # console widget
         disable = lambda *e: None
         Menu.__init__(self, master.root, tearoff=0, postcommand=self.update)
-        self.add_command(label="Undo", command=disable, accelerator="Ctrl+Z", state=DISABLED) 
+        self.add_command(label="Undo", command=disable, accelerator="Ctrl+Z", state=DISABLED)
         self.add_command(label="Redo", command=disable, accelerator="Ctrl+Y", state=DISABLED)
         self.add_separator()
         self.add_command(label="Copy", command=self.root.copy, accelerator="Ctrl+C")
