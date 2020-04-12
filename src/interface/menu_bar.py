@@ -80,7 +80,7 @@ class MenuBar(Menu):
                                      command  = partial(self.root.set_interpreter, interpreter),
                                      variable = self.root.interpreters[name])
 
-        codemenu.add_cascade(label="Choose language", menu=langmenu)
+        codemenu.add_cascade(label="Choose Mode", menu=langmenu)
 
         self.add_cascade(label="Code", menu=codemenu)
 
