@@ -109,12 +109,14 @@ DUMMY         = -1
 FOXDOT        = 0
 TIDAL         = 1
 TIDALSTACK    = 2
-SUPERCOLLIDER = 3
-SONICPI       = 4
+TIDALGHC      = 3
+SUPERCOLLIDER = 4
+SONICPI       = 5
 
 langnames = { "foxdot"           : FOXDOT,
               "tidalcycles"      : TIDAL,
               "tidalcyclesstack" : TIDALSTACK,
+              "tidalcyclesghc"   : TIDALGHC,
               "supercollider"    : SUPERCOLLIDER,
               "sonic-pi"         : SONICPI,
               "none"             : DUMMY }
@@ -123,6 +125,7 @@ langtitles = { "foxdot"           : "FoxDot",
                "tidalcycles"      : "TidalCycles",
                "supercollider"    : "SuperCollider",
                "tidalcyclesstack" : "TidalCycles (stack)",
+               "tidalcyclesghc"   : "TidalCycles (ghc)",
                "sonic-pi"         : "Sonic-Pi",
                "none"             : "No Interpreter" }
 

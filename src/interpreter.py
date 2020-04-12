@@ -54,13 +54,13 @@ class DummyInterpreter:
     name = None
     def __init__(self, *args, **kwargs):
         self.re={}
-        
+
         self.syntax_lang = langtypes[kwargs.get("syntax", -1)]
 
         # If using another snytax, use the appropriate regex
 
         if self.syntax_lang != self.__class__:
-        
+
             self.re = {"tag_bold": self.syntax_lang.find_keyword, "tag_italic": self.syntax_lang.find_comment}
 
             self.syntax_lang.setup()
@@ -80,14 +80,14 @@ class DummyInterpreter:
         lastline   = int(end.split('.')[0]) + 1
 
         # Indicies of block to execute
-        block = [0,0]        
+        block = [0,0]
         
         # 1. Get position of cursor
         cur_x, cur_y = index.split(".")
         cur_x, cur_y = int(cur_x), int(cur_y)
-        
+
         # 2. Go through line by line (back) and see what it's value is
-        
+
         for line in range(cur_x, 0, -1):
             if not text.get("%d.0" % line, "%d.end" % line).strip():
                 break
@@ -102,20 +102,20 @@ class DummyInterpreter:
         block[1] = line
 
         return block
-    
+
     def evaluate(self, string, *args, **kwargs):
         self.print_stdin(string, *args, **kwargs)
         return
 
     def start(self):
         return self
-    
+
     def stdout(self, *args, **kwargs):
         pass
-    
+
     def kill(self, *args, **kwargs):
         pass
-    
+
     def print_stdin(self, string, name=None, colour="White"):
         """ Handles the printing of the execute code to screen with coloured
             names and formatting """
@@ -142,12 +142,12 @@ class DummyInterpreter:
     def stop_sound(self):
         """ Returns the string for stopping all sound in a language """
         return self.syntax_lang.stop_sound() if self.syntax_lang != None else ""
-    
+
     @staticmethod
     def format(string):
         """ Method to be overloaded in sub-classes for formatting strings to be evaluated """
         return str(string) + "\n"
-    
+
 class Interpreter(DummyInterpreter):
     id       = 99
     lang     = None
@@ -178,7 +178,7 @@ class Interpreter(DummyInterpreter):
     @staticmethod
     def _get_args(args):
         if isinstance(args, str):
-    
+
             args = shlex.split(args)
 
         elif isinstance(args, list) and len(args) == 1:
@@ -195,7 +195,7 @@ class Interpreter(DummyInterpreter):
         """ Opens the process with the interpreter language """
 
         try:
-        
+
             self.lang = Popen(self.path + self.args, shell=False, universal_newlines=True, bufsize=1,
                               stdin=PIPE,
                               stdout=self.f_out,
@@ -214,7 +214,7 @@ class Interpreter(DummyInterpreter):
         return self
 
     def load_bootfile(self):
-        """ 
+        """
         Loads the specified boot file. If it exists, it is defined
         in the class but can be overridden in conf/boot.txt.
         """
@@ -297,22 +297,22 @@ class Interpreter(DummyInterpreter):
                 # Check contents of file
                 # TODO -- get control of f_out and stdout
                 self.f_out.seek(0)
-                
+
                 message = []
-                
+
                 for stdout_line in iter(self.f_out.readline, ""):
-                
+
                     line = stdout_line.rstrip()
                     sys.stdout.write(line)
                     message.append(line)
-                
+
                 # clear tmpfile
                 self.f_out.truncate(0)
 
                 # Send console contents to the server
 
                 if len(message) > 0 and self.client.is_master():
-                    
+
                     self.client.send(MSG_CONSOLE(self.client.id, "\n".join(message)))
 
                 time.sleep(0.05)
@@ -336,7 +336,7 @@ class CustomInterpreter:
         return Interpreter(*self.args, **self.kwargs)
 
 class BuiltinInterpreter(Interpreter):
-    def __init__(self, client, args):   
+    def __init__(self, client, args):
         Interpreter.__init__(self, client, self.path, args)
 
 class FoxDotInterpreter(BuiltinInterpreter):
@@ -354,7 +354,7 @@ class FoxDotInterpreter(BuiltinInterpreter):
         return "{}\n\n".format(string)
 
     @classmethod
-    def find_comment(cls, string):        
+    def find_comment(cls, string):
         instring, instring_char = False, ""
         for i, char in enumerate(string):
             if char in ('"', "'"):
@@ -383,7 +383,7 @@ class TidalInterpreter(BuiltinInterpreter):
     path = 'ghci'
     filetype = ".tidal"
     name = "TidalCycles"
-    
+
     def start(self):
 
         # Use ghc-pkg to find location of boot-tidal
@@ -405,7 +405,7 @@ class TidalInterpreter(BuiltinInterpreter):
             self.boot_file = None
 
         Interpreter.start(self)
-        
+
         return self
 
     def load_bootfile(self):
@@ -434,7 +434,7 @@ class TidalInterpreter(BuiltinInterpreter):
         return
 
     @classmethod
-    def find_comment(cls, string):        
+    def find_comment(cls, string):
         instring, instring_char = False, ""
         for i, char in enumerate(string):
             if char in ('"', "'"):
@@ -449,7 +449,7 @@ class TidalInterpreter(BuiltinInterpreter):
                 if not instring and (i + 1) < len(string) and string[i + 1] == "-":
                     return [(i, len(string))]
         return []
-    
+
     @staticmethod
     def format(string):
         """ Used to formant multiple lines in haskell """
@@ -459,6 +459,9 @@ class TidalInterpreter(BuiltinInterpreter):
     def stop_sound(cls):
         """ Triggers the 'hush' command using Ctrl+. """
         return "hush"
+
+class GHCTidalInterpreter(TidalInterpreter):
+    path = "ghc"
 
 class StackTidalInterpreter(TidalInterpreter):
     path = "stack ghci"
@@ -542,8 +545,8 @@ class SuperColliderInterpreter(OSCInterpreter):
         lastline   = int(end.split('.')[0]) + 1
 
         # Indicies of block to execute
-        block = [0,0]        
-        
+        block = [0,0]
+
         # 1. Get position of cursor
         cur_y, cur_x = index.split(".")
         cur_y, cur_x = int(cur_y), int(cur_x)
@@ -579,9 +582,9 @@ class SuperColliderInterpreter(OSCInterpreter):
             # Only check line if it has text
             if len(line_text) > 0:
                 for char_num in range(cur_x - 1, -1, -1):
-                    
+
                     try:
-                        char = line_text[char_num] 
+                        char = line_text[char_num]
                     except IndexError as e:
                         print("left bracket, string is {}, index is {}".format(line_text, char_num))
                         raise(e)
@@ -606,9 +609,9 @@ class SuperColliderInterpreter(OSCInterpreter):
             # Only check line if it has text
             if len(line_text) > 0:
                 for char_num in range(cur_x, len(line_text)):
-                    
+
                     try:
-                        char = line_text[char_num] 
+                        char = line_text[char_num]
                     except IndexError as e:
                         print("right bracket, string is {}, index is {}".format(line_text, char_num))
                         raise(e)
@@ -642,7 +645,7 @@ class SonicPiInterpreter(OSCInterpreter):
         return msg
 
     @classmethod
-    def find_comment(cls, string):        
+    def find_comment(cls, string):
         instring, instring_char = False, ""
         for i, char in enumerate(string):
             if char in ('"', "'"):
@@ -668,12 +671,13 @@ class SonicPiInterpreter(OSCInterpreter):
     def stop_sound(cls):
         return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(cls.host, cls.port)
 
-        
+
 # Set up ID system
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
               TIDALSTACK    : StackTidalInterpreter,
+              TIDALGHC      : GHCTidalInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter,
               SONICPI       : SonicPiInterpreter,
               DUMMY         : DummyInterpreter }
