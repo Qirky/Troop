@@ -14,6 +14,10 @@ Linux users may need to install `python-tk` if you have not done so already:
 
 As of 01/01/20, Troop will no longer support Python 2. Users may find that their experience using Troop with Python 2 is less than desirable so please do consider upgrading your version of Python as it is no longer officially supported by the Python foundation.
 
+## Please note
+
+This is free software developed by one person in their free time so please understand that there may be bugs and it might not work perfectly for every OS and every live coding language - both of these change over time and it is often difficult to keep up. Please don't be pedantic and please don't expect the same quality of software from a company that employs hundreds of professional programmers. I made this as a fun tool as part of a University project to play with friends and have been maintaining it but the expectations and attitudes of many people have put me off continuing to do so. Thank you.
+
 ## Getting started
 
 There are two ways of using Troop; one is to download the latest release and run it as you would any other program on your computer, and the other is two run the files using Python. The first option does not require Python to be installed on your machine, but you do need to have correctly configured your live coding language of choice first e.g. FoxDot, which uses Python to run.
