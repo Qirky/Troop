@@ -748,7 +748,7 @@ class TroopRequestHandler(socketserver.BaseRequestHandler):
 
 class Client:
     bytes = TroopServer.bytes
-    timeout = 3
+    timeout = 30
     def __init__(self, handler, name="", is_dummy=False):
 
         self.handler = handler
