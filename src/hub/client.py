@@ -2,6 +2,7 @@ import json
 import socket
 import time
 import sys
+import threading
 
 from ..config import PUBLIC_SERVER_ADDRESS
 
@@ -42,17 +43,31 @@ class HubClient:
         except socket.error:
             sys.exit("Troop Hub Service | Error: could not connect to service")
 
+        self.polling_thread = threading.Thread(target=self.listen)
+        self.polling_thread.daemon = True
+
         self.running = False
 
     def start(self):
         ''' Connect to Hub and instantiate server  '''
         self.running = self.connect()
+        self.polling_thread.start()
+        while self.running:
+            try:
+                time.sleep(10)
+            except KeyboardInterrupt:
+                self.kill('KeyboardInterrupt', error=False)
+                self.running=False
+        return
+
+    def listen(self):
+        ''' Continually polls - currently has no handle except errors '''
         while self.running:
             try:
                 self.poll()
-                time.sleep(1)
             except Exception as e:
-                return self.kill(e)
+                self.kill(e)
+                self.running = False
         return
 
     def connect(self):
@@ -97,9 +112,9 @@ class HubClient:
         self.running = False
         return {}
 
-
-    def kill(self, message=""):
-        self.handle_error(message)
+    def kill(self, message="", error=True):
+        if error:
+            self.handle_error(message)
         self.send({'kill': str(message)})
 
     def recv(self):
