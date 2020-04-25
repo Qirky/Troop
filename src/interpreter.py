@@ -81,7 +81,7 @@ class DummyInterpreter:
 
         # Indicies of block to execute
         block = [0,0]
-        
+
         # 1. Get position of cursor
         cur_x, cur_y = index.split(".")
         cur_x, cur_y = int(cur_x), int(cur_y)
@@ -166,7 +166,7 @@ class Interpreter(DummyInterpreter):
 
         self.re = {"tag_bold": self.find_keyword, "tag_italic": self.find_comment}
 
-        self.path = shlex.split(path)
+        self.path = self._get_path(path)
 
         self.args = self._get_args(args)
 
@@ -175,8 +175,12 @@ class Interpreter(DummyInterpreter):
 
         self.setup()
 
-    @staticmethod
-    def _get_args(args):
+    def _get_path(self, path):
+        if self.name:
+            path = (BOOT_DATA.get(self.name.lower(), {}).get('path') or path)
+        return shlex.split(path)
+
+    def _get_args(self, args):
         if isinstance(args, str):
 
             args = shlex.split(args)
@@ -186,6 +190,13 @@ class Interpreter(DummyInterpreter):
             args = shlex.split(args[0])
 
         return args
+
+    def _get_bootfile(self):
+        """
+        Get the path of a specific custom bootfile or None
+        """
+        if self.name:
+            return BOOT_DATA.get(self.name.lower(), {}).get('bootfile')
 
     def setup(self):
         """ Overloaded in sub-classes """
@@ -219,7 +230,7 @@ class Interpreter(DummyInterpreter):
         in the class but can be overridden in conf/boot.txt.
         """
 
-        self.boot_file = self.get_custom_bootfile()
+        self.boot_file = self._get_bootfile()
 
         # Load data
         if self.boot_file is not None:
@@ -232,32 +243,6 @@ class Interpreter(DummyInterpreter):
                     self.lang.stdin.flush()
 
         return
-
-    def get_custom_bootfile(self):
-        """
-        Get the path of a specific custom bootfile or None if it
-        does not exist.
-        """
-
-        # Check boot file for overload
-
-        if self.name is not None and os.path.exists(BOOT_CONFIG_FILE):
-
-            with open(BOOT_CONFIG_FILE) as f:
-
-                for line in f.readlines():
-
-                    if line.startswith(self.name):
-
-                        data = line.split("=")
-
-                        path = data[-1].strip()
-
-                        if path not in ("''", '""'):
-
-                            return path
-
-        return None
 
     def get_path_as_string(self):
         """ Returns the executable input as a string """
@@ -414,7 +399,7 @@ class TidalInterpreter(BuiltinInterpreter):
         instead of loading each line of a boot file one by
         one
         """
-        self.boot_file = (self.get_custom_bootfile() or self.boot_file)
+        self.boot_file = (self._get_bootfile() or self.boot_file)
 
         if self.boot_file:
 
@@ -459,12 +444,6 @@ class TidalInterpreter(BuiltinInterpreter):
     def stop_sound(cls):
         """ Triggers the 'hush' command using Ctrl+. """
         return "hush"
-
-class GHCTidalInterpreter(TidalInterpreter):
-    path = "ghc"
-
-class StackTidalInterpreter(TidalInterpreter):
-    path = "stack ghci"
 
 # Interpreters over OSC (e.g. Sonic Pi)
 # -------------------------------------
@@ -676,8 +655,6 @@ class SonicPiInterpreter(OSCInterpreter):
 
 langtypes = { FOXDOT        : FoxDotInterpreter,
               TIDAL         : TidalInterpreter,
-              TIDALSTACK    : StackTidalInterpreter,
-              TIDALGHC      : GHCTidalInterpreter,
               SUPERCOLLIDER : SuperColliderInterpreter,
               SONICPI       : SonicPiInterpreter,
               DUMMY         : DummyInterpreter }

@@ -1,7 +1,8 @@
 import sys
+import json
 import os, os.path
 
-VERSION = "0.9.9"
+VERSION = "0.10.0"
 
 # Check for location of Python
 
@@ -64,7 +65,12 @@ def readin(prompt="", default=None):
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 SRC_DIR = os.path.join(os.path.dirname(__file__))
 CONF_DIR = os.path.join(SRC_DIR, "conf")
-BOOT_CONFIG_FILE = os.path.join(CONF_DIR, "boot.txt")
+BOOT_CONFIG_FILE = os.path.join(CONF_DIR, "boot.json")
+
+BOOT_DATA = {}
+if os.path.exists(BOOT_CONFIG_FILE):
+    with open(BOOT_CONFIG_FILE) as f:
+        BOOT_DATA = json.loads(f.read())
 
 
 # Check for OS -> mac, linux, win
@@ -108,15 +114,11 @@ PUBLIC_SERVER_ADDRESS = ("206.189.25.52", 57890)
 DUMMY         = -1
 FOXDOT        = 0
 TIDAL         = 1
-TIDALSTACK    = 2
-TIDALGHC      = 3
-SUPERCOLLIDER = 4
-SONICPI       = 5
+SUPERCOLLIDER = 2
+SONICPI       = 3
 
 langnames = { "foxdot"           : FOXDOT,
               "tidalcycles"      : TIDAL,
-              "tidalcyclesstack" : TIDALSTACK,
-              "tidalcyclesghc"   : TIDALGHC,
               "supercollider"    : SUPERCOLLIDER,
               "sonic-pi"         : SONICPI,
               "none"             : DUMMY }
@@ -124,8 +126,6 @@ langnames = { "foxdot"           : FOXDOT,
 langtitles = { "foxdot"           : "FoxDot",
                "tidalcycles"      : "TidalCycles",
                "supercollider"    : "SuperCollider",
-               "tidalcyclesstack" : "TidalCycles (stack)",
-               "tidalcyclesghc"   : "TidalCycles (ghc)",
                "sonic-pi"         : "Sonic-Pi",
                "none"             : "No Interpreter" }
 
