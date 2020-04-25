@@ -233,7 +233,7 @@ class Interpreter(DummyInterpreter):
         self.boot_file = self._get_bootfile()
 
         # Load data
-        if self.boot_file is not None:
+        if self.boot_file:
 
             with open(self.boot_file) as f:
 
