@@ -1,4 +1,4 @@
-# Troop v0.9.8
+# Troop v0.10.0
 
 ## Real-time collaborative live coding
 
@@ -6,7 +6,7 @@ Troop is a real-time collaborative tool that enables group live coding within th
 
 Troop is not a language for live coding but a tool for connecting multiple live coders over a network - so you'll need to install your language of choice before you get started. By default Troop runs with the Python based language, [FoxDot](https://github.com/Qirky/FoxDot), but it can also be used with [TidalCycles](https://tidalcycles.org/) and [SuperCollider](http://supercollider.github.io/). Click the links to find out more about installing. Both TidalCycles and FoxDot require [SuperCollider](http://supercollider.github.io/) to work, so it's a good bet you'll need it.
 
-Troop is compatible with both Python 2 and 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
+Troop runs using Python 3, which can be downloaded from [here](https://www.python.org/) (see **troubleshooting** below for more help on installing Python) but make sure that you use the same version of Python that use to run [FoxDot](https://github.com/Qirky/FoxDot) when doing so.
 
 Linux users may need to install `python-tk` if you have not done so already:
 
@@ -17,6 +17,10 @@ As of 01/01/20, Troop will no longer support Python 2. Users may find that their
 ## Please note
 
 This is free software developed by one person in their free time so please understand that there may be bugs and it might not work perfectly for every OS and every live coding language - both of these change over time and it is often difficult to keep up. Please don't be pedantic and please don't expect the same quality of software from a company that employs hundreds of professional programmers. I made this as a fun tool as part of a University project to play with friends and have been maintaining it but the expectations and attitudes of many people have put me off continuing to do so. Thank you.
+
+## v0.10 Update 23/05/20
+
+There are some new ways of configuring Troop to run with different installations of your live coding languages, particularly Tidal Cycles. Please read the [CONFIG.md](/CONFIG.md) file for more information.
 
 ## Getting started
 
@@ -69,10 +73,6 @@ Alternatively you can start Troop in a different "mode" so that it is interpreti
 **[TidalCycles](https://tidalcycles.org/)**
 
 	python run-client.py --mode TidalCycles
-
-**TidalCycles (installed using Stack)**
-
-	python run-client.py --mode TidalCyclesStack
 
 **[SuperCollider](https://supercollider.github.io/)**
 
