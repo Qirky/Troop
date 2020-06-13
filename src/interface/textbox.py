@@ -351,14 +351,16 @@ class ThreadSafeText(Text, OTClient):
     def handle_set_mark(self, message):
         """ Updates a peer's location """
         peer = self.get_peer(message)
-        peer.move(message["index"])
+        if peer:
+            peer.move(message["index"])
         return
 
     def handle_select(self, message):
         """ Update's a peer's selection """
         peer = self.get_peer(message)
-        peer.select_set(message["start"], message["end"])
-        self.update_colours()
+        if peer:
+            peer.select_set(message["start"], message["end"])
+            self.update_colours()
         return
 
     def handle_evaluate(self, message):
@@ -366,9 +368,11 @@ class ThreadSafeText(Text, OTClient):
 
         peer = self.get_peer(message)
 
-        string = peer.highlight(message["start"], message["end"])
+        if peer:
 
-        self.root.lang.evaluate(string, name=str(peer), colour=peer.bg)
+            string = peer.highlight(message["start"], message["end"])
+
+            self.root.lang.evaluate(string, name=str(peer), colour=peer.bg)
 
         return
 
@@ -377,15 +381,18 @@ class ThreadSafeText(Text, OTClient):
 
         peer = self.get_peer(message)
 
-        self.root.lang.evaluate(message["string"], name=str(peer), colour=peer.bg)
+        if peer:
+
+            self.root.lang.evaluate(message["string"], name=str(peer), colour=peer.bg)
 
         return
 
     def handle_remove(self, message):
         """ Removes a Peer from the session based on the contents of message """
         peer = self.get_peer(message)
-        print("Peer '{!s}' has disconnected".format(peer))
-        peer.remove()
+        if peer:
+            print("Peer '{!s}' has disconnected".format(peer))
+            peer.remove()
         return
 
     def handle_set_all(self, message):
@@ -645,7 +652,18 @@ class ThreadSafeText(Text, OTClient):
 
                 except Exception as e:
 
-                    print("Exception occurred in message {!r}: {!r} {!r}".format(self.handles[msg.type].__name__, type(e), e))
+                    func = self.handles.get(msg.type)
+                    
+                    if func:
+                    
+                        func = func.__name__
+
+                    else:
+
+                        func = msg.type
+
+
+                    print("Exception occurred in message {!r}: {!r} {!r}".format(func, type(e), e))
                     raise(e)
 
                 # Update any other idle tasks
