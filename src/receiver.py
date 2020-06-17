@@ -74,7 +74,7 @@ class Receiver:
 
                 if packet is None:
 
-                    continue
+                    raise EmptyMessageError
 
             except(OSError, socket.error) as e:
 
