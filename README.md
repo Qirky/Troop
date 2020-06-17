@@ -1,4 +1,4 @@
-# Troop v0.10.1
+# Troop v0.10.2
 
 ## Real-time collaborative live coding
 
@@ -20,7 +20,8 @@ This is free software developed by one person in their free time so please under
 
 ## v0.10 Update 23/05/20
 
-There are some new ways of configuring Troop to run with different installations of your live coding languages, particularly Tidal Cycles. Please read the [CONFIG.md](/CONFIG.md) file for more information.
+- v0.10.1 - There are some new ways of configuring Troop to run with different installations of your live coding languages, particularly Tidal Cycles. Please read the [CONFIG.md](/CONFIG.md) file for more information.
+- v0.10.2 - The "keep-alive" functionality has been moved into a command line argument. If you have connection issues and users aren't being kicked from session when the client crashes then try starting the server with the `--keepalive` flag. This will send a 'ping' message to clients who then return it. Any clients that don't return the ping in 30 seconds are forcefully disconnected.
 
 ## Getting started
 

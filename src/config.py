@@ -2,7 +2,7 @@ import sys
 import json
 import os, os.path
 
-VERSION = "0.10.1"
+VERSION = "0.10.2"
 
 # Check for location of Python
 
