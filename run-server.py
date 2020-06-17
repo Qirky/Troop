@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--port", help="Specify a port to use (default is 57890, auto-increments when multiple instances are running.)", default=57890, type=int)
     parser.add_argument("-P", "--password", help="Set a password. If not specified, you will be prompted for it.")
     parser.add_argument("-d", "--debug", help="Run the server in debug mode.", default=False, action='store_true')
+    parser.add_argument("-k", "--keepalive", help="Turn on server keep-alive to force kick 'dead' clients.", default=False, action='store_true')
     parser.add_argument("-l", "--log", help="Turn the logging on. The logs will be saved to the 'logs' directory.", default=False, action='store_true')
     parser.add_argument("--hub", help="Create a public Troop server via the Troop Hub Service.")
     args = parser.parse_args()
@@ -34,7 +35,7 @@ if __name__ == '__main__':
             from src.hub import HubClient, HubParser
             myServer = HubClient(password=password, **HubParser(args.hub))
         else:
-            myServer = TroopServer(password=password, port=args.port, debug=args.debug, log=args.log)
+            myServer = TroopServer(password=password, port=args.port, debug=args.debug, log=args.log, keepalive=args.keepalive)
         myServer.start()
     except KeyboardInterrupt:
         # Exit cleanly on Ctrl + c

@@ -50,7 +50,7 @@ class TroopServer(OTServer):
     """
     bytes   = 2048
     version = VERSION
-    def __init__(self, password="", port=57890, log=False, debug=False):
+    def __init__(self, password="", port=57890, log=False, debug=False, keepalive=False):
 
         # Operation al transform info
 
@@ -92,6 +92,9 @@ class TroopServer(OTServer):
             except socket.error:
 
                 self.port += 1
+
+        # Is keep alive enabled?
+        self.keepalive_enabled = False
 
         # Reference to the thread that is listening for new connections
         self.server_thread = Thread(target=self.server.serve_forever)
@@ -266,9 +269,11 @@ class TroopServer(OTServer):
 
                 # Poll users to make sure they are connected
 
-                self.msg_queue.put(MSG_KEEP_ALIVE())
+                if self.keepalive_enabled:
 
-                self.purge_client_timeouts()
+                    self.msg_queue.put(MSG_KEEP_ALIVE())
+
+                    self.purge_client_timeouts()
 
                 sleep(1)
 
