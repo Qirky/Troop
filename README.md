@@ -1,4 +1,4 @@
-# Troop v0.10.0
+# Troop v0.10.1
 
 ## Real-time collaborative live coding
 
