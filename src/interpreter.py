@@ -614,8 +614,23 @@ class SuperColliderInterpreter(OSCInterpreter):
 class SonicPiInterpreter(OSCInterpreter):
     filetype = ".rb"
     host = 'localhost'
-    port = 4557
     name = "Sonic-Pi"
+
+    def __init__(self, *args, **kwargs):
+        self.port = self._find_port()
+        OSCInterpreter.__init__(self, *args, **kwargs)
+
+    # Adapted from https://github.com/emlyn/sonic-pi-tool/blob/d8b1a1394052bfa83d91c4d941d1b89b16cd4b4d/sonic-pi-tool.py#L311
+    def _find_port(self):
+        try:
+            with open(os.path.expanduser("~/.sonic-pi/log/server-output.log")) as f:
+                for line in f:
+                    m = re.search('^Listen port: *([0-9]+)', line)
+                    if m:
+                        return int(m.groups()[0])
+        except FileNotFoundError:
+            return 4557
+
 
     def new_osc_message(self, string):
         """ Returns OSC message for Sonic Pi """
