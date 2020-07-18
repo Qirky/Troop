@@ -623,7 +623,8 @@ class SonicPiInterpreter(OSCInterpreter):
     # Adapted from https://github.com/emlyn/sonic-pi-tool/blob/d8b1a1394052bfa83d91c4d941d1b89b16cd4b4d/sonic-pi-tool.py#L311
     def _find_port(self):
         try:
-            with open(os.path.expanduser("~/.sonic-pi/log/server-output.log")) as f:
+            homePath = os.environ.get('SONIC_PI_HOME', '~')
+            with open(os.path.expanduser(homePath + "/.sonic-pi/log/server-output.log")) as f:
                 for line in f:
                     m = re.search('^Listen port: *([0-9]+)', line)
                     if m:
