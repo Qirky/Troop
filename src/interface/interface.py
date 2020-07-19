@@ -301,7 +301,7 @@ class Interface(BasicInterface):
         self.text.bind("<{}-o>".format(CtrlKey),  self.menu.open_file)
         self.text.bind("<{}-n>".format(CtrlKey),  self.menu.new_file)
 
-        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling", "Shift_L", "Shift_R", "Escape")
+        self.ignored_keys = (CtrlKey + "_L", CtrlKey + "_R", "sterling", "Shift_L", "Shift_R", "Escape", "Alt_L")
 
         # Directional commands
 
@@ -603,6 +603,8 @@ class Interface(BasicInterface):
         elif (event.keysym in self.ignored_keys):
 
             self.input_blocking = False
+
+            self.last_keypress  = event.keysym
 
             return "break"
 
@@ -1172,7 +1174,10 @@ class Interface(BasicInterface):
 
 
     def single_line_evaluate(self, event=None):
-        """ Finds contents of the current line and sends a message to each user (inc. this one) to evaluate """
+        """
+        Finds contents of the current line and sends a message to each user (inc. this one) to evaluate.
+        Will also evaluate selected code.
+        """
 
         if self.input_blocking:
 
@@ -1202,7 +1207,12 @@ class Interface(BasicInterface):
 
         else:
 
-            lines = self.get_current_block()
+            if self.text.marker.has_selection():
+                row1, _ = self.text.number_index_to_row_col(self.text.marker.select_start())
+                row2, _ = self.text.number_index_to_row_col(self.text.marker.select_end())
+                lines = [row1, row2 + 1]
+            else:
+                lines = self.get_current_block()
 
             a, b = ("%d.0" % n for n in lines)
 
