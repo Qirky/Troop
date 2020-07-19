@@ -662,9 +662,8 @@ class SonicPiInterpreter(OSCInterpreter):
         start, end = "1.0", text.index("end")
         return [int(index.split(".")[0]) for index in (start, end)]
 
-    @classmethod
-    def stop_sound(cls):
-        return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(cls.host, cls.port)
+    def stop_sound(self):
+        return 'osc_send({!r}, {}, "/stop-all-jobs")'.format(self.host, self.port)
 
 
 # Set up ID system
